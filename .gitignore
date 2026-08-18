@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+
+# Rust (if rebuilding the bundled tigercli)
+tools/tigercli/target/
+
+# Scratch outputs
+*.bin
