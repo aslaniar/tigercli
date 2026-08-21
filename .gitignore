@@ -1,0 +1,23 @@
+# macOS junk
+.DS_Store
+._*
+
+# research data / memory dumps (never versioned, never pushed)
+*.bin
+destiny_bubbles - *.csv
+.obsidian/
+
+# heavy machine-local trees (game install, build copies, runtime)
+Game/
+RE_build/
+RE_output/
+community_forks/
+Sunrise/
+mac-port/
+linux-port/
+.claude/
+
+# build artifacts in the tools dir
+RE_tools/bin/
+RE_tools/obj/
+RE_tools/tigercli/

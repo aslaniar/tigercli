@@ -1,0 +1,9 @@
+$$ validator breakpoint - full record dump per nonzero-expected hit
+.logopen C:\Users\rasla\Downloads\destiny-preservation\RE_output\content\windbg_validator.log
+.echo === SCRIPT STARTED ===
+.echo === ATTACHED ===
+bp destiny2+0x381DD0 ".printf \"=== kind=%02x id=%04x exp=%08x\\n\", by(poi(@rsp+38)+16c), wo(poi(@rsp+38)+4), dwo(poi(@rsp+38)+168); .printf \"args: rcx=%p rdx=%04x r8=%p r9=%08x p5=%04x p6=%02x\\n\", @rcx, @rdx, @r8, @r9, wo(@rsp+28), by(@rsp+30); dq poi(@rsp+38) L20; dd poi(@rsp+38)+160 L8; g"
+.echo === BREAKPOINT ARMED ===
+bl
+.echo === RESUMING ===
+g
