@@ -1,6 +1,7 @@
 # macOS junk
 .DS_Store
 ._*
+__pycache__/
 
 # research data / memory dumps (never versioned, never pushed)
 *.bin

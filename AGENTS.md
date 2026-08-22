@@ -203,6 +203,25 @@ failure mode from this front. DO NOT re-learn them.
     census as the arbiter. The win came from the upstream-exact 403 as a single
     falsifiable unit — not from another shape theory.
 
+11. **AN EXONERATION IS ONLY VALID IN THE DIRECTION IT WAS TESTED.**
+    Record the DIRECTION of every negative test, and never generalise a
+    one-directional negative into "X is exonerated." Cost of the violation
+    (2026-08-22, FINDINGS 15.8/15.9): 14.17 declared the flags "fully
+    exonerated" from two probes that BOTH turned flags ON. The true cause was
+    a flag being ON, under which "still broken" was the PREDICTED result, not
+    a refutation. That false exoneration removed flags from the candidate set
+    for six days, nine findings entries, an outside escalation and two full
+    sessions of server-side search that kept correctly concluding the data was
+    healthy - because it always was.
+12. **EVERY BOOT BRIEF STATES ITS GRAPHICS DELTA.** On this Mac the renderer
+    compiles cold every launch (no persistent MoltenVK/DXMT shader cache), and
+    character pick is the first heavy renderer work. Changing an EQUIPPED
+    item's definition changes what must compile there. Cost of the violation
+    (2026-08-22, FINDINGS 15.7): a data-correct loadout experiment introduced
+    two never-before-rendered weapon models and crashed the game at pick - the
+    brief had named an art-index hazard and missed the real one. State how
+    many new models an experiment introduces, and minimise it.
+
 ## THE ANTI-RABBIT-HOLE RULES (2026-08-20, binding — the execution contract for lanes AND the main session)
 
 The observed killer failure = the RABBIT HOLE: reacting to a symptom

@@ -37,7 +37,7 @@ behavior at all (embedded mode never took the branches these fixes touch).
 |---|---|---|
 | Toolchain | MSVC / Visual Studio | llvm-mingw (`x86_64-w64-mingw32-clang`/`clang++`), cross-compiled on macOS |
 | Project files | `Sunrise.sln`, `Sunrise/Sunrise.vcxproj` (client), `Sunrise/sunrise-server.vcxproj` (standalone server) | `RE_build/Sunrise-fork-inventory/Sunrise/CMakeLists.txt` — hand-written, not generated from the `.vcxproj` files |
-| Repo | `RE_build/Sunrise-fork` (git-tracked, canonical) | `RE_build/Sunrise-fork-inventory` (**no `.git` at all** — untracked working copy) |
+| Repo | `RE_build/Sunrise-fork` (git-tracked, canonical) | `RE_build/Sunrise-fork-inventory` (**HAS its own `.git`, 170 commits — corrected 2026-08-22**; it, not `Sunrise-fork`, carries the real equip-front history. `Sunrise-fork` has 22 commits and its HEAD lacks the S2/equip work) |
 | Server target | Exists natively in the `.vcxproj` | **Net-new as of today.** No standalone-server CMake target existed before this session; the previously-running `sunrise-server.exe` on this Mac was a pre-built Windows/MSVC binary with no Mac build path at all. |
 
 **The CMakeLists.txt file list is hand-derived, not authoritative.** It was
@@ -68,7 +68,8 @@ Two Mac-only build quirks, neither applicable to MSVC:
   `sunrise-server.exe` has apparently always been sufficient — no equivalent
   setting exists in `sunrise-server.vcxproj`.
 
-**Source-control debt to watch**: today's five (now six, see §1) source
+**Source-control debt to watch** (note: `Sunrise-fork-inventory` DOES have git —
+see §2's table, corrected 2026-08-22): today's five (now six, see §1) source
 fixes were iterated live in `Sunrise-fork-inventory` and had to be manually
 copied + committed to `Sunrise-fork` afterward — one (`state_runtime.cpp`)
 was missed until the very end of the session and nearly shipped only in the
