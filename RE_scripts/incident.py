@@ -20,7 +20,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DB = Path(r"C:\Users\rasla\.local\share\opencode\opencode.db")
-GAME_LOG = ROOT / "dcv build" / "bin" / "x64" / "Sunrise" / "logs" / "sunrise.log"
+GAME_LOG = ROOT / "Game" / "bin" / "x64" / "Sunrise" / "logs" / "sunrise.log"
+# PC-era path kept as a fallback (the dcv build tree when running on Windows).
+GAME_LOG_PC = ROOT / "dcv build" / "bin" / "x64" / "Sunrise" / "logs" / "sunrise.log"
+if not GAME_LOG.exists() and GAME_LOG_PC.exists():
+    GAME_LOG = GAME_LOG_PC
 S0_LOG = ROOT / "RE_output" / "s0_accept" / "Sunrise" / "logs" / "sunrise.log"
 S1_LOG = ROOT / "RE_output" / "s1_accept" / "Sunrise" / "logs" / "sunrise.log"
 
