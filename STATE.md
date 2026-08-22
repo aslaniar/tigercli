@@ -1,29 +1,33 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-21 ~21:3x. THE TWO BUGS (disabled weapons + inventory
-model loop): SERVER-SIDE DATA SPACE EXHAUSTED - FINDINGS 14.22. The
-entry-content synthesis experiment (gear got real catalog rows 14..36,
-wire-verified list=16/st=17x8) changed NOTHING; 14.18's theory family is
-fully dead, render rows verified complete, instance bytes verified correct.
-Both bugs live client-side of the family-4/3 intake. TOP NEW THEORY
-(unverified): our definitionIndex numbering diverges from the client's
-native index space -> the client resolves weapons/plugs/arrangements to
-wrong definitions (subclasses tolerate it because buckets carry HASHES).
-Next: verify a weapon's native index vs ours; then client RE on the Ghidra
-box (weapon-enabled gate + preview-loader wait); graphics-layer (DXMT)
-theory for the loop as the alternative. f4dump instruments still deployed
-(info-level lines, harmless). Synth data reverted to faithful shape.
+Updated: 2026-08-21 ~23:0x. THE TWO BUGS (disabled weapons + inventory model
+loop): ESCALATED for outside review. Tonight eliminated, by wire-level
+verification or controlled experiment: every server-side data theory
+(14.19-14.22), definitionIndex-space mismatch (14.23 - our numbering IS the
+native space, 0/15424 mismatches vs the slot-48 table), and the 0xE06380
+weapon/armor validation-chain hypothesis (14.23 - handler never runs in our
+flow; first unfiltered deploy crashed via a 145k-line log flood, reverted,
+caller-filtered redeploy = silent). Both bugs live client-side beyond any
+path we have mapped; next lane needs systematic client RE of the TRUE
+intake path (queuez sweep -> instance store) or the DXMT-graphics theory
+for the model loop. REVIEW QUESTIONS in FINDINGS 14.23.
 
-TOOLING: RE_scripts/probe_cache_v24.py (v24 parser + two-segment checksum),
-probe_native_entry_indices.py, restamp_build_data.py (PE identity ->
-cache offsets 12/16), synth_gear_entry_lists.py (kept for reference;
-offset +11 lesson inside). Server deploy = kill old process FIRST
-(a running old binary silently serves - cost one boot), restamp after
-every rebuild, content JSONs OVERRIDE the cache at every boot
-(s1_domains_*.json in s1_accept/content are the runtime truth for the six
-swapped domains; itemDetails are cache-only).
+DEPLOYED NOW: server (f4dump instrument still on, harmless) with faithful
+cache+json (synth reverted); client DLL f78614f0 (filtered item_gate -
+silent dead weight, strip candidate). BACKUPS: steam_api64.dll.pre-itemgate
+= 7b70ba68 known-good | sunrise-server.exe.bak_f4dump |
+cache/json .bak_pre_synth.
 
-PREVIOUS (2026-08-21 ~20:0x): graphics/UI closed enough to develop; ship
+TOOLS: probe_cache_v24.py / probe_native_entry_indices.py /
+restamp_build_data.py / synth_gear_entry_lists.py (+offset+11 lesson).
+DEPLOY RULES LEARNED: kill old server before swap (a running old binary
+silently serves - cost one boot); restamp after every rebuild; content
+JSONs override the cache at boot (s1_domains_*.json in s1_accept/content =
+runtime truth for six swapped domains; itemDetails are cache-only); verify
+observer call volume BEFORE deploying; verify THE WIRE changed before
+accepting an experiment's negative.
+
+PREVIOUS (2026-08-21 ~18:1x): graphics/UI closed enough to develop; ship
 + Sunrise UI work via gated-draw config; menu HOME key; pick-crash =
 DXMT cold-compile quirk mitigated by cache warmth. Git convergence parked
 at integration @ 88be8bb+.
