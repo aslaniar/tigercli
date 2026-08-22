@@ -58,20 +58,22 @@ def parse(path):
     ok = off == len(data)
     return dict(data=data, version=version, ts=ts, size=size, eqhash=eqhash,
                 counts=counts, light=(light_row, stat_rows, extracted), ck=stored_ck,
-                offsets=offsets, total=off, ok=ok)
+                ck_off=ck_off, offsets=offsets, total=off, ok=ok)
 
 
-def fnv(data):
-    h = 14695981039346656037
-    for b in data:
+def fnv(bs, h=14695981039346656037):
+    for b in bs:
         h ^= b
         h = (h * 1099511628211) & 0xFFFFFFFFFFFFFFFF
     return h
 
 
 def checksum(d):
-    """FNV-1a from the basis over constants (@84..92) then every domain byte (cache_payload_writer)."""
-    return fnv(d["data"][84:])
+    """FNV-1a from the basis over the constants block then every domain byte.
+    Two segments: [ck_off-8 : ck_off] (InvestmentConstants) and [ck_off+8 : end]
+    (the whole payload) - the stored checksum's own slot is skipped."""
+    off = d["ck_off"]
+    return fnv(d["data"][off + 8:], fnv(d["data"][off - 8:off]))
 
 
 def details(d):
