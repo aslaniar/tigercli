@@ -1,16 +1,24 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-21 ~13:40 by the same fresh MAC session, post-port cleanup
-pass (session ending, handing back to opencode next). THE MAC PORT IS DONE:
-client and server both run, hybrid external mode closes the loop, user-
-confirmed "looks exactly like how it did on the gaming rig." Full port arc in
-FINDINGS_2026-08-21.md §14.6 (seven root causes). THIS session's post-port
-cleanup pass (perf + FPS HUD + two new bugs surfaced by the port actually
-working) is in §14.7. **See MAC_VS_PC_DIVERGENCE.md for the single reference
-on everything that differs between the two platforms** — read that file
-before touching either tree so a PC-side fix and a Mac-side fix don't step on
-each other. The rig-era fronts below (swap/equip, veteran hunt, opcode work)
-remain UNCHANGED + untouched by today's Mac work.
+Updated: 2026-08-21 ~20:0x. THE TWO BUGS (disabled weapons + inventory
+model loop): 14.18's root cause ("gear socket-entry-lists never built")
+did NOT survive disk re-verification - see FINDINGS 14.19. The served
+cache is faithful to the raw blobs (weapons' entryList=0 is what the blob
+says; subclasses are bucket 16 with catalog indices, not "1..1000");
+equipped-gear details are healthy; upstream never solved this front.
+Leading unproven theory: the unconditional `socketEntryContentsResolved=true`
+on gear instances resolved against EMPTY list row 0 (FINDINGS 14.19).
+Next = zero-boot read of resolve_socket_states + bounds emission, then a
+one-variable boot (flip the flag on empty lists) or a wire capture first.
+New tool: RE_scripts/probe_cache_v24.py (correct v24 layout) +
+probe_native_entry_indices.py; checksum recipe verified.
+
+PREVIOUS (2026-08-21 ~18:1x): graphics/UI closed enough to develop; ship
++ Sunrise UI work via gated-draw config; menu HOME key; pick-crash =
+DXMT cold-compile quirk mitigated by cache warmth. Deployed: 7b70ba68-
+generation DLL, current runtime settings (ui on, warp probe, renderer on,
+hud_always=false), fresh server per boot. Git convergence parked at
+integration @ 88be8bb+.
 
 ## POST-PORT CLEANUP (2026-08-21 ~13:00-13:40) — perf + FPS HUD + two new bugs
 
