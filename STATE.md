@@ -1,24 +1,32 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-21 ~20:0x. THE TWO BUGS (disabled weapons + inventory
-model loop): 14.18's root cause ("gear socket-entry-lists never built")
-did NOT survive disk re-verification - see FINDINGS 14.19. The served
-cache is faithful to the raw blobs (weapons' entryList=0 is what the blob
-says; subclasses are bucket 16 with catalog indices, not "1..1000");
-equipped-gear details are healthy; upstream never solved this front.
-Leading unproven theory: the unconditional `socketEntryContentsResolved=true`
-on gear instances resolved against EMPTY list row 0 (FINDINGS 14.19).
-Next = zero-boot read of resolve_socket_states + bounds emission, then a
-one-variable boot (flip the flag on empty lists) or a wire capture first.
-New tool: RE_scripts/probe_cache_v24.py (correct v24 layout) +
-probe_native_entry_indices.py; checksum recipe verified.
+Updated: 2026-08-21 ~21:3x. THE TWO BUGS (disabled weapons + inventory
+model loop): SERVER-SIDE DATA SPACE EXHAUSTED - FINDINGS 14.22. The
+entry-content synthesis experiment (gear got real catalog rows 14..36,
+wire-verified list=16/st=17x8) changed NOTHING; 14.18's theory family is
+fully dead, render rows verified complete, instance bytes verified correct.
+Both bugs live client-side of the family-4/3 intake. TOP NEW THEORY
+(unverified): our definitionIndex numbering diverges from the client's
+native index space -> the client resolves weapons/plugs/arrangements to
+wrong definitions (subclasses tolerate it because buckets carry HASHES).
+Next: verify a weapon's native index vs ours; then client RE on the Ghidra
+box (weapon-enabled gate + preview-loader wait); graphics-layer (DXMT)
+theory for the loop as the alternative. f4dump instruments still deployed
+(info-level lines, harmless). Synth data reverted to faithful shape.
 
-PREVIOUS (2026-08-21 ~18:1x): graphics/UI closed enough to develop; ship
+TOOLING: RE_scripts/probe_cache_v24.py (v24 parser + two-segment checksum),
+probe_native_entry_indices.py, restamp_build_data.py (PE identity ->
+cache offsets 12/16), synth_gear_entry_lists.py (kept for reference;
+offset +11 lesson inside). Server deploy = kill old process FIRST
+(a running old binary silently serves - cost one boot), restamp after
+every rebuild, content JSONs OVERRIDE the cache at every boot
+(s1_domains_*.json in s1_accept/content are the runtime truth for the six
+swapped domains; itemDetails are cache-only).
+
+PREVIOUS (2026-08-21 ~20:0x): graphics/UI closed enough to develop; ship
 + Sunrise UI work via gated-draw config; menu HOME key; pick-crash =
-DXMT cold-compile quirk mitigated by cache warmth. Deployed: 7b70ba68-
-generation DLL, current runtime settings (ui on, warp probe, renderer on,
-hud_always=false), fresh server per boot. Git convergence parked at
-integration @ 88be8bb+.
+DXMT cold-compile quirk mitigated by cache warmth. Git convergence parked
+at integration @ 88be8bb+.
 
 ## POST-PORT CLEANUP (2026-08-21 ~13:00-13:40) — perf + FPS HUD + two new bugs
 
