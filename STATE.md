@@ -1,31 +1,26 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-21 ~23:0x. THE TWO BUGS (disabled weapons + inventory model
-loop): ESCALATED for outside review. Tonight eliminated, by wire-level
-verification or controlled experiment: every server-side data theory
-(14.19-14.22), definitionIndex-space mismatch (14.23 - our numbering IS the
-native space, 0/15424 mismatches vs the slot-48 table), and the 0xE06380
-weapon/armor validation-chain hypothesis (14.23 - handler never runs in our
-flow; first unfiltered deploy crashed via a 145k-line log flood, reverted,
-caller-filtered redeploy = silent). Both bugs live client-side beyond any
-path we have mapped; next lane needs systematic client RE of the TRUE
-intake path (queuez sweep -> instance store) or the DXMT-graphics theory
-for the model loop. REVIEW QUESTIONS in FINDINGS 14.23.
-
-DEPLOYED NOW: server (f4dump instrument still on, harmless) with faithful
-cache+json (synth reverted); client DLL f78614f0 (filtered item_gate -
-silent dead weight, strip candidate). BACKUPS: steam_api64.dll.pre-itemgate
-= 7b70ba68 known-good | sunrise-server.exe.bak_f4dump |
-cache/json .bak_pre_synth.
+Updated: 2026-08-21 ~23:4x. THE TWO BUGS: ESCALATION COMPLETE (redteam
+review integrated, FINDINGS 14.24). Tonight's net: ALL server-side data
+theories eliminated by wire verification or experiment (14.19-14.22);
+index space native-aligned 0/15424 (14.23); client gates: 0xE06380 never
+runs in our flow (equip-transition gate), FUN_140547800 = occupancy check
+(f0=0/1 correlates perfectly - item_gate instrument EXHAUSTED, strip
+candidate). True intake->UI path + preview wait unmapped = Windows Ghidra
+work. OPEN DISCRIMINATOR: does ANY char-select preview render on Mac,
+ever? If never -> model loop is DXMT/Metal stall, not data.
+DEPLOYED: server PID since ~21:00 (f4dump on; RESTART before next real
+session per fresh-session rule - tonight's ship-invisible + ability-swap-
+to-spawn were session-age artifacts); cache+json faithful on disk;
+client DLL a260ad30 (item_gate v3, deduped+occupancy-aware - keep for one
+more boot then strip if nothing new). BACKUPS unchanged.
 
 TOOLS: probe_cache_v24.py / probe_native_entry_indices.py /
 restamp_build_data.py / synth_gear_entry_lists.py (+offset+11 lesson).
-DEPLOY RULES LEARNED: kill old server before swap (a running old binary
-silently serves - cost one boot); restamp after every rebuild; content
-JSONs override the cache at boot (s1_domains_*.json in s1_accept/content =
-runtime truth for six swapped domains; itemDetails are cache-only); verify
-observer call volume BEFORE deploying; verify THE WIRE changed before
-accepting an experiment's negative.
+incident.py FIXED (client log path Game/bin/x64/... with dcv fallback).
+DEPLOY RULES: kill old server first; restamp after rebuild; content JSONs
+override cache at boot; verify observer call volume BEFORE deploy; verify
+THE WIRE changed before accepting a negative.
 
 PREVIOUS (2026-08-21 ~18:1x): graphics/UI closed enough to develop; ship
 + Sunrise UI work via gated-draw config; menu HOME key; pick-crash =
