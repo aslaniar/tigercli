@@ -77,11 +77,13 @@ THE VALIDATION BOOT (2026-08-22 ~22:46, all four gates PASSED):
    + tape intact). The f4dump diagnostics in family4_object_staging /
    roster_snapshot are the SAME closed-front class ("strip when the
    weapons/model front closes", 261 rows/boot) - not yet retired.
-2. **Multiplayer P1 - bind-address rework**: five listeners bind loopback only
-   (admin_http.cpp:481, discovery_listener :234/:268, https_listener.cpp:578,
-   bap_listener.cpp) + TLS cert CN=127.0.0.1 (tls.cpp:17). Lane C is adding
-   the admin-side bind_address as a rehearsal; P1 should reuse its key + fold
-   helper (no shared host_address() helper exists yet - extract one).
+2. **Multiplayer M1 - remote connect**: ~~bind-address rework~~ **CODE DONE**
+   (bccb34c on integration; all five listeners + TLS subject + SignOn relay
+   consume configurable addresses). **BLOCKER FOUND**: remote Windows client's
+   TLS handshake against wine-hosted server fails SEC_E_INVALID_TOKEN -
+   the documented permanent wine limitation confirmed live. Fix path:
+   rig client answers SignOn/config in-process (same as Mac hybrid);
+   investigation entry points in FINDINGS 19.2.
 3. **Guest accounts (P2)**: one global State / one initialAccount (runtime.h),
    seed_account_id() writes everything under one SOID (persistence.cpp:152).
    Schema already keys player tables by account_id - needs per-peer State
@@ -94,8 +96,12 @@ THE VALIDATION BOOT (2026-08-22 ~22:46, all four gates PASSED):
 6. **Entity front W1-W8** (static enemies): emission deployed, flag OFF
    (`world_population`). Prerequisite for multiplayer P4 peer visibility.
    Ladder: RE_output/claims/lane_entity_scope.md.
-7. **Upstream reconcile**: fresh fetch 2026-08-22 22:0x = **45 behind, 98
+7. **Upstream reconcile**: fresh fetch 2026-08-23 = **45 behind, 94
    ahead** of stanuwu/Sunrise:master (upstream tip 0188841, 2026-08-21).
+   21 conflict-risk commits identified incl. upstream's own opcode-801
+   subclass lane (parallel invention of our swap front - do NOT blind-merge)
+   and a 273-file tree-wide refactor. Full triage:
+   RE_output/community/intel-sweep-2026-08-23.md.
    Policy pending; divergence intentional until then.
 8. ~~/flags response-budget overflow~~ **CLOSED 23:2x**: it was an
    out-of-bounds WRITE, not just an over-read - (kResponseCapacity - used)
