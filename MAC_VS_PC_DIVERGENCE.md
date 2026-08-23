@@ -77,6 +77,25 @@ untracked tree. **Habit going forward: every source edit made in
 `Sunrise-fork-inventory` gets copied to `Sunrise-fork` and committed in the
 same sitting, not batched for later.**
 
+**CORRECTED 2026-08-22 ~19:xx (second correction, supersedes both repo
+framings above): there is ONE repository, `RE_build/Sunrise-fork`, with
+LINKED WORKTREES.** `Sunrise-fork-inventory/.git` is a file pointing at
+`.git/worktrees/Sunrise-fork-inventory`; branches: master (main worktree),
+integration (= what the inventory worktree has checked out; carries the long
+equip/S2 line), inventory-folded-s2, audit/snapshot-dirty-20260821,
+inventory/snapshot-generalization. The "170 commits vs 22 commits" reading
+compared different BRANCHES, not repos. Origin =
+github.com/aslaniar/Sunrise (public fork of stanuwu/Sunrise); upstream
+remote = stanuwu/Sunrise. On 2026-08-22 the shared .git instance hit the
+same git-EPERM curse as the research repo's (same diagnosis: content fine,
+instance cursed; same fix: verified scratch copy swapped into place; backup
+at Sunrise-fork/.git_backup_20260822). Post-fix, ALL branches + tags were
+pushed public; master was ahead 8 (the six §1 fixes + 2) and is now pushed.
+NOTE: known local path leak in Sunrise/toolchain-llvm-mingw.cmake:3
+(/Users/rubenaslanian/...) — accepted for now, env-var cleanup pending.
+Upstream divergence noted by user: 115 commits behind stanuwu/Sunrise:master
+(reconcile later).
+
 ## 3. Runtime / launch environment — entirely Mac-specific, no PC equivalent
 
 None of this exists or is meaningful on PC (native Windows has no wine
