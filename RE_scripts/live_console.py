@@ -11,10 +11,18 @@ one merged, real-time-aligned, color-coded view with the fixed panels:
     moment they fire (the FINDINGS corpus as a rule set).
   - THE CENSUS FEED: the resolve pairs / marker polls / stamp fires / 2100 verbs.
 
+MAC PORT (2026-08-22, lane cockpit): the log paths now resolve relative to the repo
+root (Game/bin/x64/Sunrise/logs/sunrise.log + RE_output/s1_accept/Sunrise/logs/
+sunrise.log), so the same script runs on Windows via --server/--client overrides or
+the old absolute constants. ev=item_gate is SUPPRESSED by default (65k+ lines a boot
+on macOS — pass --item-gate to show it). The census panel is dormant while
+ability_gate/gate_trace are default-off in client_hook_activation.cpp; the
+install-trap fires for item_gate now.
+
 Zero server changes, zero client changes, zero boots. The old recording tails are
 preserved as live_server_tail.ps1.v1 + live_client_tail.ps1.v1 (the fallback pair).
 
-Usage:  python -X utf8 RE_scripts\\live_console.py [--server LOG] [--client LOG] [--height N]
+Usage:  python -X utf8 RE_scripts/live_console.py [--server LOG] [--client LOG] [--height N] [--item-gate]
 Quit:   Ctrl+C
 """
 import argparse
@@ -23,9 +31,11 @@ import re
 import shutil
 import sys
 import time
+from pathlib import Path
 
-SERVER_LOG = r"C:\Users\rasla\Downloads\destiny-preservation\RE_output\s1_accept\Sunrise\logs\sunrise.log"
-CLIENT_LOG = r"C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\Sunrise\logs\sunrise.log"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SERVER_LOG = str(REPO_ROOT / "RE_output" / "s1_accept" / "Sunrise" / "logs" / "sunrise.log")
+CLIENT_LOG = str(REPO_ROOT / "Game" / "bin" / "x64" / "Sunrise" / "logs" / "sunrise.log")
 
 # --- ANSI ------------------------------------------------------------------
 R, G, Y, B, M, C, W, D = "\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m", \
@@ -75,7 +85,8 @@ TRAPS = [
     (re.compile(r"ability_change result=fail step=mutate"),
      "the 2100 scenario-hash correctly refused (expected)", D, False),
     (re.compile(r"stage=install result=ok count="),
-     "the gate_trace observers installed (the census armed)", G, False),
+     "the item_gate observers installed (the validation-chain census armed; gate_trace is "
+     "default-off)", G, False),
     (re.compile(r"result=fail"),
      "a stage failed", R, True),
     (re.compile(r"result=skip"),
@@ -118,9 +129,10 @@ class Tail:
 
 
 class Console:
-    def __init__(self, server_log, client_log, height):
+    def __init__(self, server_log, client_log, height, item_gate=False):
         self.tails = [Tail(server_log, "server"), Tail(client_log, "client")]
         self.height = max(height, 18)
+        self.item_gate = item_gate      # False = suppress the 65k-line-a-boot flood
         self.stream = []           # the rendered stream lines (the ring)
         self.f4 = 0
         self.f0 = 0
@@ -249,6 +261,8 @@ class Console:
                             continue
                         side, t = m.group("side"), int(m.group("t"))
                         ev, rest = m.group("ev"), m.group("rest") or ""
+                        if ev == "item_gate" and not self.item_gate:
+                            continue
                         self._update(side, t, ev, rest)
                         color, banner = self._line_color(side, ev, rest)
                         rendered = "%s[%s t=%d] %s%s%s%s" % (
@@ -273,8 +287,10 @@ def main():
     ap.add_argument("--server", default=SERVER_LOG)
     ap.add_argument("--client", default=CLIENT_LOG)
     ap.add_argument("--height", type=int, default=32)
+    ap.add_argument("--item-gate", action="store_true",
+                    help="show the ev=item_gate flood lines (suppressed by default)")
     args = ap.parse_args()
-    Console(args.server, args.client, args.height).run()
+    Console(args.server, args.client, args.height, args.item_gate).run()
 
 
 if __name__ == "__main__":
