@@ -89,8 +89,10 @@ github.com/aslaniar/Sunrise (public fork of stanuwu/Sunrise); upstream
 remote = stanuwu/Sunrise. On 2026-08-22 the shared .git instance hit the
 same git-EPERM curse as the research repo's (same diagnosis: content fine,
 instance cursed; same fix: verified scratch copy swapped into place; backup
-at Sunrise-fork/.git_backup_20260822). Post-fix, ALL branches + tags were
-pushed public; master was ahead 8 (the six §1 fixes + 2) and is now pushed.
+at Sunrise-fork/.git_backup_20260822). PUBLISH FINAL STATE (user directive:
+master = current working build only): an initial --all/--tags over-push was
+reverted same session; master then fast-forwarded to integration tip
+e403603 and pushed. Remote carries exactly master + fork-inherited 0.x tags.
 NOTE: known local path leak in Sunrise/toolchain-llvm-mingw.cmake:3
 (/Users/rubenaslanian/...) — accepted for now, env-var cleanup pending.
 Upstream divergence noted by user: 115 commits behind stanuwu/Sunrise:master
