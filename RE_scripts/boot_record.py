@@ -86,6 +86,21 @@ EQHASH_TOOL = os.path.join(ROOT, "RE_output", "scripts", "bootL_eqhash_exact.py"
 # ---------------------------------------------------------------------------
 
 T_RE = re.compile(r"(?:^|\s)t=(\d+)")
+# THE WIRE ANCHOR (2026-08-22, preferred over both legacy pairs).
+# A server activity push and the client tape row that applies it are the SAME
+# wire event observed from both ends, so they mark one true shared instant -
+# which is exactly what the cross-process anchor trap says is required (the
+# client's core lines come from the DLL in the game process, the server's from
+# a process that booted minutes earlier, so same-NAME events are not the same
+# moment). The pair is type-validated, and the server's len is the client's
+# size plus a constant 28-byte BAP frame header, giving a second check.
+# Measured on the 22:46 two-sided record: 94 pairs, every type matching,
+# p10..p90 spread 52 ms against the sanity anchor's 16,755 ms.
+TAPE_SERVER = re.compile(r"ev=activity\s+stage=push\b")
+TAPE_CLIENT = re.compile(r"\btape=1\b.*\bsvc=9\b")
+TYPE_RE = re.compile(r"(?<![A-Za-z0-9_])type=(\d+)")
+LEN_RE = re.compile(r"(?<![A-Za-z0-9_])len=(\d+)")
+SIZE_RE = re.compile(r"(?<![A-Za-z0-9_])size=(\d+)")
 PRIMARY_CLIENT = re.compile(r"ev=ability_gate.*stage=emit_2100")
 PRIMARY_SERVER = re.compile(r"ev=queuez.*stage=ability_change.*result=fail.*step=mutate")
 SANITY_CLIENT = re.compile(r"ev=queuez.*stage=family0_list.*first=0x[0-9A-Fa-f]+/\d+")
@@ -408,6 +423,61 @@ def open_store(db_path):
     return con
 
 
+def _typed_events(entries, line_re, size_re):
+    """(t, type, size) for lines matching line_re that carry a type."""
+    out = []
+    for t, text in entries:
+        if not line_re.search(text):
+            continue
+        m = TYPE_RE.search(text)
+        if not m:
+            continue
+        n = size_re.search(text)
+        out.append((t, int(m.group(1)), int(n.group(1)) if n else None))
+    return out
+
+
+def tape_anchor(server_entries, client_entries):
+    """
+    Pair server activity pushes with the client tape rows that applied them.
+
+    Aligns newest-first (the two capture windows rarely start together) and
+    scans a small shift range, keeping only alignments where EVERY pair agrees
+    on type. Returns (k, pairs, median_offset, spread, robust_spread) or None.
+    Robust spread is p10..p90: a handful of early pairs sit far off the
+    cluster, so the full range overstates the real agreement badly.
+    """
+    srv = _typed_events(server_entries, TAPE_SERVER, LEN_RE)
+    cli = _typed_events(client_entries, TAPE_CLIENT, SIZE_RE)
+    if not srv or not cli:
+        return None
+    best = None
+    span = min(len(srv), len(cli))
+    for k in range(0, min(16, span)):
+        pairs = []
+        ok = True
+        for i in range(span - k):
+            s_t, s_ty, s_len = srv[-(i + 1)]
+            c_t, c_ty, c_size = cli[-(i + 1 + k)]
+            if s_ty != c_ty:
+                ok = False
+                break
+            pairs.append(s_t - c_t)
+        if not ok or len(pairs) < 3:
+            continue
+        pairs.sort()
+        med = pairs[len(pairs) // 2]
+        spread = pairs[-1] - pairs[0]
+        robust = pairs[(9 * len(pairs)) // 10] - pairs[len(pairs) // 10]
+        cand = (robust, k, len(pairs), med, spread)
+        if best is None or cand[0] < best[0]:
+            best = cand
+    if best is None:
+        return None
+    robust, k, n, med, spread = best
+    return k, n, med, spread, robust
+
+
 def summarize_offset(server_entries, client_entries):
     """merge_logs anchor logic; returns (offset_or_None, stats dict)."""
     prim_c = [t for t, text in client_entries if PRIMARY_CLIENT.search(text)]
@@ -433,6 +503,28 @@ def summarize_offset(server_entries, client_entries):
     stats.update({"anchor": name, "anchor_k": k, "anchor_pairs": n,
                   "offset_ms": med, "anchor_spread_ms": spread})
     return med, stats
+
+
+def resolve_offset(server_entries, client_entries):
+    """
+    Offset resolution with the WIRE anchor first, legacy pairs as fallback.
+    The wire pair marks a true shared instant; the legacy pairs correlate
+    same-named events across two processes and are far looser.
+    """
+    stats = {}
+    wire = tape_anchor(server_entries, client_entries)
+    legacy_off, legacy_stats = summarize_offset(server_entries, client_entries)
+    stats.update(legacy_stats)
+    if wire is not None:
+        k, n, med, spread, robust = wire
+        stats.update({"anchor": "wire_tape_push", "anchor_k": k,
+                      "anchor_pairs": n, "offset_ms": med,
+                      "anchor_spread_ms": spread,
+                      "anchor_robust_spread_ms": robust,
+                      "legacy_anchor": legacy_stats.get("anchor"),
+                      "legacy_offset_ms": legacy_stats.get("offset_ms")})
+        return med, stats
+    return legacy_off, stats
 
 
 # ---------------------------------------------------------------------------
@@ -639,7 +731,7 @@ def main():
     con.commit()
 
     # ---- merge-agnostic summary + offset ----------------------------------
-    offset, astats = summarize_offset(server_entries, client_entries)
+    offset, astats = resolve_offset(server_entries, client_entries)
     n_rows = con.execute("SELECT COUNT(*) FROM events").fetchone()[0]
     n_parsed = con.execute("SELECT COUNT(*) FROM events WHERE parsed=1").fetchone()[0]
     n_native = con.execute("SELECT COUNT(*) FROM events WHERE parsed=0").fetchone()[0]
