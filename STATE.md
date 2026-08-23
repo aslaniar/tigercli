@@ -1,6 +1,6 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-22 ~23:1x.
+Updated: 2026-08-22 ~23:3x.
 
 ## HEADLINE: SHIPPABLE BASELINE + PUBLIC RELEASE COMPLETE;
 ## OBSERVABILITY PROGRAM (5 LANES) IN FLIGHT
@@ -69,15 +69,13 @@ THE VALIDATION BOOT (2026-08-22 ~22:46, all four gates PASSED):
 
 ## OPEN ITEMS (ranked; none block solo play)
 
-1. **item_gate source fix (DECISION PENDING, cheap, blocks retail)**: the
-   65,265-line/boot flood AND the 914-line ev=retail Bungie narration are
-   INSEPARABLE at the level layer - both write at (Channel::client,
-   Level::info). client=warn kills both. To keep retail (the most legible
-   stream we have, and it narrates networking:session/posse/stun - exactly the
-   multiplayer subsystems), item_gate needs the 6a63d9a treatment: comment out
-   `(void)hooks::item_gate::install();` at client_hook_activation.cpp:215.
-   Requires a client DLL rebuild. Until then: client=warn for routine boots,
-   client=info + tool-side suppression when retail is wanted.
+1. ~~item_gate source fix~~ **CLOSED 23:2x**: install commented out
+   (client_hook_activation.cpp, 6a63d9a treatment); DLL rebuilt + deployed
+   (steam_api64 e0c1c1... see stack). Runtime confirmation = the NEXT client
+   boot (expect the client log to fall from ~114k lines to ~1.2k with retail
+   + tape intact). The f4dump diagnostics in family4_object_staging /
+   roster_snapshot are the SAME closed-front class ("strip when the
+   weapons/model front closes", 261 rows/boot) - not yet retired.
 2. **Multiplayer P1 - bind-address rework**: five listeners bind loopback only
    (admin_http.cpp:481, discovery_listener :234/:268, https_listener.cpp:578,
    bap_listener.cpp) + TLS cert CN=127.0.0.1 (tls.cpp:17). Lane C is adding
@@ -98,10 +96,13 @@ THE VALIDATION BOOT (2026-08-22 ~22:46, all four gates PASSED):
 7. **Upstream reconcile**: fresh fetch 2026-08-22 22:0x = **45 behind, 98
    ahead** of stanuwu/Sunrise:master (upstream tip 0188841, 2026-08-21).
    Policy pending; divergence intentional until then.
-8. **/flags response-budget overflow (latent bug, Lane C found)**: `used` can
-   exceed kResponseCapacity (16384) while snprintf accumulates, then respond()
-   sends `{body, used}` past the stack buffer. Curated banks keep the runs
-   list short so it does not trip today. Unowned.
+8. ~~/flags response-budget overflow~~ **CLOSED 23:2x**: it was an
+   out-of-bounds WRITE, not just an over-read - (kResponseCapacity - used)
+   underflows as size_t once snprintf's would-be length pushes `used` past
+   the buffer. Now clamped with a reserved tail and a "truncated" flag.
+   Verified with a 1 KiB test build against the real 4 KB response: stayed
+   in bounds, stayed VALID JSON, reported truncated=true + true run_count,
+   server survived.
 9. **Research repo publish decision**: origin still points at tigercli.git
    (wrong project).
 10. **Shader-cache persistence** (Mac QoL): no MoltenVK/DXMT cache persists;
@@ -204,8 +205,11 @@ tokens, oo2core proprietary DLL).
   (ev=admin result=fail reason=bind -> initialize stage=admin result=fail ->
   server exits). FIXED by setting SO_REUSEADDR on the admin listener,
   matching bap_listener.cpp. Verified with 9 TIME_WAIT sockets present at
-  relaunch. NOTE https_listener + discovery_listener still lack the option;
-  they did not trip only because they had no active connections.
+  relaunch. https_listener now carries the same option (the client holds
+  8443 for a whole session and would fail identically once it has live
+  connections; not reproducible on THIS Mac because the hybrid architecture
+  answers config/SignOn in-process so 8443 never sees client traffic).
+  discovery_listener is UDP - TIME_WAIT is TCP-only, so it is not exposed.
 - Flag banks must stay CURATED: blanket saturation -> client discards part of
   the family-4 join snapshot while all server-side checks stay green.
 
