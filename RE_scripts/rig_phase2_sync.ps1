@@ -6,7 +6,7 @@
 $ErrorActionPreference = "Stop"
 $repo = "C:\Users\rasla\Downloads\destiny-preservation\RE_build\Sunrise-fork"
 $root = "C:\Users\rasla\Downloads\destiny-preservation"
-$newToken = "84cc3be9af192a5b0dd7ece2549d5b88"   # SHARED with the Mac - do not change
+$newToken = [System.Guid]::NewGuid().ToString("N")   # generate fresh per run; then sync to BOTH Mac runtime settings
 if (-not (Test-Path "$repo\.git")) { Write-Host "!! repo not found"; exit 1 }
 
 Write-Host "=== 1. fetch origin (the converged history) ==="
