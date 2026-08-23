@@ -14,12 +14,13 @@ PROGRAM was dispatched to build the instruments the multiplayer saga needs.
 
 ## THE DEPLOYED, WORKING STACK (verified 2026-08-22 ~23:1x)
 
-  server exe  0beea54132074372   RE_output/s1_accept/sunrise-server.exe
+  server exe  04a3a1caf9fdc923   RE_output/s1_accept/sunrise-server.exe
               (Lane C dashboard + /events + seq ring + bind_address,
-               + collector fixes: 3 compile breaks, SO_REUSEADDR, filter)
-  client dll  896f77002ab79fb1   Game/bin/x64/steam_api64.dll
-              (Lane E protocol tape; validated on a real boot)
-  cache       build_data ts=0x6A8A8D18 size=0x02C4F000 (restamped per rebuild)
+               + collector fixes: 3 compile breaks, SO_REUSEADDR on admin
+               AND https, dashboard filter, /flags bounds clamp)
+  client dll  67f3d0531a543b91   Game/bin/x64/steam_api64.dll
+              (Lane E protocol tape, boot-validated; item_gate uninstalled)
+  cache       build_data ts=0x6A8A90A5 size=0x02C4F000 (restamped per rebuild)
               eqHash 0xA8E1DA67DFA2118F - DRIFTED from 0xE8683B305DA99CD7 by
               the 22:46 play session (LIVE state; server self-restamps @20)
   flag bank   5,255 rows curated (account 4,931 / char 5 / profile 142 /
@@ -71,7 +72,7 @@ THE VALIDATION BOOT (2026-08-22 ~22:46, all four gates PASSED):
 
 1. ~~item_gate source fix~~ **CLOSED 23:2x**: install commented out
    (client_hook_activation.cpp, 6a63d9a treatment); DLL rebuilt + deployed
-   (steam_api64 e0c1c1... see stack). Runtime confirmation = the NEXT client
+   (steam_api64 67f3d0531a543b91). Runtime confirmation = the NEXT client
    boot (expect the client log to fall from ~114k lines to ~1.2k with retail
    + tape intact). The f4dump diagnostics in family4_object_staging /
    roster_snapshot are the SAME closed-front class ("strip when the
