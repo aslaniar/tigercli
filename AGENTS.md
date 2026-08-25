@@ -229,7 +229,7 @@ failure mode from this front. DO NOT re-learn them.
     `grep -ac "<instrument literal>" <deployed binary>`, and design every
     instrument so it emits a line on the BORING path too. An instrument that can
     only fire on the interesting case turns silence into an unreadable result.
-    Cost of the violation (2026-08-25, incident-2026-08-25-false-loops.md): two
+    Cost of the violation (2026-08-25, INCIDENT_2026-08-25_false-loops.md): two
     boots and a wrong strategic call — "the client publishes no descriptor,
     don't boot the rig" — from an instrument that was never deployed. Note this
     is a REPEAT: the deploy-script gate/restamp ordering bug was the same shape,
