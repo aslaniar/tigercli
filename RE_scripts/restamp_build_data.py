@@ -8,8 +8,15 @@ content_swap until these match. Reads both values straight from the PE headers
 
 Usage:
   restamp_build_data.py <cache.bin> <server.exe> [--apply]
+  restamp_build_data.py <cache.bin> --set-eqhash <hex64> [--apply]
 Without --apply: prints what would change and verifies against the running
 pair (smoke mode).
+
+--set-eqhash writes ONLY the configuredEquipmentHash (offset 20, u64 LE) -
+the P2 provisioned-union identity. Use it whenever the provisioned set
+changes: obtain the value via
+  wine sunrise-server.exe --print-provisioned-hash
+and stamp BEFORE restarting, or every pass loads stale with an empty catalog.
 """
 import struct
 import sys
@@ -31,6 +38,23 @@ def pe_identity(path):
 
 
 def main():
+    if "--set-eqhash" in sys.argv:
+        i = sys.argv.index("--set-eqhash")
+        eqhash = int(sys.argv[i + 1], 16)
+        # cache_path is bound here too: the eqhash branch returns before the
+        # positional parse below, so without this --apply raised NameError.
+        cache_path = sys.argv[1]
+        data = bytearray(open(cache_path, "rb").read())
+        assert data[:8] == b"SUNRISEB", "not a Sunrise cache"
+        old_hash = struct.unpack_from("<Q", data, 20)[0]
+        struct.pack_into("<Q", data, 20, eqhash)
+        print(f"cache : eqHash@20 {old_hash:#018x} -> {eqhash:#018x}")
+        if "--apply" in sys.argv:
+            open(cache_path, "wb").write(data)
+            print(f"wrote {cache_path} (--apply)")
+        else:
+            print("(dry run - pass --apply)")
+        return
     cache_path, exe_path = sys.argv[1], sys.argv[2]
     apply_mode = "--apply" in sys.argv[3:]
     ts, size = pe_identity(exe_path)
