@@ -222,6 +222,71 @@ failure mode from this front. DO NOT re-learn them.
     brief had named an art-index hazard and missed the real one. State how
     many new models an experiment introduces, and minimise it.
 
+13. **A NULL RESULT INDICTS THE INSTRUMENT BEFORE THE SYSTEM.**
+    When an expected line does not appear, the FIRST hypothesis to eliminate is
+    that the measurement never ran — not that the system lacks the behaviour.
+    Prove liveness from the artifact itself, e.g.
+    `grep -ac "<instrument literal>" <deployed binary>`, and design every
+    instrument so it emits a line on the BORING path too. An instrument that can
+    only fire on the interesting case turns silence into an unreadable result.
+    Cost of the violation (2026-08-25, incident-2026-08-25-false-loops.md): two
+    boots and a wrong strategic call — "the client publishes no descriptor,
+    don't boot the rig" — from an instrument that was never deployed. Note this
+    is a REPEAT: the deploy-script gate/restamp ordering bug was the same shape,
+    a rig failure attributed to the subject.
+
+14. **THE ARTIFACT UNDER TEST MUST BE PROVEN TO BE THE ARTIFACT YOU BUILT.**
+    Never infer provenance from a script's success output. Assert it: the
+    deployed hash equals the build hash, checked by the script, which fails loud
+    on mismatch. A pipeline step that can silently consume a stale input will
+    eventually consume one, and it will report success while doing it. Rule 8
+    ("THE DISK IS THE TRUTH") governs claims and documents; this is its build-
+    artifact half, and its absence is what made lesson 13 possible.
+
+15. **EVERY SOURCE HAS A SCOPE OF AUTHORITY. NAME IT BEFORE CITING IT.**
+    A committed tree is authoritative for "what does their committed code do"
+    and for NOTHING ELSE — not for what they have demoed, not for what they know.
+    Before any claim built on a source, state the question the source can
+    actually answer, and never label a cross-scope inference "decisive."
+    Cost of the violation (2026-08-25): called upstream's empty search result
+    decisive proof about their fireteam demo and retracted it one turn later.
+    The reading was CORRECT and the ref was CURRENT — the failure was scope, so
+    do not mis-file this under lesson 1 (fetch freshness). Corollary: a fact the
+    user has already supplied ("their demos lead their tree") is binding
+    context, and re-deriving a conclusion that contradicts it is a bug.
+
+16. **MARK EVERY LINK IN THE CHAIN, NOT THE INTERESTING ONE.**
+    Before proposing any fix, enumerate the full chain and give every link an
+    evidence mark: verified-by-execution / verified-by-reading / assumed /
+    unknown. An unexamined link is NOT a passing link, and "assumed" must never
+    be silently promoted to "verified" by repetition. Never say "one boot away"
+    unless every other link carries a verified mark.
+    Cost of the violation (2026-08-23..25): three consecutive "one boot away"
+    claims, three failed boots. The chain walk that the user finally forced
+    (FINDINGS 20.38) produced better information in one pass than all three
+    guesses — four unverified links and a subsystem absent from both trees.
+
+### THE PRE-BOOT CHECKLIST (binding — a boot costs the user real time)
+
+Before asking for ANY boot test, all four must hold:
+
+1. **Provenance** — the deployed artifact's hash equals the build's, asserted by
+   the tooling, and any new instrument literal is confirmed present IN the
+   deployed file.
+2. **Liveness** — a named line that MUST appear if the instrument ran at all,
+   independent of the outcome under test.
+3. **Both negatives pre-named** — the CONTENT negative ("routable=0 means X")
+   AND the ABSENCE negative ("zero lines means the instrument did not run, which
+   means Y"). Lesson 6 requires the first; today proved the second is where the
+   damage lives.
+4. **Chain marks current** — the link this boot resolves is identified, and
+   every other link's mark is written down (lesson 16).
+
+Prefer, over all of the above, a change that makes the failure impossible to
+express: a deleted overload, a deleted default argument, a compile error. The
+moves that have actually paid on this project all convert runtime vigilance into
+a compile-time or assert-time failure. Vigilance does not survive a long day.
+
 ## THE ANTI-RABBIT-HOLE RULES (2026-08-20, binding — the execution contract for lanes AND the main session)
 
 The observed killer failure = the RABBIT HOLE: reacting to a symptom
