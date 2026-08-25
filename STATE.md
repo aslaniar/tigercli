@@ -1,71 +1,152 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 evening (descriptor decoded - the front MOVED).
+Updated: 2026-08-25 ~16:20 (p2(38) live verdict: slot 1 SHIPS, client does not apply it,
+never acks, silent. FINDINGS_2026-08-25.md 20.48.)
 
-## HEADLINE: THE PUBLISHED DESCRIPTOR HAS NO IP AND NO PORT. IT NAMES A STEAM
-## IDENTITY AND A STEAM LOBBY, AND BOTH ARE FABRICATED CONSTANTS IN OUR OWN
-## SHIM. THE BLOCKER IS THE STEAM LAYER, NOT BAP MATCHMAKING.
+READ FIRST, IN THIS ORDER (for any session taking over):
+  1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
+  2. INCIDENT_2026-08-25_false-loops.md - why those lessons exist; all three traps recur.
+  3. FINDINGS_2026-08-25.md entries 20.40 -> 20.48 (today's whole arc, newest first).
+  4. Lane deliverables: RE_output/claims/transport-relay-design.md (Lane T - how to move
+     rendezvous bytes once a client dials) and RE_output/claims/client-steam-vtable-names.md
+     (Lane V - friends/matchmaking vtable truths incl. the fabricated-roster fallback).
+  5. RE_output/claims/s1-accept-contract.md stays the BAP contract reference.
 
-Deployed: exe `8605161b5c3c4db6` (p2(32)), four harness gates rc=0, both targets
-clean. Fork branch `upstream-gameplay-scoped` @ `7cad785`. Outer repo `main` @
-`43d87b9`.
+OPERATIONAL FACTS:
+  - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped @ ac2ce42
+    (p2(38)). Outer repo (this dir): main; RE_output/ is gitignored there.
+  - Build: cd RE_build/Sunrise-fork-inventory/build && make -j8 (two targets; src/steam/**
+    compiles ONLY into steam_api64.dll - server exe changes only for state/server files).
+  - Deploy server: bash RE_scripts/deploy_p2d6_gameplay.sh (drops clients; gates inside).
+    Deploy client DLL: bash RE_scripts/deploy_client_dll.sh <mac|rig> "<literals...>"
+    (hash-assert + literal grep IN the deployed file - never skip).
+  - Logs: server RE_output/s1_accept/Sunrise/logs/sunrise.log; each client
+    <game>/Sunrise/logs/sunrise.log (Mac game: Game/bin/x64/). Grep ev=steamnet /
+    ev=activity / peers valid.
+  - Rig: ssh master ~/.ssh/cm-rig to rasla@192.168.1.136 (reopen command recorded at
+    FINDINGS_2026-08-24.md:1476; needs the USER's password - agents cannot open it).
+    Rig game dir: C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
+  - Identities: Mac client uses the settings default steamId ...861; rig authors
+    steam.user.steam_id=76561198776753862 in its Sunrise/settings.json.
 
-READ FIRST, IN THIS ORDER:
- - `AGENTS.md` lessons 13-16 + THE PRE-BOOT CHECKLIST (binding, written today)
- - `INCIDENT_2026-08-25_false-loops.md` (why those lessons exist)
- - FINDINGS 20.38 (the visibility layer does not exist) and 20.40 (the
-   descriptor's real contents) in `FINDINGS_2026-08-24.md`
+## HEADLINE: THE COMPARATOR FIX WORKED - THE RIG'S BODIES NOW CARRY THE MAC
+## AS MEMBER SLOT 1 (key=0xB34F7851304A19CF, ~5 s republish loop). BUT THE
+## CLIENT NEVER ACKNOWLEDGES AND peers-valid STAYS 0x1: A REMOTE ROW SHAPE
+## OR CO-REQUISITE IS WRONG IN A WAY STATICS OF OUR OWN ENCODER CANNOT SEE.
+## NEXT FRONT: GHIDRA LANE ON THE CLIENT'S MSG-12 PARSER.
 
-WHAT THE CLIENT ACTUALLY PUBLISHES (verified by execution, 7/7 advertisements):
-```
-[0..7]     machine id, LE u64      varies per boot
-[8..49]    ASCII 42 bytes          "steamid:76561198776753861#dde342bff358429e"
-[50..92]   zeros
-[93]       0x06
-[94..109]  16-byte key             01A7BAA447527A4B3A6AEFBA3577F0CF
-[110..117] LE u64                  0x0109000000000003
-[118..127] zeros
-```
-No IPv4. No port. `76561198776753861` == `0x0110000130AA9EC5` == `kLocalSteamId`,
-a hardcoded constant in `steam/interfaces/methods/common.cpp:18`. BOTH MACHINES
-REPORT THE SAME STEAM USER. The lobby is `kLobbySteamIdPrefix | call` from
-`steam/interfaces/methods/matchmaking.cpp:54`, invented per API call.
+Deployed: server exe `cbea193dad109af2` (p2(38), gates rc=0); client DLLs `eb893d2b1b6d8534`
+(p2(36)) on both machines. Fork branch `upstream-gameplay-scoped` @ `ac2ce42`.
 
-WHY NOTHING EVER CONNECTED: `steam/interfaces/methods/serialized_networking.cpp`
-is `ISteamNetworkingSocketsSerialized` and every method is a no-op. Its own
-comment: "Drops a rendezvous notification. Nothing is sent."
-`serialized_send_rendezvous(self, remoteId, sourceConnectionId, message,
-messageSize)` is how the client asks Steam to deliver a connection request to a
-peer. We drop it. Certificate returns 0, network config writes empty, relay
-ticket count returns 0.
+VERIFIED THIS BOOT: comparator fix confirmed live (rig bursts log peer=1 + inclusion with
+Mac's memberKey; Mac's burst had correctly logged none_joined earlier); registration-id
+harvest on BOTH machines - **id=1298 registered** (+ sibling 1297, 506/507, friends
+300-family 331/336/337/343, 117, 704) => Lane T delivery synthesis CONFIRMED VIABLE;
+peers-valid pinned 0x1 both sides; zero client-side complaints = silent rejection.
+
+NEXT (proposed): Ghidra lane on the client's msg-12 parser. Q1 what makes a non-first
+member row valid (remote-specific fields); Q2 ack conditions; Q3 trailing-mask semantics.
+Calibration artifact exists: our own solo body (3746 B) is client-accepted. Tooling pattern:
+laneV_steam_vtables.py. THEN Lane T integration (relay link + queue_callback 1298 synthesis;
+ring cap 32->536 one-liner) once ignition is real - or as a parallel probe if a synthesized
+1298 ever looks worth firing at a live client.
+
+THE THREE GOALS, HONEST DISTANCES (2026-08-25 ~16:20):
+  1. Fully separate accounts: WORKING and now identity-complete - two provisioned slots,
+     persistent state.db, distinct Steam identities end to end (20.41/20.42).
+  2. Two guardians in the same destination instance: BLOCKED at peer-link formation. The
+     trigger (server-declared membership) ships; the client silently refuses to apply a
+     body carrying a remote member row (20.48). Distance unknown until the msg-12 parser
+     lane answers Q1-Q3 - could be one wire field or a structural rule; do not guess.
+  3. Two guardians in one fireteam: downstream of 2 by an unknown margin; no code path
+     attempted yet this front.
 
 DEAD ENDS - DO NOT RESUME THESE:
- - the svc-43 search-result contents (p2(26)/p2(27)/IdPair/field-3 lane). The
-   shape is correct and the client reads it; the pointer aims at a stubbed
-   Steam layer. Perfecting it changes nothing.
- - the peer-subnet egress relaxation (p2(28)). There is no IP in the
-   advertisement, so there was never a connection attempt to permit.
- - the physics gates (physicsHostSession / serverDefaultEntity /
-   gameplayExternalBody). Not on the critical path - see 20.38.
+  - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER. Filed, not acted on - proven twice.
+  - the svc-43 search-result contents lane. Serving works; contents changes change nothing.
+  - the peer-subnet egress relaxation (p2(28)). Moot.
+  - the physics gates (physicsHostSession / serverDefaultEntity / gameplayExternalBody).
+  - MIRRORING THE LOCAL MEMBER ROW FOR SLOT 1 AS-IS: shipped, received, silently not
+    applied (20.48). Do not re-ship it unchanged and expect a different read.
 
-NEXT, IN ORDER (neither is "one boot from working" - say so):
- 1. `kLocalSteamId` -> per-instance configurable, so the two machines stop
-    being one Steam user. Cheap, correct regardless of what follows.
- 2. Call-trace the whole serialized-networking table in the SAME build: every
-    method, its arguments, and for send_rendezvous a hex of `message`. Call
-    ORDER matters as much as contents.
- 3. One boot, BOTH machines. If send_rendezvous fires naming the other
-    machine's SteamID, we have a signalling channel to build and a payload to
-    inspect. If it never fires, the client fails earlier and the trace says
-    where.
+--- everything below predates the p2(38) verdict; treat as history ---
 
-THE LOAD-BEARING UNKNOWN: what is inside the rendezvous `message` blob. If it
-carries candidate addresses we can relay it through our server and the peers
-connect. If it is Steam-signed we can still move the bytes, but the peers may
-refuse without valid certificates. That question decides whether this front is
-days or a wall. Do not guess it - the instrument answers it.
+## HEADLINE (superseded): P2(37) STAGED - REASON INSTRUMENT. EXECUTED AS PLANNED.
 
---- everything below predates the descriptor decode; treat as history ---
+Committed not deployed: fork @ `3c5ab39` - server build has slot-1 + wire_snapshot reason
+instrument (`ev=activity stage=wire_snapshot session=N peer=0|1 reason=none_joined|
+identity_missing|destination_mismatch`); client DLLs have the callback-registration-id log
+(`ev=relay stage=register id=N`, p2(36)). Deployed right now: server `1cf5243e2fa1c398`
+(p2(35)), client DLLs `a248109eaeeedc71` (p2(34)).
+
+WHY THE FIRST PASS COULD NOT TEST THE CLAIM: type-12 bodies ship only while
+`regionChanged || !acknowledged()` during a load burst; after both clients settled, no
+membership body shipped at all, so foreign_member_identity was never consulted. The rig's
+orbit trip DID rebuild its session server-side (t=905381, state=1) with still no inclusion -
+ambiguous between query-failure and no-msg-12-built, which is why the reason instrument
+exists now.
+
+NEXT SEQUENCE (one deploy window, user-gated):
+  1. User closes both games. I deploy: server p2(37) via script + both client DLLs
+     (deploy_client_dll.sh Mac / scp+assert rig).
+  2. User boots BOTH into the Tower (Mac first), then ONE orbit trip on either machine.
+  3. Read: ev=relay stage=register ids (is 1298 consumed? D4); stage=wire_snapshot lines
+     (did any msg-12 build post-settle?); membership_peer inclusion or reason code;
+     peers-valid masks in both dumps. Every branch pre-named in FINDINGS 20.44/20.45/20.47.
+
+LANES: Lane V LANDED (20.46). Lane T LANDED - RE_output/claims/transport-relay-design.md:
+carriage = new minimal shim-owned link to the server's existing plaintext listener;
+delivery = synthesize inbound via queue_callback(id=1298 = k_iSteamNetworkingCallbacks(1200)
++98, gbe_fork RecvP2PRendezvous_t, 528 B) - HARD GAP: ring payload cap is 32 B
+(callback_registry.h:22, verified) and must rise >=528; addressing = authored steamId
+registered per link. Binding order per lesson 2: registration-id log boot FIRST (now part
+of step 2 above); blob contents + native BAP rendezvous service id stay Ghidra opens (O3/O4).
+
+DEAD ENDS - DO NOT RESUME THESE:
+  - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER. Two boots prove a served result sits filed.
+  - the svc-43 search-result contents lane. Serving works; contents changes change nothing.
+  - the peer-subnet egress relaxation (p2(28)). Moot.
+  - the physics gates (physicsHostSession / serverDefaultEntity / gameplayExternalBody).
+
+--- everything below predates the p2(35) deploy; treat as history ---
+
+## HEADLINE (superseded): P2(35) DEPLOYED - PEER AS MEMBER SLOT 1. FIRST PASS
+## INCONCLUSIVE (see 20.47).
+
+Deployed: server exe `1cf5243e2fa1c398` (p2(35), four harness gates rc=0, 30976 bound);
+client DLLs UNCHANGED `a248109eaeeedc71` on both machines (server-only change - no DLL
+push needed). Fork branch `upstream-gameplay-scoped` @ `cae9ca9`. Identity: Mac default
+(...861), rig authored ...862. Rig ssh master at ~/.ssh/cm-rig (rasla@192.168.1.136;
+reopen per FINDINGS_2026-08-24.md:1476 - needs user password).
+
+THE CHANGE: state query foreign_member_identity() (same destination, joined, identity
+published); wire slot 1 = mirrored local row shape (+673 bits; layout-derived and probed
+offline across all four shapes with the solo bodies byte-exact); masks bit 1 set;
+liveness lines `ev=activity stage=membership_peer result=included key=0x..` (server log)
+and `stage=membership result=encode_fail` on refusal. FINDINGS_2026-08-25.md 20.45.
+
+NEXT BOOT READS (both client logs): `peers valid: 0x3` + a `peer # 1` row = the claim
+holds and the client has a peer to dial - all three Steam tables remain camera'd, so any
+contact attempt gets caught on whatever surface it uses. Negatives pre-named: dumps stay
+0x1 => membership is client-authored => Ghidra lane on the join path; peer row but no
+contact => the row lacks dialer fields (likely platform identity).
+
+IN FLIGHT (background lanes, zero-boot):
+  - Lane T (transport design): rendezvous relay carriage/delivery/addressing ->
+    RE_output/claims/transport-relay-design.md - STILL RUNNING
+  - Lane V (vtable naming): LANDED, FINDINGS 20.46. Friends 3=count(0x404)/4=by-index/
+    5=persona-state(1..6) = a designable enumeration triple; 43=UNKNOWN predicate (risk);
+    mm27 chat entries are fixed 1040-byte blobs. Fallback trigger (fabricated one-friend
+    roster naming the peer's SteamID64) is now designable if the membership boot fails.
+
+DEAD ENDS - DO NOT RESUME THESE:
+  - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER. Two boots prove a served result sits filed.
+  - the svc-43 search-result contents lane. Serving works; contents changes change nothing.
+  - the peer-subnet egress relaxation (p2(28)). No IP in the advertisement; moot.
+  - the physics gates (physicsHostSession / serverDefaultEntity / gameplayExternalBody).
+    Not on the critical path - see 20.38.
+
+--- everything below predates the p2(35) deploy; treat as history ---
 
 ## HEADLINE: THE SEARCH RESULT ENCODES AND SHIPS (140 B, client's own schema).
 ## THE SOLO BOOT WAS STRUCTURALLY INCONCLUSIVE. p2(27) DEPLOYED
