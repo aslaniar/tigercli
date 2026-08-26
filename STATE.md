@@ -1,10 +1,10 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~00:35 (account-fix re-test ran: rig STILL published acct 0 -
-p2(49) changed readers but the client seeded state from initialAccount only.
-Root-caused to one call site, fixed as p2(50), deployed to both machines.
-READY FOR THE ACCOUNT RE-TEST BOOT - brief in FINDINGS 20.66 expected-values.)
-READ THIS WHOLE HEADER before any deploy.
+Updated: 2026-08-26 ~01:00 (account re-test #2: p2(50) provisioned both slots but
+the rig STILL played account 0 and presented slot 0's token - retail paths read
+the active slot, not our keyed reads. p2(51) moves selection to seed time:
+exactly the chosen account + its own token is provisioned. Deployed both
+machines; READY for re-test boot #3.) READ THIS WHOLE HEADER before any deploy.
 
 >> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
 >> **`tried-to-join-self`** - BOTH MACHINES ARE PLAYING THE SAME ACCOUNT.
@@ -53,17 +53,19 @@ OPERATIONAL FACTS:
 
 DEPLOYED RIGHT NOW - **PEER ROW STILL ARMED** (pin 0, cap 2); one machine alone
 still yields peer=0, so the Mac-only control is safe to run first.
-  server exe   `bd8a5150f06571a4` (byte-identical redeploy; seven gates rc=0)
-  client DLLs  `18e3af58e7fcc576` on BOTH machines (p2(50): client provisions
-               the authored account set; hash asserted on each machine)
-  fork         `upstream-gameplay-scoped` @ `d17cc62` (p2(50)), clean
+  server exe   `6285c48f7589d913` (p2(51), seven gates rc=0)
+  client DLLs  `21711767879fe135` on BOTH machines (p2(51))
+  fork         `upstream-gameplay-scoped` @ `2239831` (p2(51)), clean
   settings     rig `state.local_account_key: 1` (verified in file);
                `membership_sweep_pin: 0`, `membership_peer_retry_cap: 2`
-  identities   Mac plays …100100 (slot 0); rig SHOULD now play …110100 (slot 1)
-  PREVIOUS DLL `8edd0dfa7a902a57` (p2(49), both machines) - backups kept
+  identities   Mac plays …100100; rig should now play …110100 AND sign on as
+               slot 1 (`matched=slot1 served=1`) - its token travels with the
+               selected account
+  PREVIOUS DLL `18e3af58e7fcc576` (p2(50)) - backups kept
 
-NEXT BOOT = the account re-test (expected values in FINDINGS 20.66): Mac control
-first, then rig must publish acct=…110100 and `reason=same_account` must be gone.
+NEXT BOOT = account re-test #3. Decisive lines: rig identity
+`acct=0x9EAA300110100`; `matched=slot1`; `reason=same_account` gone.
+If a refusal still comes, record the NEW reason code - that is progress.
 
 TO MAKE THE PEER ROW IMPOSSIBLE AGAIN: set `membership_sweep_pin: 5` (solo).
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
