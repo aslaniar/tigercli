@@ -1,19 +1,23 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 ~21:55 (msg-14 logging live as p2(46); ALL 31 packed schema
-keys extracted from runtime pointer chains - membership key = 0x808086A8; the
-dump's registry resolves NONE of them: dump-time-state wall, live capture is
-the next step and is now fully specified). READ THIS WHOLE HEADER before any
-deploy.
+Updated: 2026-08-25 ~23:45 (msg-14 logging live as p2(46); ALL 31 packed schema
+keys extracted AND ALL 31 NOW RESOLVE OFFLINE - the "dump-time-state wall" was
+three bugs in our own walker, RETRACTED in 20.61. The full type-12 membership
+schema is decoded: a fixed 32-slot roster of 31-bit member rows. NO live-capture
+boot is needed; do not run the one 20.60 specified.) READ THIS WHOLE HEADER
+before any deploy.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
   2. INCIDENT_2026-08-25_false-loops.md - why those lessons exist; all three traps recur.
-  3. FINDINGS_2026-08-25.md entries 20.40 -> 20.49 (today's whole arc, newest first).
+  3. FINDINGS_2026-08-25.md entries 20.40 -> 20.61 (today's whole arc, newest first).
+     20.61 supersedes 20.59/20.60 on the schema registry - read it FIRST.
   4. Lane deliverables: RE_output/claims/transport-relay-design.md (Lane T),
      RE_output/claims/client-steam-vtable-names.md (Lane V),
      RE_output/claims/msg12-parser-read.md (Lane M, main session).
   5. RE_output/claims/s1-accept-contract.md stays the BAP contract reference.
+  6. RE_output/claims/msg12-schema-decoded.md - the type-12 schema, with
+     per-link evidence marks. The ONE inference in it is flagged in the file.
 
 OPERATIONAL FACTS:
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
@@ -35,7 +39,8 @@ OPERATIONAL FACTS:
 
 ## HEADLINE: THE "SECOND GUARDIAN" WAS THE MAC SEEING ITSELF - RETRACTED AND
 ## FIXED. THE REAL GAP IS THAT WE ACCEPT REQUESTS AND NEVER ANSWER THEM. THE
-## SCHEMA REGISTRY IS NOW OPEN OFFLINE, BLOCKED ONLY ON ONE PACKED KEY.
+## SCHEMA REGISTRY IS OPEN OFFLINE AND NO LONGER BLOCKED ON ANYTHING: ALL 31
+## KEYS RESOLVE AND THE TYPE-12 MEMBERSHIP SCHEMA IS DECODED.
 
 DEPLOYED RIGHT NOW (safe state - peer row is OFF):
   server exe `fcc65072fdfcf200` (p2(46): logs msg-14 payload raw; five gates rc=0)
@@ -63,18 +68,27 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     states the wrong assumption: "carry no work for this host ... one-way".
     AND: the client sent `release_peer_reservation` 56 ms after our first peer
     body, twice. We accept that message and discard it.
- 3. **The schema keys are all in hand; the offline registry route is walled
-    (20.57-20.60).** `schema_walk.py`'s sign bug is fixed (20.59), and 20.60
-    extracted **31 genuine runtime packed keys** - every one `0x808xxxxx`,
-    including the type-12 membership key **0x808086A8** read straight out of
-    the membership orchestrator's own pointer chain (global 0x141FA4180).
-    20.59's "hashes, not keys" reading is CORRECTED there. The wall: the
-    dump's registry resolves none of them (only buckets 0-23 populated; all
-    31 keys land in high buckets that read zeros) -> dump-time state != parse
-    time. NEXT = one user-gated boot with the instrument specified in
-    FINDINGS 20.60: log r9d at 0x1404C72E0 entry + the live DAT_142439C70
-    table pointer during a parse window; compare against the dump's table.
-    Everything downstream of the table is already built.
+ 3. **The schema registry is OPEN and the type-12 schema is DECODED
+    (20.57-20.61).** 20.60 extracted **31 genuine runtime packed keys** - every
+    one `0x808xxxxx`, including the type-12 membership key **0x808086A8** read
+    out of the membership orchestrator's own pointer chain (global 0x141FA4180).
+    That part stands. **20.60's "dump-time-state wall" does NOT** - 20.61 traced
+    it to three further bugs in `schema_walk.py` (sign-fill mask six bits too
+    wide; no 64-bit wraparound on the adjustment subtract, which made every live
+    node read as "not mapped"; and the field count read off the message's total
+    bit size). Fixed, **all 31 keys resolve in the 08-15 dump**, each verified
+    against the packed key the node stores at `+0x08`.
+    The type-12 shape: a **fixed 32-slot** roster (0x808086A9) of **31-bit**
+    member rows (0x808086AF = identity block + 28-bit block + 5-bit field), then
+    a trailer 0x808086AC at bit 992 and four presence-flagged 32-bit fields.
+    Full tree + evidence marks: RE_output/claims/msg12-schema-decoded.md.
+    **Do not run 20.60's live-capture boot.** The dump serves this fine, the
+    dump is LOCAL, and any other message type is now one command away.
+    NEXT = transcribe 0x808086BC/0x808086B1 against our encoder, then resolve
+    the accepted-and-dropped types 9/10/17/45 the same way.
+    Registry census: **6,765 self-verifying nodes, ALL in buckets 1024-1028**;
+    buckets 0-23 hold NONE (20.60's census said the opposite). The whole
+    registry is enumerable offline whenever we want it.
 
 ### Method rules earned today (AGENTS.md, binding)
 
@@ -86,9 +100,18 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
   - a null from a mechanism whose syntax already failed in this session is not
     evidence (three grep/PowerShell censuses were wrong today; each was caught
     by re-asking through a mechanism that could not fail the same way).
+  - **lesson 13 covers OFFLINE instruments too** (20.61). A Python script
+    reading a static dump produced a null that got written up as a property of
+    the game ("the registry instance is phase-dependent"). It was three bugs in
+    the script. Give every reader an ORACLE IT CAN FAIL AGAINST before trusting
+    its nulls - here, the node stores its own key at +0x08, so a resolution can
+    be checked rather than merely looking plausible.
 
 DEAD ENDS - DO NOT RESUME:
-  - MEMBER ROW SHAPE. Swept six shapes; the row is not the constraint.
+  - MEMBER ROW SHAPE **BY BLIND SWEEP**. Six shapes swept, none informative.
+    NOTE (20.61): the row no longer has to be guessed - the client's own schema
+    says 32 fixed slots x 31-bit rows. Reading it off the schema is not a resume
+    of the sweep; do not start another sweep.
   - TRAILING-FIELD VALUES (counts vs masks). Every verdict predates p2(45) and
     was measured against a self-peer. Re-run only after a real peer is proven.
   - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER; the svc-43 contents lane; the
