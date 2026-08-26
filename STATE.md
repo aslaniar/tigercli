@@ -1,8 +1,9 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 ~21:25 (msg-14 payload logging deployed as p2(46); schema
-walker's sign bug fixed AND our candidate keys proven to be hashes, not keys;
---find re-run is now the calibration path). READ THIS WHOLE HEADER before any
+Updated: 2026-08-25 ~21:55 (msg-14 logging live as p2(46); ALL 31 packed schema
+keys extracted from runtime pointer chains - membership key = 0x808086A8; the
+dump's registry resolves NONE of them: dump-time-state wall, live capture is
+the next step and is now fully specified). READ THIS WHOLE HEADER before any
 deploy.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
@@ -62,16 +63,18 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     states the wrong assumption: "carry no work for this host ... one-way".
     AND: the client sent `release_peer_reservation` 56 ms after our first peer
     body, twice. We accept that message and discard it.
- 3. **The schema registry is open (20.57/20.58).** Two full-memory dumps already
-    existed on the rig from 08-15. Registry, resolver formula and field grammar
-    are all verified offline. **20.59 closed route 2 with a double finding:**
-    `schema_walk.py`'s bucket arithmetic sign-extended the wrong value (both
-    probed keys landed in buckets 3/4 instead of 9219/9220), and the packing is
-    provably `key = (bucket << 13) | idx` with bit31 always clear - so
-    `0x80806AC0`/`0x80808635` are HASHES of another domain, never keys.
-    CALIBRATION NOW NEEDS NO KEY: re-run `--find 29968` on the rig dump (the
-    recursive-expansion fix postdates the last recorded run; hits now print
-    their own packed key). Rig ssh needs the user's password.
+ 3. **The schema keys are all in hand; the offline registry route is walled
+    (20.57-20.60).** `schema_walk.py`'s sign bug is fixed (20.59), and 20.60
+    extracted **31 genuine runtime packed keys** - every one `0x808xxxxx`,
+    including the type-12 membership key **0x808086A8** read straight out of
+    the membership orchestrator's own pointer chain (global 0x141FA4180).
+    20.59's "hashes, not keys" reading is CORRECTED there. The wall: the
+    dump's registry resolves none of them (only buckets 0-23 populated; all
+    31 keys land in high buckets that read zeros) -> dump-time state != parse
+    time. NEXT = one user-gated boot with the instrument specified in
+    FINDINGS 20.60: log r9d at 0x1404C72E0 entry + the live DAT_142439C70
+    table pointer during a parse window; compare against the dump's table.
+    Everything downstream of the table is already built.
 
 ### Method rules earned today (AGENTS.md, binding)
 
