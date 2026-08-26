@@ -1,73 +1,72 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 ~16:20 (p2(38) live verdict: slot 1 SHIPS, client does not apply it,
-never acks, silent. FINDINGS_2026-08-25.md 20.48.)
+Updated: 2026-08-25 ~17:15 (COLLISION CORRECTED: two sessions drove the fork today.
+READ THIS WHOLE HEADER before any deploy.)
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
   2. INCIDENT_2026-08-25_false-loops.md - why those lessons exist; all three traps recur.
-  3. FINDINGS_2026-08-25.md entries 20.40 -> 20.48 (today's whole arc, newest first).
-  4. Lane deliverables: RE_output/claims/transport-relay-design.md (Lane T - how to move
-     rendezvous bytes once a client dials) and RE_output/claims/client-steam-vtable-names.md
-     (Lane V - friends/matchmaking vtable truths incl. the fabricated-roster fallback).
+  3. FINDINGS_2026-08-25.md entries 20.40 -> 20.49 (today's whole arc, newest first).
+  4. Lane deliverables: RE_output/claims/transport-relay-design.md (Lane T),
+     RE_output/claims/client-steam-vtable-names.md (Lane V),
+     RE_output/claims/msg12-parser-read.md (Lane M, main session).
   5. RE_output/claims/s1-accept-contract.md stays the BAP contract reference.
 
 OPERATIONAL FACTS:
-  - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped @ ac2ce42
-    (p2(38)). Outer repo (this dir): main; RE_output/ is gitignored there.
-  - Build: cd RE_build/Sunrise-fork-inventory/build && make -j8 (two targets; src/steam/**
-    compiles ONLY into steam_api64.dll - server exe changes only for state/server files).
-  - Deploy server: bash RE_scripts/deploy_p2d6_gameplay.sh (drops clients; gates inside).
-    Deploy client DLL: bash RE_scripts/deploy_client_dll.sh <mac|rig> "<literals...>"
-    (hash-assert + literal grep IN the deployed file - never skip).
+  - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
+    HISTORY NOTE: TWO COMMITS CLAIM p2(39) - f2d0995 (Claude, shape sweep) and
+    9639aa4 (opencode, revision advance). Next number is p2(41); do not renumber.
+  - Build: cd RE_build/Sunrise-fork-inventory/build && make -j8 (src/steam/** compiles
+    ONLY into steam_api64.dll).
+  - Deploy server: bash RE_scripts/deploy_p2d6_gameplay.sh (drops clients; gates inside;
+    stages from build output and asserts deployed==built).
+  - Deploy client DLL: bash RE_scripts/deploy_client_dll.sh <mac|rig> "<literals...>" -
+    hash assert + literal grep IN the deployed file; never skip.
   - Logs: server RE_output/s1_accept/Sunrise/logs/sunrise.log; each client
-    <game>/Sunrise/logs/sunrise.log (Mac game: Game/bin/x64/). Grep ev=steamnet /
-    ev=activity / peers valid.
-  - Rig: ssh master ~/.ssh/cm-rig to rasla@192.168.1.136 (reopen command recorded at
-    FINDINGS_2026-08-24.md:1476; needs the USER's password - agents cannot open it).
-    Rig game dir: C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
-  - Identities: Mac client uses the settings default steamId ...861; rig authors
-    steam.user.steam_id=76561198776753862 in its Sunrise/settings.json.
+    <game>/Sunrise/logs/sunrise.log. Grep ev=steamnet / ev=activity / peers valid /
+    ev=relay stage=register.
+  - Rig: ssh master ~/.ssh/cm-rig to rasla@192.168.1.136 (reopen per
+    FINDINGS_2026-08-24.md:1476; needs the USER's password). Rig game dir:
+    C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
+  - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
 
-## HEADLINE: THE COMPARATOR FIX WORKED - THE RIG'S BODIES NOW CARRY THE MAC
-## AS MEMBER SLOT 1 (key=0xB34F7851304A19CF, ~5 s republish loop). BUT THE
-## CLIENT NEVER ACKNOWLEDGES AND peers-valid STAYS 0x1: A REMOTE ROW SHAPE
-## OR CO-REQUISITE IS WRONG IN A WAY STATICS OF OUR OWN ENCODER CANNOT SEE.
-## NEXT FRONT: GHIDRA LANE ON THE CLIENT'S MSG-12 PARSER.
+## HEADLINE: ACKNOWLEDGEMENT IS CONTENT-GATED - THE PEER ROW ITSELF IS REFUSED,
+## NOT THE REVISION NUMBER (Claude's sweep, 20.49). SIX-SHAPE SWEEP EXISTS; FOUR
+## SHAPES STILL UNSHIPPED. opencode's revision-advance suspect WAS REFUTED BY
+## THAT SWEEP, AND ITS 17:01 DEPLOY OVERWROTE THE SWEEP BUILD - COORDINATE
+## BEFORE THE NEXT DEPLOY.
 
-Deployed: server exe `cbea193dad109af2` (p2(38), gates rc=0); client DLLs `eb893d2b1b6d8534`
-(p2(36)) on both machines. Fork branch `upstream-gameplay-scoped` @ `ac2ce42`.
+DEPLOYED RIGHT NOW: server `1b5a5a56fadec5ba` = HEAD (sweep p2(40) + opencode flip-fix);
+gates rc=0. Client DLLs `eb893d2b1b6d8534` both machines. If Claude's sweep binary
+`7496f5e6e9904f8b` is required instead, rebuild from commit `111ba17` (no backup kept).
 
-VERIFIED THIS BOOT: comparator fix confirmed live (rig bursts log peer=1 + inclusion with
-Mac's memberKey; Mac's burst had correctly logged none_joined earlier); registration-id
-harvest on BOTH machines - **id=1298 registered** (+ sibling 1297, 506/507, friends
-300-family 331/336/337/343, 117, 704) => Lane T delivery synthesis CONFIRMED VIABLE;
-peers-valid pinned 0x1 both sides; zero client-side complaints = silent rejection.
+ESTABLISHED BY EXECUTION TODAY (FINDINGS_2026-08-25.md):
+  - identity split end to end (20.41/20.42); all three Steam surfaces instrumented,
+    none initiates joins (20.44); id=1298 consumed by BOTH clients => Lane T delivery
+    viable; comparator fix live - slot 1 ships carrying the peer (20.45/20.48);
+    acknowledgement CONTENT-gated: full_mirror ack=0 across nine transmissions under
+    ADVANCING revisions while solo acks immediately (20.49).
 
-NEXT (proposed): Ghidra lane on the client's msg-12 parser. Q1 what makes a non-first
-member row valid (remote-specific fields); Q2 ack conditions; Q3 trailing-mask semantics.
-Calibration artifact exists: our own solo body (3746 B) is client-accepted. Tooling pattern:
-laneV_steam_vtables.py. THEN Lane T integration (relay link + queue_callback 1298 synthesis;
-ring cap 32->536 one-liner) once ignition is real - or as a parallel probe if a synthesized
-1298 ever looks worth firing at a live client.
+opencode's refuted suspect: repeat-revision drop (20.48 reading) - refuted by the sweep.
+Its flip-fix stays deployed as hygiene, not as the fix.
 
-THE THREE GOALS, HONEST DISTANCES (2026-08-25 ~16:20):
-  1. Fully separate accounts: WORKING and now identity-complete - two provisioned slots,
-     persistent state.db, distinct Steam identities end to end (20.41/20.42).
-  2. Two guardians in the same destination instance: BLOCKED at peer-link formation. The
-     trigger (server-declared membership) ships; the client silently refuses to apply a
-     body carrying a remote member row (20.48). Distance unknown until the msg-12 parser
-     lane answers Q1-Q3 - could be one wire field or a structural rule; do not guess.
-  3. Two guardians in one fireteam: downstream of 2 by an unknown margin; no code path
-     attempted yet this front.
+NEXT (Claude's front): run the remaining four sweep shapes (key_only, key_account,
+key_account_join, key_account_join_opaque); p2(40) fixed the anchoring bug, opens on
+key_only. First shape to draw an ACK names the missing field; then mirror that shape.
+
+opencode statics that stand regardless (msg12-parser-read.md): type table [12]/[23]/[38];
+field registry incl peer_and_player_counts vs peer_updates/player_updates; 44-entry
+peer-failure reason enum; "view signature mismatch, no replication" gate @ 0x1416eb9a2;
+self-key offset 0x6C30 cluster; simulation_queue_activity_client_membership_insert anchor.
 
 DEAD ENDS - DO NOT RESUME THESE:
-  - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER. Filed, not acted on - proven twice.
-  - the svc-43 search-result contents lane. Serving works; contents changes change nothing.
-  - the peer-subnet egress relaxation (p2(28)). Moot.
-  - the physics gates (physicsHostSession / serverDefaultEntity / gameplayExternalBody).
-  - MIRRORING THE LOCAL MEMBER ROW FOR SLOT 1 AS-IS: shipped, received, silently not
-    applied (20.48). Do not re-ship it unchanged and expect a different read.
+  - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER. Filed twice, never acted on.
+  - full_mirror AS-IS: ack=0 x9 under advancing revisions (20.49). Its isolated
+    sub-shapes are the live question.
+  - REVISION-ADVANCE-ONLY AS THE FIX: refuted by execution.
+  - the svc-43 search-result contents lane; peer-subnet egress relaxation (p2(28));
+    physics activation gates (see 20.38/20.44).
+
 
 --- everything below predates the p2(38) verdict; treat as history ---
 
