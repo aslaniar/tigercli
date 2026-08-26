@@ -1,10 +1,11 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~01:00 (account re-test #2: p2(50) provisioned both slots but
-the rig STILL played account 0 and presented slot 0's token - retail paths read
-the active slot, not our keyed reads. p2(51) moves selection to seed time:
-exactly the chosen account + its own token is provisioned. Deployed both
-machines; READY for re-test boot #3.) READ THIS WHOLE HEADER before any deploy.
+Updated: 2026-08-26 ~10:30 (**ACCOUNTS SEPARATED - GOAL 1 RE-PROVEN.** Rig now
+publishes acct=…110100/char …110103 on slot 1; Mac …100100/…101 on slot 0. The
+first genuinely foreign peer row shipped and the client refused it with a NEW
+reason: **`privacy-mode`** (5). Identity war is over; next front = presence/
+visibility semantics, Lane V friends-roster fallback directly relevant.)
+READ THIS WHOLE HEADER before any deploy.
 
 >> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
 >> **`tried-to-join-self`** - BOTH MACHINES ARE PLAYING THE SAME ACCOUNT.
@@ -51,21 +52,16 @@ OPERATIONAL FACTS:
 ## ACCOUNT SOID. **"SEPARATE ACCOUNTS" IS REFUTED AT THE ACTIVITY LAYER.**
 ## THE TRAILING-FIELD QUESTION IS UNTESTABLE UNTIL THAT IS FIXED.
 
-DEPLOYED RIGHT NOW - **PEER ROW STILL ARMED** (pin 0, cap 2); one machine alone
-still yields peer=0, so the Mac-only control is safe to run first.
-  server exe   `6285c48f7589d913` (p2(51), seven gates rc=0)
+DEPLOYED RIGHT NOW:
+  server exe   `6cef0f586f8626bf` (p2(52): ws503 is authoritative - never adopts
+               client proposals; seven gates rc=0)
   client DLLs  `21711767879fe135` on BOTH machines (p2(51))
-  fork         `upstream-gameplay-scoped` @ `2239831` (p2(51)), clean
-  settings     rig `state.local_account_key: 1` (verified in file);
-               `membership_sweep_pin: 0`, `membership_peer_retry_cap: 2`
-  identities   Mac plays …100100; rig should now play …110100 AND sign on as
-               slot 1 (`matched=slot1 served=1`) - its token travels with the
-               selected account
-  PREVIOUS DLL `18e3af58e7fcc576` (p2(50)) - backups kept
-
-NEXT BOOT = account re-test #3. Decisive lines: rig identity
-`acct=0x9EAA300110100`; `matched=slot1`; `reason=same_account` gone.
-If a refusal still comes, record the NEW reason code - that is progress.
+  fork         `upstream-gameplay-scoped` @ `ad4b222` (p2(52)), clean
+  settings     rig `state.local_account_key: 1`;
+               `membership_sweep_pin: 0` (ARMED, packed_masks), cap 2
+  identities   Mac slot0 …100100/…101; Rig slot1 …110100/…103 - VERIFIED on wire
+  instruments  keepalive names slot=; svc-24 logs answered soid; ws503 logs
+               proposed vs answered; type-13/14 payloads logged raw
 
 TO MAKE THE PEER ROW IMPOSSIBLE AGAIN: set `membership_sweep_pin: 5` (solo).
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
