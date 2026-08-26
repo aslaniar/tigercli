@@ -1,11 +1,11 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~10:30 (**ACCOUNTS SEPARATED - GOAL 1 RE-PROVEN.** Rig now
-publishes acct=…110100/char …110103 on slot 1; Mac …100100/…101 on slot 0. The
-first genuinely foreign peer row shipped and the client refused it with a NEW
-reason: **`privacy-mode`** (5). Identity war is over; next front = presence/
-visibility semantics, Lane V friends-roster fallback directly relevant.)
-READ THIS WHOLE HEADER before any deploy.
+Updated: 2026-08-26 ~13:00 (**p2(53) DEPLOYED - DNS hooks fixed.** The mac's
+stun hang is our own shim: DnsQuery was substituted with "localhost" +
+cache-only flags, which never returns records under Wine. All four DNS hook
+entry points now substitute the numeric redirect host (192.168.1.164) directly,
+dropping the option flags entirely. Ready for re-test boot #4.) READ THIS WHOLE
+HEADER before any deploy.
 
 >> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
 >> **`tried-to-join-self`** - BOTH MACHINES ARE PLAYING THE SAME ACCOUNT.
@@ -47,21 +47,30 @@ OPERATIONAL FACTS:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
 
-## HEADLINE: THE CLIENT FINALLY TOLD US WHY IT REFUSES OUR ROSTER, AND IT IS NOT
-## THE WIRE FORMAT. IT IS `tried-to-join-self`: BOTH MACHINES PUBLISH THE SAME
-## ACCOUNT SOID. **"SEPARATE ACCOUNTS" IS REFUTED AT THE ACTIVITY LAYER.**
-## THE TRAILING-FIELD QUESTION IS UNTESTABLE UNTIL THAT IS FIXED.
+## HEADLINE: THE STALL IS OURS, NOT RETAIL'S. THE MAC'S DNS-SHIM HANG - SUBSTITUTING
+## "LOCALHOST" WITH CACHE-ONLY FLAGS - NEVER RETURNS RECORDS UNDER WINE, SO STUN
+## NEVER RAN, MANAGED SESSIONS NEVER STARTED, AND EVERY INSTANCE STAYED PRIVATE.
+## p2(53) FIXES THE HOOK; SEPARATED ACCOUNTS ALREADY HOLD (20.68-20.70).
 
 DEPLOYED RIGHT NOW:
   server exe   `6cef0f586f8626bf` (p2(52): ws503 is authoritative - never adopts
                client proposals; seven gates rc=0)
-  client DLLs  `21711767879fe135` on BOTH machines (p2(51))
-  fork         `upstream-gameplay-scoped` @ `ad4b222` (p2(52)), clean
+  client DLLs  `ffbf223e19cd4a9a` on BOTH machines (p2(53): DNS hooks substitute
+               the numeric redirect host 192.168.1.164 directly instead of
+               "localhost" + cache-only flags)
+  fork         `upstream-gameplay-scoped` @ `a1e250d` (p2(53)), clean
   settings     rig `state.local_account_key: 1`;
                `membership_sweep_pin: 0` (ARMED, packed_masks), cap 2
   identities   Mac slot0 …100100/…101; Rig slot1 …110100/…103 - VERIFIED on wire
   instruments  keepalive names slot=; svc-24 logs answered soid; ws503 logs
                proposed vs answered; type-13/14 payloads logged raw
+
+NEXT BOOT = re-test #4. Decisive lines in the MAC client log:
+  stun: 'Sending IP discovery STUN packet', 'Valid STUN response', 'NAT type open',
+  'Disposing our STUN endpoint' (all absent in every prior mac boot);
+  demonware: bdSocketRouterConfig warn + managed_session creates + posse
+  session_id fills + NOJIP 'Moving on'; then EST-Y and privacy-mode either falls
+  or names a new condition.
 
 TO MAKE THE PEER ROW IMPOSSIBLE AGAIN: set `membership_sweep_pin: 5` (solo).
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
