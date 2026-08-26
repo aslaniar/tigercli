@@ -1,10 +1,10 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~02:00 (**p2(47) BOOTED AND PASSED.** The client accepts the
-four-field trailer: acked revisions 2/3/4, loaded into the tower, steady at
-revision 4. `body=3882` proves the new encoder was on the wire. The schema read
-is confirmed against the running client.) READ THIS WHOLE HEADER before any
-deploy.
+Updated: 2026-08-26 ~00:35 (account-fix re-test ran: rig STILL published acct 0 -
+p2(49) changed readers but the client seeded state from initialAccount only.
+Root-caused to one call site, fixed as p2(50), deployed to both machines.
+READY FOR THE ACCOUNT RE-TEST BOOT - brief in FINDINGS 20.66 expected-values.)
+READ THIS WHOLE HEADER before any deploy.
 
 >> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
 >> **`tried-to-join-self`** - BOTH MACHINES ARE PLAYING THE SAME ACCOUNT.
@@ -51,17 +51,19 @@ OPERATIONAL FACTS:
 ## ACCOUNT SOID. **"SEPARATE ACCOUNTS" IS REFUTED AT THE ACTIVITY LAYER.**
 ## THE TRAILING-FIELD QUESTION IS UNTESTABLE UNTIL THAT IS FIXED.
 
-DEPLOYED RIGHT NOW - **THE PEER ROW IS ARMED.** It publishes as soon as a SECOND
-machine joins; one machine alone still yields peer=0 via the p2(45) self-peer
-exclusion, so the Mac-only control is safe to run.
-  server exe `c6e65a3dbc71f671` (p2(48b): four-field sweep, type-13 reporter;
-            SIX gates rc=0; built hash == deployed hash, verified)
-  fork `upstream-gameplay-scoped` @ `845c278`, clean
-  settings: `membership_sweep_pin: 0` (= packed_masks, PINNED),
-            `membership_peer_retry_cap: 2` (was 6)
-  client DLLs `eb893d2b1b6d8534` on BOTH machines - rig hash re-verified over ssh
-  identities: Mac ...861, rig ...862 (distinct - a genuine foreign peer)
-  PREVIOUS: `c8f6bde2a8f16303` (p2(47b)), `fcc65072fdfcf200` (p2(46))
+DEPLOYED RIGHT NOW - **PEER ROW STILL ARMED** (pin 0, cap 2); one machine alone
+still yields peer=0, so the Mac-only control is safe to run first.
+  server exe   `bd8a5150f06571a4` (byte-identical redeploy; seven gates rc=0)
+  client DLLs  `18e3af58e7fcc576` on BOTH machines (p2(50): client provisions
+               the authored account set; hash asserted on each machine)
+  fork         `upstream-gameplay-scoped` @ `d17cc62` (p2(50)), clean
+  settings     rig `state.local_account_key: 1` (verified in file);
+               `membership_sweep_pin: 0`, `membership_peer_retry_cap: 2`
+  identities   Mac plays …100100 (slot 0); rig SHOULD now play …110100 (slot 1)
+  PREVIOUS DLL `8edd0dfa7a902a57` (p2(49), both machines) - backups kept
+
+NEXT BOOT = the account re-test (expected values in FINDINGS 20.66): Mac control
+first, then rig must publish acct=…110100 and `reason=same_account` must be gone.
 
 TO MAKE THE PEER ROW IMPOSSIBLE AGAIN: set `membership_sweep_pin: 5` (solo).
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
