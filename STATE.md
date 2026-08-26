@@ -1,6 +1,6 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 late (sweep closed the row-shape question; front moved to the
+Updated: 2026-08-25 ~18:00 (sweep closed the row-shape question; front moved to the
 count field). READ THIS WHOLE HEADER before any deploy.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
