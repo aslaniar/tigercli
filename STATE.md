@@ -1,7 +1,7 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 ~18:00 (sweep closed the row-shape question; front moved to the
-count field). READ THIS WHOLE HEADER before any deploy.
+Updated: 2026-08-25 ~22:10 (self-peer bug found and fixed; protocol census;
+schema registry opened). READ THIS WHOLE HEADER before any deploy.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
@@ -29,6 +29,61 @@ OPERATIONAL FACTS:
     FINDINGS_2026-08-24.md:1476; needs the USER's password). Rig game dir:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
+
+## HEADLINE: THE "SECOND GUARDIAN" WAS THE MAC SEEING ITSELF - RETRACTED AND
+## FIXED. THE REAL GAP IS THAT WE ACCEPT REQUESTS AND NEVER ANSWER THEM. THE
+## SCHEMA REGISTRY IS NOW OPEN OFFLINE, BLOCKED ONLY ON ONE PACKED KEY.
+
+DEPLOYED RIGHT NOW (safe state - peer row is OFF):
+  server exe `7fb79777e265843d` (p2(45)), five gates rc=0
+  settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
+            `membership_peer_retry_cap: 6`, `membership_sweep: false`
+  client DLLs `eb893d2b1b6d8534` on BOTH machines (unchanged all day)
+  fork `upstream-gameplay-scoped` @ `3006f9b` (p2(45)), clean
+
+**Leave the pin at 5 until a peer row is worth sending again.** A peer row the
+client refuses freezes it: six bodies was enough to hard-freeze the Mac.
+
+### The day's three real results
+
+ 1. **The self-peer bug (20.54).** `foreign_member_identity` excluded only the
+    caller's SESSION ID, and one client holds several sessions, so a client was
+    served ITSELF as its fireteam member and rendered a second copy of the local
+    guardian named "You". Same mistake 20.37 fixed for matchmaking. Fixed in
+    p2(45) by excluding candidates sharing the caller's member key.
+    **20.53's "two guardians" milestone is RETRACTED**, and every trailing-field
+    verdict measured before p2(45) is VOID.
+ 2. **The protocol census (20.55).** 59 client message types; we dispatch 17,
+    accept-with-no-work 14, and emit 6. The gap's shape is *requests we accept
+    and never answer*: `request_activity_host` -> 9/10, `request_peer_reservation`
+    -> grant/45, `keepalive_request` -> 17. `kAcceptedMessages`' own comment
+    states the wrong assumption: "carry no work for this host ... one-way".
+    AND: the client sent `release_peer_reservation` 56 ms after our first peer
+    body, twice. We accept that message and discard it.
+ 3. **The schema registry is open (20.57/20.58).** Two full-memory dumps already
+    existed on the rig from 08-15. Registry, resolver formula and field grammar
+    are all verified offline. BLOCKED on obtaining one packed key - see 20.58's
+    three candidate routes.
+
+### Method rules earned today (AGENTS.md, binding)
+
+  - lesson 17: **nothing in a shipped protocol is optional.** An unimplemented
+    type is a missing requirement, not a deferred feature.
+  - the ONE-MACHINE CONTROL: boot a single client and confirm zero peers, FIRST,
+    before any two-machine peer test. It is what caught the self-peer bug and it
+    costs sixty seconds.
+  - a null from a mechanism whose syntax already failed in this session is not
+    evidence (three grep/PowerShell censuses were wrong today; each was caught
+    by re-asking through a mechanism that could not fail the same way).
+
+DEAD ENDS - DO NOT RESUME:
+  - MEMBER ROW SHAPE. Swept six shapes; the row is not the constraint.
+  - TRAILING-FIELD VALUES (counts vs masks). Every verdict predates p2(45) and
+    was measured against a self-peer. Re-run only after a real peer is proven.
+  - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER; the svc-43 contents lane; the
+    peer-subnet egress relaxation; the physics gates.
+
+--- everything below predates 2026-08-25 evening; treat as history ---
 
 ## HEADLINE: THE CLIENT NOW APPLIES A PEER-BEARING MEMBERSHIP BODY - AND DOES
 ## NOTHING WITH IT. NO STEAM SURFACE FIRES, NEITHER GUARDIAN IS VISIBLE. THE
