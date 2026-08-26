@@ -1,7 +1,9 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 ~22:10 (self-peer bug found and fixed; protocol census;
-schema registry opened). READ THIS WHOLE HEADER before any deploy.
+Updated: 2026-08-25 ~21:25 (msg-14 payload logging deployed as p2(46); schema
+walker's sign bug fixed AND our candidate keys proven to be hashes, not keys;
+--find re-run is now the calibration path). READ THIS WHOLE HEADER before any
+deploy.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
@@ -35,11 +37,11 @@ OPERATIONAL FACTS:
 ## SCHEMA REGISTRY IS NOW OPEN OFFLINE, BLOCKED ONLY ON ONE PACKED KEY.
 
 DEPLOYED RIGHT NOW (safe state - peer row is OFF):
-  server exe `7fb79777e265843d` (p2(45)), five gates rc=0
+  server exe `fcc65072fdfcf200` (p2(46): logs msg-14 payload raw; five gates rc=0)
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
             `membership_peer_retry_cap: 6`, `membership_sweep: false`
   client DLLs `eb893d2b1b6d8534` on BOTH machines (unchanged all day)
-  fork `upstream-gameplay-scoped` @ `3006f9b` (p2(45)), clean
+  fork `upstream-gameplay-scoped` @ `aefdcd1` (p2(46)), clean
 
 **Leave the pin at 5 until a peer row is worth sending again.** A peer row the
 client refuses freezes it: six bodies was enough to hard-freeze the Mac.
@@ -62,8 +64,14 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     body, twice. We accept that message and discard it.
  3. **The schema registry is open (20.57/20.58).** Two full-memory dumps already
     existed on the rig from 08-15. Registry, resolver formula and field grammar
-    are all verified offline. BLOCKED on obtaining one packed key - see 20.58's
-    three candidate routes.
+    are all verified offline. **20.59 closed route 2 with a double finding:**
+    `schema_walk.py`'s bucket arithmetic sign-extended the wrong value (both
+    probed keys landed in buckets 3/4 instead of 9219/9220), and the packing is
+    provably `key = (bucket << 13) | idx` with bit31 always clear - so
+    `0x80806AC0`/`0x80808635` are HASHES of another domain, never keys.
+    CALIBRATION NOW NEEDS NO KEY: re-run `--find 29968` on the rig dump (the
+    recursive-expansion fix postdates the last recorded run; hits now print
+    their own packed key). Rig ssh needs the user's password.
 
 ### Method rules earned today (AGENTS.md, binding)
 

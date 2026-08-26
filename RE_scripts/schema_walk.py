@@ -75,10 +75,15 @@ class Schema:
         return None if raw is None or len(raw) < 8 else struct.unpack('<Q', raw)[0]
 
     def bucket_of(self, key):
-        hi = key >> 13
-        if hi & 0x80000000:
-            hi -= 1 << 32
-        return ((hi | 0xFFC0000) >> 18) & (hi & 0xFFFF)
+        """Mirrors FUN_1404c1930 exactly: sar esi,0xd fills from the KEY's sign bit,
+        not from the shifted value's. Checking bit31 after a logical shift - the
+        previous implementation - resolves every high-bit key into the wrong bucket,
+        which is why 0x80806AC0 and 0x80808635 both returned node absent."""
+        key &= 0xFFFFFFFF
+        hi = key >> 13           # the low 19 bits of the sar result
+        if key & 0x80000000:     # sar copied the KEY's top bit into the vacated 13
+            hi |= 0xFFFFE000
+        return (((hi | 0xFFC0000) & 0xFFFFFFFFFFFFFFFF) >> 18) & (hi & 0xFFFF)
 
     def entry_fields(self, bucket):
         e = self.table + bucket * REGISTRY_STRIDE
@@ -225,8 +230,12 @@ def main():
                 if total is not None and abs(total - want) <= tol:
                     hits += 1
                     count = s.u32(node + 0x14)
-                    print('  MATCH bucket=%d idx=%d node=0x%X fields=%d expanded=%d bits'
-                          % (b, idx, node, (count or 0) + 1, total))
+                    # The resolver formula reduces to bucket = key[13..23] for
+                    # well-formed keys, so the packed key is recoverable from the
+                    # slot itself - no hash translation and no live capture needed.
+                    print('  MATCH bucket=%d idx=%d key=0x%X node=0x%X fields=%d '
+                          'expanded=%d bits'
+                          % (b, idx, (b << 13) | idx, node, (count or 0) + 1, total))
                     if hits >= 12:
                         return 0
         print('\nmatches: %d' % hits)
