@@ -1,12 +1,14 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~01:15 (the schema registry is open and the type-12 schema is
-transcribed against our encoder. The roster AGREES exactly. The gap is at the top
-level: the client declares FOUR trailing 32-bit fields and we have always shipped
-TWO. **p2(47) is DEPLOYED and A BOOT IS READY - see BOOT_BRIEF_p2-47.md.**)
-READ THIS WHOLE HEADER before any deploy.
+Updated: 2026-08-26 ~02:00 (**p2(47) BOOTED AND PASSED.** The client accepts the
+four-field trailer: acked revisions 2/3/4, loaded into the tower, steady at
+revision 4. `body=3882` proves the new encoder was on the wire. The schema read
+is confirmed against the running client.) READ THIS WHOLE HEADER before any
+deploy.
 
->> NEXT ACTION: boot ONE client on the Mac. Rig stays off. BOOT_BRIEF_p2-47.md.
+>> NEXT ACTION: the PEER boot - two machines, and it has frozen the Mac before.
+>> It needs a build first: the sweep drives only the FIRST TWO trailing fields
+>> and there are now four. See "The peer front" below.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
@@ -40,10 +42,10 @@ OPERATIONAL FACTS:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
 
-## HEADLINE: THE SCHEMA IS OPEN, TRANSCRIBED, AND IT NAMES A GAP WE CAN SHIP.
-## THE ROSTER MATCHES OUR ENCODER EXACTLY (32 SLOTS, 3-BIT ABSENT ROWS). THE
-## CLIENT DECLARES **FOUR** TOP-LEVEL TRAILING 32-BIT FIELDS AND WE HAVE ALWAYS
-## SENT TWO. p2(47) SENDS ALL FOUR AND IS DEPLOYED, AWAITING A SOLO BOOT.
+## HEADLINE: THE SCHEMA READ IS CONFIRMED ON THE WIRE. p2(47) SENDS ALL FOUR
+## DECLARED TRAILING FIELDS AND THE CLIENT ACCEPTS THEM - ACKED THREE TIMES,
+## LOADED INTO THE TOWER. THE ROSTER ALREADY MATCHED OUR ENCODER EXACTLY.
+## WHAT IS STILL UNPROVEN IS WHETHER THE CLIENT *READS* THE TWO NEW FIELDS.
 
 DEPLOYED RIGHT NOW (safe state - peer row is OFF):
   server exe `c8f6bde2a8f16303` (p2(47b): four-field trailer + membership_ack
@@ -75,7 +77,25 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     states the wrong assumption: "carry no work for this host ... one-way".
     AND: the client sent `release_peer_reservation` 56 ms after our first peer
     body, twice. We accept that message and discard it.
- 3b. **THE TRANSCRIPTION LANDED, AND p2(47) SHIPS WHAT IT FOUND (20.62).**
+ 3a. **p2(47) BOOTED AND PASSED (20.63).** `membership_ack result=ok` at
+    revisions 2, 3, 4; client loaded into `city_tower_social_d2`, state=3, and
+    held revision 4 for the rest of the run. No encode_fail, no hang.
+    Body provenance is in the number itself: every push read `type=12 body=3882`,
+    which only the new encoder produces - (30,032 + 1,024)/8 = 3,882 against
+    p2(46)'s 3,874 (1,024 bits = the 128-byte citizen descriptor, present all
+    run). The client acknowledged a body that demonstrably carried four fields.
+    **LIMIT, stated plainly (lesson 11):** this proves the four-field body is not
+    REJECTED. It does NOT prove the client READS fields [6]/[7] - they sit at the
+    END, so a parser that stops early accepts both forms. And all four carried
+    the value 1 by design, so no semantics were tested. Consumption only becomes
+    visible with a second member, where a mask (3) and a count (2) differ.
+    RESIDUAL, unexplained and recorded: the user's FIRST launch reached the tower,
+    took four bodies and acknowledged NONE before being quit; the second acked
+    three times. Read as a quit (every line stops on one tick, then 122 s of
+    silence and fresh svc-25 handshakes), but `membership_ack` is one boot old and
+    has no baseline. Check the next boot against it.
+
+ 3b. **THE TRANSCRIPTION LANDED, AND p2(47) SHIPPED WHAT IT FOUND (20.62).**
     `node+0x14` is the PRESENCE BITMAP size, not the wire width - 20.61 said
     otherwise and is corrected (verified across 6,709 of 6,765 nodes; the 56
     exceptions are named and none is in the roster spine). With that fixed:
@@ -139,6 +159,22 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     the script. Give every reader an ORACLE IT CAN FAIL AGAINST before trusting
     its nulls - here, the node stores its own key at +0x08, so a resolution can
     be checked rather than merely looking plausible.
+
+### The peer front - what the next boot needs BEFORE it runs
+
+  - The sweep (`membership_sweep_pin`, six readings) drives only `trailingFirst`
+    and `trailingSecond`. There are now FOUR fields. Extending `TrailingValues`
+    and `trailing_values()` to four is the build that precedes the peer boot.
+  - A peer row has hard-frozen the Mac (six bodies did it). `membership_peer_retry_cap`
+    is 6 and the freeze happens inside that, so consider capping lower for the
+    first peer boot.
+  - The peer boot is the FIRST test in which the trailing fields' meaning is
+    observable at all: with two members a slot mask is 3 and a member count is 2.
+  - Lesson 17 lead still open and untested: we accept and never answer
+    `request_peer_reservation` (13) -> grant/45, and the client sent
+    `release_peer_reservation` (14) twice after our first peer body. p2(46) logs
+    14's payload but it has never fired, because it needs a peer body to exist.
+    Every message type's schema is now one `schema_walk.py --tree` away.
 
 DEAD ENDS - DO NOT RESUME:
   - MEMBER ROW SHAPE **BY BLIND SWEEP**. Six shapes swept, none informative.
