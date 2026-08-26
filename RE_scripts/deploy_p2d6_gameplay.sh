@@ -13,7 +13,7 @@
 #                             is live - that is why the gate runs here)
 #   2 back up exe + cache    (*.bak_p2d6_<stamp>)
 #   3 restamp the cache to the CANDIDATE's identity
-#   4 harness gates (SIX)    (refused -> restore the cache, abort, deploy nothing)
+#   4 harness gates (SEVEN)  (refused -> restore the cache, abort, deploy nothing)
 #   5 deploy the exe
 #   6 relaunch + verify the listeners, INCLUDING the new UDP 30976
 #
@@ -74,7 +74,7 @@ python3 "$root/RE_scripts/restamp_build_data.py" "$cache" "$candidate" --apply \
 
 echo "== 4. harness gates on the candidate =="
 cd "$accept" || die "no $accept"
-for flag in --s1-test --cache-check --equip-diff --selection-version-test --membership-sweep-test --membership-wire-test; do
+for flag in --s1-test --cache-check --equip-diff --selection-version-test --membership-sweep-test --membership-wire-test --local-account-test; do
   out="$("$wine" "$candidate" "$flag" 2>&1)"; rc=$?
   echo "   $flag rc=$rc"
   [[ -n "$out" ]] && echo "$out" | tail -6
