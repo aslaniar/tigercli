@@ -26,7 +26,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from minidump_reader import Minidump
 
 GLOBAL_RVA = 0x2439C70
-ENTRY_STRIDE = 0x40
+# 0x28, read off FUN_1404bd2a0: `lea rax,[rbx+rbx*4]` with `[r14+rax*8]` is r14+rbx*40,
+# and `inc rbx` advances one field per iteration. The field offsets (+0x28 bits, +0x30 type,
+# +0x31 presence, +0x34 sub-key, +0x3C width) are relative to node+idx*0x28, so the entry
+# body begins one stride in - which is why they appear to overflow a 40-byte record and do
+# not. Using 0x40 here is what made the first calibration search find nothing.
+ENTRY_STRIDE = 0x28
+# The REGISTRY table's own stride, which is NOT the field-entry stride. FUN_1404c1930 does
+# `shl rcx,6` before adding the table base, so registry entries are 0x40 apart while field
+# entries are 0x28 apart. Conflating the two silently misreads every bucket the moment one
+# of them is corrected.
+REGISTRY_STRIDE = 0x40
 
 
 class Schema:
@@ -71,9 +81,54 @@ class Schema:
         return ((hi | 0xFFC0000) >> 18) & (hi & 0xFFFF)
 
     def entry_fields(self, bucket):
-        e = self.table + bucket * ENTRY_STRIDE
+        e = self.table + bucket * REGISTRY_STRIDE
         return {'va': e, 'base': self.u64(e + 8), 'stride': self.u32(e + 0x30),
                 'mask': self.i32(e + 0x34)}
+
+    def node_at(self, ent, idx):
+        """@return Node VA for one registry entry + index, or None when absent."""
+        resolved = ent['base'] + ent['stride'] * idx
+        adj = self.u64(resolved + 8)
+        if adj is None:
+            return None
+        resolved -= adj & (ent['mask'] & 0xFFFFFFFFFFFFFFFF)
+        rel = self.u64(resolved + 0x48)
+        if rel is None or rel == 0:
+            return None
+        return (resolved + 0x48 + rel) & 0xFFFFFFFFFFFFFFFF
+
+    def expand(self, node, seen, depth):
+        """Sums a schema's wire width with nested walks expanded.
+
+        Field type 1 is a NESTED WALK through the sub-key at +0x34 (W1 CLAIM 3), so a
+        schema's own entries do NOT sum to its message size - the first calibration search
+        compared against an unexpanded total and matched nothing. The walker's own stack is
+        4 deep, so that is the recursion bound.
+        """
+        if depth > 4 or node in seen:
+            return None
+        seen = seen | {node}
+        count = self.u32(node + 0x14)
+        if count is None or count > 4000:
+            return None
+        total = 0
+        for f in range(count + 1):
+            e = node + f * ENTRY_STRIDE
+            bits = self.i32(e + 0x28)
+            head = self.md.read_va(e + 0x30, 2)
+            if bits is None or head is None or bits < 0 or bits > (1 << 20):
+                return None
+            ftype, presence = head[0], head[1]
+            total += bits + (1 if presence else 0)
+            if ftype == 1:
+                sub = self.u32(e + 0x34)
+                if sub:
+                    child, _ = self.node_for(sub)
+                    if child is not None:
+                        inner = self.expand(child, seen, depth + 1)
+                        if inner:
+                            total += inner
+        return total
 
     def node_for(self, key):
         """@return (node_va, field_count) or (None, reason)."""
@@ -123,45 +178,55 @@ def main():
         print('\nlive registry entries in first %d: %d' % (n, live))
         return 0
 
+    if '--node' in sys.argv:
+        i = sys.argv.index('--node')
+        b = int(sys.argv[i + 1], 0)
+        idx = int(sys.argv[i + 2], 0)
+        ent = s.entry_fields(b)
+        print('bucket %d: base 0x%X stride %s mask %s' % (b, ent['base'] or 0, ent['stride'], ent['mask']))
+        node = s.node_at(ent, idx)
+        if node is None:
+            print('  no node at idx %d' % idx)
+            return 1
+        count = s.u32(node + 0x14)
+        print('  node 0x%X  count field=%s -> %d entries' % (node, count, (count or 0) + 1))
+        total = 0
+        for f in range(min((count or 0) + 1, 40)):
+            e = node + f * ENTRY_STRIDE
+            bits = s.i32(e + 0x28)
+            head = s.md.read_va(e + 0x30, 2)
+            width = s.u32(e + 0x3C)
+            sub = s.u32(e + 0x34)
+            if bits is None or head is None:
+                print('    [%2d] not mapped' % f); break
+            total += (bits or 0) + (1 if head[1] else 0)
+            print('    [%2d] bits=%-7s type=%-4d presence=%-3d subkey=0x%-10X width=%s'
+                  % (f, bits, head[0], head[1], sub or 0, width))
+        print('  running total (unexpanded) = %d bits' % total)
+        return 0
+
     if '--find' in sys.argv:
         i = sys.argv.index('--find')
         want = int(sys.argv[i + 1], 0)
         tol = int(sys.argv[i + 2], 0) if len(sys.argv) > i + 2 else 64
         buckets = int(sys.argv[i + 3], 0) if len(sys.argv) > i + 3 else 24
-        print('\nscanning for a schema totalling %d bits (+/- %d) across %d buckets\n'
-              % (want, tol, buckets))
+        print('\nscanning for a schema totalling %d bits (+/- %d), nested walks expanded, '
+              'across %d buckets\n' % (want, tol, buckets))
         hits = 0
         for b in range(buckets):
             ent = s.entry_fields(b)
             if not ent['base'] or not ent['stride']:
                 continue
             for idx in range(0, 0x2000):
-                resolved = ent['base'] + ent['stride'] * idx
-                adj = s.u64(resolved + 8)
-                if adj is None:
-                    break
-                r = resolved - (adj & (ent['mask'] & 0xFFFFFFFFFFFFFFFF))
-                rel = s.u64(r + 0x48)
-                if rel is None or rel == 0:
+                node = s.node_at(ent, idx)
+                if node is None:
                     continue
-                node = (r + 0x48 + rel) & 0xFFFFFFFFFFFFFFFF
-                count = s.u32(node + 0x14)
-                if count is None or count > 4000:
-                    continue
-                total = 0
-                ok = True
-                for f in range(count + 1):
-                    e = node + f * ENTRY_STRIDE
-                    bits = s.i32(e + 0x28)
-                    pres = s.md.read_va(e + 0x31, 1)
-                    if bits is None or pres is None or bits < 0 or bits > 1 << 20:
-                        ok = False
-                        break
-                    total += bits + (1 if pres[0] else 0)
-                if ok and abs(total - want) <= tol:
+                total = s.expand(node, set(), 0)
+                if total is not None and abs(total - want) <= tol:
                     hits += 1
-                    print('  MATCH bucket=%d idx=%d node=0x%X fields=%d total=%d bits'
-                          % (b, idx, node, count + 1, total))
+                    count = s.u32(node + 0x14)
+                    print('  MATCH bucket=%d idx=%d node=0x%X fields=%d expanded=%d bits'
+                          % (b, idx, node, (count or 0) + 1, total))
                     if hits >= 12:
                         return 0
         print('\nmatches: %d' % hits)
