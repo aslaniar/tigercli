@@ -102,6 +102,17 @@ NEXT (Claude's front): run the remaining four sweep shapes (key_only, key_accoun
 key_account_join, key_account_join_opaque); p2(40) fixed the anchoring bug, opens on
 key_only. First shape to draw an ACK names the missing field; then mirror that shape.
 
+LANE M ADDENDUM (~17:45, main session - msg12-parser-read.md section 6): the msg-12
+parser IS the documented schema walker (INVENTORY-W1). Field layout is RUNTIME SCHEMA
+DATA (0x28-byte entries through DAT_142439c70); statics cannot produce the entry bytes -
+three lanes converged on that independently. Correction recorded: 0x1404c72e0 (once
+mis-dismissed by this lane) is a schema-walk entry variant. Q1 route: capture the packed
+type-12 schema key at 0x1404c72e0's entry during a live boot (one hook/breakpoint),
+resolve the node per W1 CLAIM 1, transcribe entries per CLAIM 3 (+0x28 bits / +0x31
+presence / +0x3C width), diff against our encoder's emitted sequence - the first
+divergence names what peer_and_player_counts needs. Q2 ack likely falls out of the same
+read (mirror walk, W1 OPEN #7).
+
 opencode statics that stand regardless (msg12-parser-read.md): type table [12]/[23]/[38];
 field registry incl peer_and_player_counts vs peer_updates/player_updates; 44-entry
 peer-failure reason enum; "view signature mismatch, no replication" gate @ 0x1416eb9a2;
