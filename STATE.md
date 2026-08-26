@@ -6,9 +6,10 @@ revision 4. `body=3882` proves the new encoder was on the wire. The schema read
 is confirmed against the running client.) READ THIS WHOLE HEADER before any
 deploy.
 
->> NEXT ACTION: the PEER boot - two machines, and it has frozen the Mac before.
->> It needs a build first: the sweep drives only the FIRST TWO trailing fields
->> and there are now four. See "The peer front" below.
+>> NEXT ACTION: **the PEER boot is BUILT, DEPLOYED and READY** - p2(48b),
+>> BOOT_BRIEF_p2-48.md. TWO MACHINES. Mac-only control FIRST (must read peer=0),
+>> then the rig. Pinned to `packed_masks`; retry cap dropped 6 -> 2 so a refusal
+>> costs a clean negative instead of a frozen client.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
@@ -47,12 +48,19 @@ OPERATIONAL FACTS:
 ## LOADED INTO THE TOWER. THE ROSTER ALREADY MATCHED OUR ENCODER EXACTLY.
 ## WHAT IS STILL UNPROVEN IS WHETHER THE CLIENT *READS* THE TWO NEW FIELDS.
 
-DEPLOYED RIGHT NOW (safe state - peer row is OFF):
-  server exe `c8f6bde2a8f16303` (p2(47b): four-field trailer + membership_ack
-            instrument; SIX gates rc=0 incl. the new `--membership-wire-test`;
-            built hash == deployed hash, verified twice)
-  fork `upstream-gameplay-scoped` @ `baf5b07`, clean
-  PREVIOUS: server exe `fcc65072fdfcf200` (p2(46): logs msg-14 payload raw)
+DEPLOYED RIGHT NOW - **THE PEER ROW IS ARMED.** It publishes as soon as a SECOND
+machine joins; one machine alone still yields peer=0 via the p2(45) self-peer
+exclusion, so the Mac-only control is safe to run.
+  server exe `c6e65a3dbc71f671` (p2(48b): four-field sweep, type-13 reporter;
+            SIX gates rc=0; built hash == deployed hash, verified)
+  fork `upstream-gameplay-scoped` @ `845c278`, clean
+  settings: `membership_sweep_pin: 0` (= packed_masks, PINNED),
+            `membership_peer_retry_cap: 2` (was 6)
+  client DLLs `eb893d2b1b6d8534` on BOTH machines - rig hash re-verified over ssh
+  identities: Mac ...861, rig ...862 (distinct - a genuine foreign peer)
+  PREVIOUS: `c8f6bde2a8f16303` (p2(47b)), `fcc65072fdfcf200` (p2(46))
+
+TO MAKE THE PEER ROW IMPOSSIBLE AGAIN: set `membership_sweep_pin: 5` (solo).
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
             `membership_peer_retry_cap: 6`, `membership_sweep: false`
   client DLLs `eb893d2b1b6d8534` on BOTH machines (unchanged all day)
@@ -160,20 +168,32 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     its nulls - here, the node stores its own key at +0x08, so a resolution can
     be checked rather than merely looking plausible.
 
-### The peer front - what the next boot needs BEFORE it runs
+### The peer front - BUILT AND ARMED (p2(48)/p2(48b)), see BOOT_BRIEF_p2-48.md
 
-  - The sweep (`membership_sweep_pin`, six readings) drives only `trailingFirst`
-    and `trailingSecond`. There are now FOUR fields. Extending `TrailingValues`
-    and `trailing_values()` to four is the build that precedes the peer boot.
-  - A peer row has hard-frozen the Mac (six bodies did it). `membership_peer_retry_cap`
-    is 6 and the freeze happens inside that, so consider capping lower for the
-    first peer boot.
-  - The peer boot is the FIRST test in which the trailing fields' meaning is
-    observable at all: with two members a slot mask is 3 and a member count is 2.
-  - Lesson 17 lead still open and untested: we accept and never answer
-    `request_peer_reservation` (13) -> grant/45, and the client sent
-    `release_peer_reservation` (14) twice after our first peer body. p2(46) logs
-    14's payload but it has never fired, because it needs a peer body to exist.
+  - The sweep now drives ALL FOUR trailing fields, and its readings are ordered
+    LIKELIEST-FIRST rather than control-first: a peer row can freeze the client
+    before a late reading is reached, so the historical all-masks reading (the one
+    already known to freeze) sits near the END. `solo` stays last.
+      0 packed_masks     0x00020002 / 3 / 3 / 1   <- PINNED for this boot
+      1 count_masks      2 / 3 / 3 / 1
+      2 packed_masks_seq 0x00020002 / 3 / 3 / 3
+      3 count_masks_seq  2 / 3 / 3 / 3
+      4 all_mask         3 / 3 / 3 / 3            (historical; it froze)
+      5 solo             no peer row              (terminal positive control)
+  - Gate invariant added: no peer-bearing reading may carry a ZERO in any field.
+    The encoder reads a zero override as "keep the historical value", so such a
+    reading would silently publish the mask it was written to replace while
+    reporting its own name - a sweep step that measures the control.
+  - Retry cap 6 -> 2. Two unacknowledged peer bodies withdraw the peer row
+    (sticky), a solo body follows, the client should carry on. The budget is a
+    guess against an unknown freeze threshold; if it freezes anyway, RECORD HOW
+    MANY `peer=1` BODIES PRECEDED IT - that number is the finding.
+  - Lesson 17 lead still open and UNANSWERED, but no longer unrecorded: p2(48b)
+    logs the payload of BOTH `request_peer_reservation` (13) and
+    `release_peer_reservation` (14). Neither has ever fired, because both need a
+    peer body to exist - this boot is the first that produces one. We still do
+    not ANSWER 13 with a grant/45; that is the competing explanation for the
+    freeze and the next front if the counts reading fails.
     Every message type's schema is now one `schema_walk.py --tree` away.
 
 DEAD ENDS - DO NOT RESUME:
