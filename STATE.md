@@ -6,10 +6,13 @@ revision 4. `body=3882` proves the new encoder was on the wire. The schema read
 is confirmed against the running client.) READ THIS WHOLE HEADER before any
 deploy.
 
->> NEXT ACTION: **the PEER boot is BUILT, DEPLOYED and READY** - p2(48b),
->> BOOT_BRIEF_p2-48.md. TWO MACHINES. Mac-only control FIRST (must read peer=0),
->> then the rig. Pinned to `packed_masks`; retry cap dropped 6 -> 2 so a refusal
->> costs a clean negative instead of a frozen client.
+>> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
+>> **`tried-to-join-self`** - BOTH MACHINES ARE PLAYING THE SAME ACCOUNT.
+>> NEXT ACTION: give the rig a genuinely separate account. Everything downstream
+>> of "is this peer foreign" is untestable until then. DISARM the peer row first:
+>> `membership_sweep_pin: 5`.
+>> **"Separate accounts" can no longer be treated as a settled goal** - Steam and
+>> BAP sign-on separate correctly, the published activity identity does not.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
@@ -43,10 +46,10 @@ OPERATIONAL FACTS:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
 
-## HEADLINE: THE SCHEMA READ IS CONFIRMED ON THE WIRE. p2(47) SENDS ALL FOUR
-## DECLARED TRAILING FIELDS AND THE CLIENT ACCEPTS THEM - ACKED THREE TIMES,
-## LOADED INTO THE TOWER. THE ROSTER ALREADY MATCHED OUR ENCODER EXACTLY.
-## WHAT IS STILL UNPROVEN IS WHETHER THE CLIENT *READS* THE TWO NEW FIELDS.
+## HEADLINE: THE CLIENT FINALLY TOLD US WHY IT REFUSES OUR ROSTER, AND IT IS NOT
+## THE WIRE FORMAT. IT IS `tried-to-join-self`: BOTH MACHINES PUBLISH THE SAME
+## ACCOUNT SOID. **"SEPARATE ACCOUNTS" IS REFUTED AT THE ACTIVITY LAYER.**
+## THE TRAILING-FIELD QUESTION IS UNTESTABLE UNTIL THAT IS FIXED.
 
 DEPLOYED RIGHT NOW - **THE PEER ROW IS ARMED.** It publishes as soon as a SECOND
 machine joins; one machine alone still yields peer=0 via the p2(45) self-peer
@@ -85,6 +88,36 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     states the wrong assumption: "carry no work for this host ... one-way".
     AND: the client sent `release_peer_reservation` 56 ms after our first peer
     body, twice. We accept that message and discard it.
+ 1a. **THE PEER BOOT (20.64) MOVED THE FRONT.** Message 14's payload decodes as
+    `{u64 reason BE, u64 memberKey LE}` - keys byte-exact against both identities.
+    The reason indexes the client's own peer-link failure enum (image `.rdata
+    0x141c9e2f8`, contiguous strings so index == order):
+      the RIG said **1 = `tried-to-join-self`** about the MAC
+      the MAC said **5 = `privacy-mode`** about the RIG
+    And it is right to: both machines publish `acct=0x9EAA300100100100`, differing
+    only in character (...0101 Mac, ...0103 rig). `acct` is the CLIENT's own claim
+    from its type-23 identity, not our label. Account 1's band
+    `0x9EAA30010011....` appears ONCE in the whole boot log - the startup listing.
+    **It was never served to anybody.**
+      Steam identity     SEPARATED (...861 / ...862)
+      BAP svc-25 sign-on SEPARATED (matched=slot0 served=0 / slot1 served=1)
+      activity identity  **NOT SEPARATED** - both account 0
+    Open question, not yet investigated: what collapses the rig onto account 0's
+    third character between "svc-25 served account 1" and "the client publishes
+    its identity". Candidates: account 1's characters never provisioned into its
+    own band; the rig client caching a character selection; the character list
+    served to slot 1 being account 0's.
+    **The trailing-field verdict is VOID for the third time** - the refusal lands
+    on the peer's IDENTITY and never reaches what `peer_and_player_counts` means.
+    Same trap as 20.54 in a new costume: a peer that is not genuinely foreign
+    cannot test anything downstream of being foreign. DO NOT re-pin and re-run
+    the sweep; it cannot produce a valid result yet.
+    **Cheap build that would have caught this before a single peer body shipped:**
+    `foreign_member_identity` (activity_session_lookup.cpp:130) excludes a
+    candidate sharing the caller's `memberKey` and checks nothing else - it never
+    compares `accountSoid`. 20.37 fixed this level for matchmaking on session id,
+    p2(45) for membership on member key; the ACCOUNT is the level neither reached.
+
  3a. **p2(47) BOOTED AND PASSED (20.63).** `membership_ack result=ok` at
     revisions 2, 3, 4; client loaded into `city_tower_social_d2`, state=3, and
     held revision 4 for the rest of the run. No encode_fail, no hang.
