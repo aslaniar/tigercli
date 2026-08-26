@@ -1,7 +1,7 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 ~17:15 (COLLISION CORRECTED: two sessions drove the fork today.
-READ THIS WHOLE HEADER before any deploy.)
+Updated: 2026-08-25 late (sweep closed the row-shape question; front moved to the
+count field). READ THIS WHOLE HEADER before any deploy.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
@@ -29,6 +29,54 @@ OPERATIONAL FACTS:
     FINDINGS_2026-08-24.md:1476; needs the USER's password). Rig game dir:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
+
+## HEADLINE: THE CLIENT NOW APPLIES A PEER-BEARING MEMBERSHIP BODY - AND DOES
+## NOTHING WITH IT. NO STEAM SURFACE FIRES, NEITHER GUARDIAN IS VISIBLE. THE
+## ROW SHAPE IS ANSWERED AND CLOSED. PRIME SUSPECT: peer_and_player_counts.
+
+Deployed: server exe `427766a2456f493a` (p2(41), five harness gates rc=0 incl. the new
+`--membership-sweep-test`); client DLLs `eb893d2b1b6d8534` on both machines. Fork branch
+`upstream-gameplay-scoped` @ `e8eae58`-era HEAD (see git). Opencode PAUSED during the sweep;
+ready to resume - see RESUME_OPENCODE_LANE_M.md at this root.
+
+WHAT THE SWEEP SETTLED (20.49 -> 20.51):
+ - The blocker was never the row SHAPE, it was the REVISION. The client applies one update
+   per revision and drops every repeat (opencode Lane M). Every earlier peer row reused an
+   already-applied revision, so shape variation was never evaluated.
+ - With each shape on its own revision, BOTH sessions acked a peer-bearing body - session A
+   under `key_account`, session B under `key_only`. **memberKey alone is sufficient.**
+ - And it changes NOTHING: zero `ev=steamnet` lines after the peer bodies, no
+   `send_rendezvous` ever, and neither player saw the other at a shared spawn.
+
+PRIME SUSPECT (inference, marked): Lane M's field registry names a separate
+`peer_and_player_counts` field upstream of the two valid-masks, and notes our body does not
+distinguish counts from masks. Our encoder writes `masks = 0b11` twice
+(activity_replicate_membership_encoder.cpp:12,28,35-36) and no plain count. If the count
+still says one member, the client parses our slot-1 row into a slot it ignores - which fits
+every observation simultaneously: body parses, revision acks, peer never appears, shape
+irrelevant, no connection attempted.
+
+SECOND LEAD: the ~44-entry peer-link failure-reason enum at .rdata 0x141c9e2f8. Surfacing
+which reason fires makes the client name our cause instead of us inferring it. Three
+parallel registries, no direct xrefs - Lane M flagged it as a follow-up.
+
+DEAD ENDS - DO NOT RESUME THESE:
+  - MEMBER ROW SHAPE. Swept six shapes under distinct revisions; key_only and full_mirror
+    behave identically because the row is not read. Answered - do not sweep it again.
+  - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER. Proven twice.
+  - the svc-43 search-result contents lane. Serving works; contents changes change nothing.
+  - the peer-subnet egress relaxation (p2(28)). Moot - no IP in the advertisement.
+  - the physics gates (physicsHostSession / serverDefaultEntity / gameplayExternalBody).
+
+TOOLING ADDED: `--membership-sweep-test` (pure decision logic, drives a full pass, asserts
+open-on-key_only / no skips / no early retire / one advance per shape). It is in the deploy
+gate list and was VERIFIED TO FAIL before being trusted (`||` for `&&` -> failures=6, exit 1).
+
+PROCESS: two agents on one checkout collided mid-boot-test (opencode deployed over a live
+run; duplicate p2(39) numbers). Nothing was lost, but a boot was confounded. Only one writer
+at a time on this tree, or give the other a worktree.
+
+--- everything below predates the sweep; treat as history ---
 
 ## HEADLINE: ACKNOWLEDGEMENT IS CONTENT-GATED - THE PEER ROW ITSELF IS REFUSED,
 ## NOT THE REVISION NUMBER (Claude's sweep, 20.49). SIX-SHAPE SWEEP EXISTS; FOUR
