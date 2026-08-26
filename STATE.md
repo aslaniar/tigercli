@@ -1,17 +1,20 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-25 ~23:45 (msg-14 logging live as p2(46); ALL 31 packed schema
-keys extracted AND ALL 31 NOW RESOLVE OFFLINE - the "dump-time-state wall" was
-three bugs in our own walker, RETRACTED in 20.61. The full type-12 membership
-schema is decoded: a fixed 32-slot roster of 31-bit member rows. NO live-capture
-boot is needed; do not run the one 20.60 specified.) READ THIS WHOLE HEADER
-before any deploy.
+Updated: 2026-08-26 ~01:15 (the schema registry is open and the type-12 schema is
+transcribed against our encoder. The roster AGREES exactly. The gap is at the top
+level: the client declares FOUR trailing 32-bit fields and we have always shipped
+TWO. **p2(47) is DEPLOYED and A BOOT IS READY - see BOOT_BRIEF_p2-47.md.**)
+READ THIS WHOLE HEADER before any deploy.
+
+>> NEXT ACTION: boot ONE client on the Mac. Rig stays off. BOOT_BRIEF_p2-47.md.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
   2. INCIDENT_2026-08-25_false-loops.md - why those lessons exist; all three traps recur.
-  3. FINDINGS_2026-08-25.md entries 20.40 -> 20.61 (today's whole arc, newest first).
-     20.61 supersedes 20.59/20.60 on the schema registry - read it FIRST.
+  3. FINDINGS_2026-08-25.md entries 20.40 -> 20.62 (today's whole arc, newest first).
+     20.62 supersedes 20.61 supersedes 20.59/20.60 on the schema registry. Read
+     20.62 FIRST: it corrects 20.61's reading of node+0x14 and carries the
+     encoder transcription.
   4. Lane deliverables: RE_output/claims/transport-relay-design.md (Lane T),
      RE_output/claims/client-steam-vtable-names.md (Lane V),
      RE_output/claims/msg12-parser-read.md (Lane M, main session).
@@ -37,13 +40,17 @@ OPERATIONAL FACTS:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
 
-## HEADLINE: THE "SECOND GUARDIAN" WAS THE MAC SEEING ITSELF - RETRACTED AND
-## FIXED. THE REAL GAP IS THAT WE ACCEPT REQUESTS AND NEVER ANSWER THEM. THE
-## SCHEMA REGISTRY IS OPEN OFFLINE AND NO LONGER BLOCKED ON ANYTHING: ALL 31
-## KEYS RESOLVE AND THE TYPE-12 MEMBERSHIP SCHEMA IS DECODED.
+## HEADLINE: THE SCHEMA IS OPEN, TRANSCRIBED, AND IT NAMES A GAP WE CAN SHIP.
+## THE ROSTER MATCHES OUR ENCODER EXACTLY (32 SLOTS, 3-BIT ABSENT ROWS). THE
+## CLIENT DECLARES **FOUR** TOP-LEVEL TRAILING 32-BIT FIELDS AND WE HAVE ALWAYS
+## SENT TWO. p2(47) SENDS ALL FOUR AND IS DEPLOYED, AWAITING A SOLO BOOT.
 
 DEPLOYED RIGHT NOW (safe state - peer row is OFF):
-  server exe `fcc65072fdfcf200` (p2(46): logs msg-14 payload raw; five gates rc=0)
+  server exe `c8f6bde2a8f16303` (p2(47b): four-field trailer + membership_ack
+            instrument; SIX gates rc=0 incl. the new `--membership-wire-test`;
+            built hash == deployed hash, verified twice)
+  fork `upstream-gameplay-scoped` @ `baf5b07`, clean
+  PREVIOUS: server exe `fcc65072fdfcf200` (p2(46): logs msg-14 payload raw)
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
             `membership_peer_retry_cap: 6`, `membership_sweep: false`
   client DLLs `eb893d2b1b6d8534` on BOTH machines (unchanged all day)
@@ -68,6 +75,24 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     states the wrong assumption: "carry no work for this host ... one-way".
     AND: the client sent `release_peer_reservation` 56 ms after our first peer
     body, twice. We accept that message and discard it.
+ 3b. **THE TRANSCRIPTION LANDED, AND p2(47) SHIPS WHAT IT FOUND (20.62).**
+    `node+0x14` is the PRESENCE BITMAP size, not the wire width - 20.61 said
+    otherwise and is corrected (verified across 6,709 of 6,765 nodes; the 56
+    exceptions are named and none is in the roster spine). With that fixed:
+      - the roster AGREES with our encoder exactly - 32 slots, and an absent
+        member row costing 3 bits IS the row's 3 presence flags. The member-row
+        shape was never the problem.
+      - the top level declares **FOUR** presence-flagged 32-bit fields (presence
+        indices 996-999). **We have always published TWO.** Lane M's field
+        registry names four in that position: peer_and_player_counts,
+        peer_updates, player_updates, player_seq_number - so `player_updates`
+        and `player_seq_number` have never been sent at all. Lesson 17.
+    p2(47) publishes all four. +64 bits: 29,968 -> 30,032; 3,746 -> 3,754 bytes.
+    All four carry the historical value, which is 1 in a solo body - where mask,
+    count and packed counts are the same number - so **the boot commits to no
+    semantics and tests only the shape.**
+    NEXT = boot ONE client on the Mac (BOOT_BRIEF_p2-47.md). Rig stays off.
+
  3. **The schema registry is OPEN and the type-12 schema is DECODED
     (20.57-20.61).** 20.60 extracted **31 genuine runtime packed keys** - every
     one `0x808xxxxx`, including the type-12 membership key **0x808086A8** read
@@ -100,6 +125,14 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
   - a null from a mechanism whose syntax already failed in this session is not
     evidence (three grep/PowerShell censuses were wrong today; each was caught
     by re-asking through a mechanism that could not fail the same way).
+  - **a model fitted on N points and tested on the same N points has not been
+    tested** (20.62). 20.61's reading of node+0x14 matched the four numbers it
+    was derived from and was refuted by the whole-registry pass that costs one
+    minute. Check a model against the population, not the sample, BEFORE it
+    ships into a finding.
+  - **an instrument nobody has seen fail is not an instrument** (20.62). The new
+    `--membership-wire-test` gate was run against a deliberately broken encoder
+    and confirmed to return rc=1 before it was trusted to pass.
   - **lesson 13 covers OFFLINE instruments too** (20.61). A Python script
     reading a static dump produced a null that got written up as a property of
     the game ("the registry instance is phase-dependent"). It was three bugs in

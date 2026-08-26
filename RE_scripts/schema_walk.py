@@ -176,16 +176,31 @@ class Schema:
         the walk landed on the wrong record."""
         return self.u32(node + 8)
 
-    def total_bits(self, node):
-        """@return the schema's wire width in bits, which the node STATES at +0x14.
+    def presence_bits(self, node):
+        """@return the size of this schema's PRESENCE BITMAP, stated at node+0x14.
 
-        1000 for type-12, 992 for its 32-slot roster, 31 for a member row, 3 for
-        the trailer - each consistent with its children. This is what `expand()`
-        below was built to reconstruct, and it was never necessary."""
+        NOT the wire width - an earlier revision of this docstring said it was, and
+        FINDINGS 20.62 refutes that: our own type-12 body is 29,968 bits and the
+        largest value at +0x14 anywhere in the registry is 8,029. 92% of nodes read
+        zero here, which no message width could.
+
+        What it counts, verified against 6,709 of the registry's 6,765 nodes:
+
+            +0x14 == sum over fields of (1 if presence else 0)
+                     + (a nested field's own +0x14, whether flagged or not)
+
+        1000 for type-12 = 992 (roster: 32 slots x 31) + 4 (trailer) + 4 (four
+        flagged 32-bit fields). The per-field dword at +0x28 is that field's index
+        into this bitmap, which is why type-12's read 0, 992, 996..999.
+
+        56 nodes registry-wide under-predict by 1-4, 13 of them inside the type-12
+        tree and all of those in the region subtree, never the roster/member-row
+        spine. Some field kind contributes a bit this rule does not model. Read the
+        stated value; use the rule only as a cross-check."""
         return self.u32(node + 0x14)
 
     def expand(self, node, seen, depth):
-        """SUPERSEDED by total_bits() - kept only because find_diag.py calls it.
+        """SUPERSEDED by presence_bits() - kept only because find_diag.py calls it.
 
         DO NOT use this to identify a schema by width. It sums the per-field dword
         at +0x28, which is NOT a per-field size: for a struct it is the field's bit
@@ -316,7 +331,7 @@ def main():
         # false positives - it had the picture precisely backwards.
         lo = int(sys.argv[i + 3], 0) if len(sys.argv) > i + 3 else 1024
         hi = int(sys.argv[i + 4], 0) if len(sys.argv) > i + 4 else 1029
-        print('\nscanning for a schema whose stated width is %d bits (+/- %d), '
+        print('\nscanning for a schema whose presence-bitmap size is %d (+/- %d), '
               'across buckets %d..%d\n' % (want, tol, lo, hi - 1))
         hits = 0
         for b in range(lo, hi):
@@ -331,7 +346,7 @@ def main():
                 key = s.node_key(node)
                 if key is None or (key & 0x1FFF) != idx or s.bucket_of(key) != b:
                     continue                      # not a real node in this slot
-                total = s.total_bits(node)
+                total = s.presence_bits(node)
                 if total is not None and abs(total - want) <= tol:
                     hits += 1
                     count = s.field_count(node)
@@ -340,7 +355,7 @@ def main():
                     # own key at +0x08; that is the only honest source.
                     kind, n = s.node_shape(node)
                     print('  MATCH bucket=%d idx=%d key=0x%08X node=0x%X %s(%d) '
-                          '%d bits'
+                          '%d presence bits'
                           % (b, idx, key, node, kind, n, total))
                     if hits >= 12:
                         return 0
@@ -364,11 +379,11 @@ def main():
             seen.add(k)
             kind, n = s.node_shape(node)
             if kind == 'array':
-                print('%s0x%08X  node=0x%X ARRAY of %d x %s bits total_bits=%s'
-                      % (pad, k, node, n, s.elem_bits(node), s.u32(node + 0x14)))
+                print('%s0x%08X  node=0x%X ARRAY of %d x %s  presence_bits=%s'
+                      % (pad, k, node, n, s.elem_bits(node), s.presence_bits(node)))
             else:
-                print('%s0x%08X  node=0x%X struct, %d fields total_bits=%s'
-                      % (pad, k, node, n, s.u32(node + 0x14)))
+                print('%s0x%08X  node=0x%X struct, %d fields  presence_bits=%s'
+                      % (pad, k, node, n, s.presence_bits(node)))
             for f in range(info):
                 e = node + f * ENTRY_STRIDE
                 bits = s.i32(e + 0x28)
@@ -378,7 +393,7 @@ def main():
                     break
                 ftype, pres = head[0], head[1]
                 sub = s.u32(e + 0x34)
-                print('%s  %s bits=%-6d type=%-3d presence=%d width=%-5s sub=%s'
+                print('%s  %s pidx=%-6d type=%-3d presence=%d width=%-5s sub=%s'
                       % (pad, '[elem]' if kind == 'array' else '[%d]' % f,
                          bits, ftype, pres, s.u32(e + 0x3C),
                          '0x%08X' % sub if sub not in (None, 0, 0xFFFFFFFF) else '-'))
