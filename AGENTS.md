@@ -266,6 +266,27 @@ failure mode from this front. DO NOT re-learn them.
     (FINDINGS 20.38) produced better information in one pass than all three
     guesses — four unverified links and a subsystem absent from both trees.
 
+17. **NOTHING IN A SHIPPED PROTOCOL IS OPTIONAL.**
+    A retail game does not carry decorative message types. Every entry in the
+    client's own schema exists because something in the game requires it, so an
+    UNIMPLEMENTED type is a missing REQUIREMENT we have not tripped over yet —
+    never a deferred nicety. The same holds for a failure enum: if the client can
+    name a rejection cause, some path produces it.
+    Before building on any protocol, census the client's type table against our
+    handlers and write the gaps down. Treat each gap as load-bearing until a
+    positive test says otherwise; do not rank candidates by how cheap they are to
+    test, which is what ranking on the wrong axis looks like.
+    Cost of the violation (2026-08-25, FINDINGS 20.55): types 13/14
+    `request_peer_reservation` / `release_peer_reservation` exist in our tree ONLY
+    as strings in two log name-tables — no handler at all — while the client's
+    failure vocabulary carries `no-reservation` and `no-ambassador-reservation`.
+    We named a foreign peer in the roster without ever reserving a slot for them
+    and the client froze hard. The lead was recorded in 20.53 and deprioritised
+    for three boots of trailing-field guesses because those were cheaper to run.
+    This is Universal Lesson 4 ("the reply envelope IS part of the contract")
+    generalised, and it was re-learned the expensive way after already being
+    written down once.
+
 ### THE PRE-BOOT CHECKLIST (binding — a boot costs the user real time)
 
 Before asking for ANY boot test, all four must hold:
