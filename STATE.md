@@ -73,8 +73,9 @@ STANDING: member row shape by blind sweep - the row read comes from schema, whic
 ## OPERATIONAL FACTS
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
     HISTORY NOTE: TWO COMMITS CLAIM p2(39) (f2d0995 Claude, 9639aa4 opencode).
-    Next number continues upward; do not renumber. Last commit: 0d8b543 (p2(67));
-    deployed client 011fb9e2 and server d8338bc0 both BUILT FROM IT.
+    Next number continues upward; do not renumber. DEPLOYED = p2(67) 0d8b543
+    (client 011fb9e2, server d8338bc0). The BUILD TREE IS AHEAD: p2(68) staging adds
+    argument capture to the census stub - build output 8cfb1302 is NOT deployed.
   - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8. BOTH
     targets take EXPLICIT source lists in Sunrise/CMakeLists.txt, NOT globs - a new
     .cpp must be added there or it silently fails to link (bit c2764aa and p2(67)).
