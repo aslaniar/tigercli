@@ -1,6 +1,15 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~20:30 (**EMITTER LANE (20.85): the peer-link diagnostic
+Updated: 2026-08-26 ~20:35 (**p2(58) BUILT AND DEPLOYED TO BOTH MACHINES - the
+reason-decision instrument. Hooks `reason_name(int)` at 0x1416E1620 (signature
+verified UNIQUE in .text before shipping) and reports each distinct
+(reason, return-site) pair once, printing the site as an RVA AND as a static VA
+so it feeds disasm_fn.py directly. READY TO BOOT: BOOT_BRIEF_p2-58.md.
+It changes NO behaviour - expect the same refusal as boot #11; the deliverable
+is the ADDRESS of the deciding call site, not the outcome. DLL
+`9bba721d961c0869` both machines; server exe UNCHANGED `1991b3da6f518165`.**)
+
+PREVIOUS HEADER (2026-08-26 ~20:30): (**EMITTER LANE (20.85): the peer-link diagnostic
 subsystem is LOCATED (reason-name table .data 0x142037510, 35 entries, index ==
 reason; accessor 0x1416E1620; five printer sites in 0x14176..0x1417A) and
 **20.64's enum reading is now VERIFIED by a second independent route**. The
@@ -156,7 +165,18 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT = BUILD THE `reason_name` HOOK (20.85). One file under client/hooks/,
+NEXT = BOOT p2(58) (BOOT_BRIEF_p2-58.md), then disassemble the reported
+`static=` addresses. Read from BOTH clients:
+  `ev=peerlink stage=reason result=ok`                      <- install, always
+  `ev=peerlink stage=reason value=N name=... site_rva=... static=0x14......`
+  ABSENCE negative: install line present but zero `value=` lines -> the reason is
+  named through a path that does not call this accessor; retire the route and go
+  at the type-14 send path in 0x1404Fxxxx instead.
+  CONTENT negative: every `static=` lands in the observer fan-out already mapped
+  (0x1416Dxxxx / 0x1416E1250) -> hook the printer at 0x141785E90 and capture its
+  arguments instead.
+
+DONE (superseded) = BUILD THE `reason_name` HOOK (20.85). One file under client/hooks/,
 ~80 lines, no server change, no protocol risk. Signature:
 `cmp ecx,0x23 / ja / movsxd rax,ecx / lea rcx,[rip+X] / mov rax,[rcx+rax*8] / ret`
 at 0x1416E1620. Log (reason, _ReturnAddress()) on every call - it fires on the
