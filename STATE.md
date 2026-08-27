@@ -7,13 +7,11 @@ takes GUEST role toward the other's instance. Member keys proven boot-scoped.
 Next: guest-role mechanism. FINDINGS 20.77.) READ THIS WHOLE HEADER before any
 deploy.
 
->> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
->> **`tried-to-join-self`** - BOTH MACHINES ARE PLAYING THE SAME ACCOUNT.
->> NEXT ACTION: give the rig a genuinely separate account. Everything downstream
->> of "is this peer foreign" is untestable until then. DISARM the peer row first:
->> `membership_sweep_pin: 5`.
->> **"Separate accounts" can no longer be treated as a settled goal** - Steam and
->> BAP sign-on separate correctly, the published activity identity does not.
+>> RESOLVED (20.68-20.77): accounts are separated, identities hold on the wire,
+>> and boot #9 proved the mac ACCEPTS the foreign peer row (acked rev 5, zero
+>> releases). The old tried-to-join-self / same-account wall is fully dismantled.
+>> Remaining: one client must take GUEST role against the other's instance
+>> (FINDINGS 20.77 next steps).
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
