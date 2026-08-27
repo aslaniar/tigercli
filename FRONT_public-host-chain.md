@@ -1,0 +1,99 @@
+# FRONT: the public-host chain - what must be true for two clients to share one host
+
+STATUS: live (2026-08-27 ~1x:xx, opened by the road-C decision). Owns the detail
+behind STATE's "road C" line. Supersedes nothing; retires when link L4 closes.
+
+Road C = the SERVER is the group-session host, both clients join IT, and the host
+publishes one membership snapshot naming both. Chosen over A (peer-native Steam
+rendezvous) and B (in-process injection) because the server half is ~80% built and
+has never been switched on. See STATE "ROADS" and 20.110 for the A/B costs.
+
+## THE CHAIN, LINK BY LINK (L16 marks on every link)
+
+| # | Link | Mark | Evidence |
+|---|---|---|---|
+| L1 | Server binds the gameplay UDP endpoint | verified-by-execution | `ev=gameplay stage=endpoint result=ok mode=embedded port=30976` t=137; advertised 192.168.1.164 (settings server.gameplay) |
+| L2 | Server allocates an activity-host session per (group, region) | verified-by-execution | `stage=activityhost result=allocated session=0x9EAA3001002000NN group=... generation=N held=N` x5 |
+| L3 | Server writes the citizen advertisement (128-B join descriptor: address/port/machineId) into the type-12 region block, for BOTH sessions | verified-by-execution | `stage=peer_advert result=built own_region=48 peer_region=56 own_citizen=1 peer_citizen=1`; delivery gap closed at 20.74.4 |
+| L4 | **Client sends an svc-8 activity JOIN naming the ADVERTISED host session** | **UNKNOWN - FIRST FAILING LINK** | `ev=activity stage=bind result=public_target` has NEVER appeared in ANY server log (0 occurrences). Every join the client sends names its OWN allocated session: client logs `AH->9eaa300100200004`, which is this account's own `activityhost result=allocated` id |
+| L5 | Server binds that link as the public half | verified-by-reading, blocked by L4 | `activity_message_route.cpp:230-246` `namesAdvertisedHost` -> `plan.bindsPublicTarget`; `bap_connection_publication.cpp:79-88` sets role publicTarget and logs `stage=bind result=public_target` |
+| L6 | Client, now public, dials 30976: association -> DTLS -> peer transport connect/establish -> group join | verified-by-reading, never reached | full stack present under `src/server/gameplay/`; ZERO datagrams have ever arrived (event census below) |
+| L7 | Group host publishes the membership snapshot | verified-by-reading, never reached | `group_host.cpp:229 publish_snapshot()` builds host + 1 peer + 1 player, with the member-state ladder and state-replica hash |
+| L8 | Widen the snapshot to host + 2 peers + 2 players | not built | `kSnapshotMemberCount=2`, `kPeerMemberIndex=1`, `kPeerPlayerSlot=0`; records keyed by sessionId, and `claim_owned`/`owned_elsewhere` refuse a second endpoint on one session BY DESIGN |
+| L9 | Both guardians RENDER for each other | not built, separate lane | nothing replicates another player's character records (family-0/family-3) - FINDINGS_2026-08-22 item 5 |
+
+## THE EVENT CENSUS THAT NAILS L6 (last boot, both logs, debug on)
+
+Server `ev=gameplay` appears 32 times, in FOUR stages only: `endpoint`,
+`activityhost`, `advertise`, `membership result=held`. Zero `stage=receive`,
+zero `dtls`, zero `association`, zero `connect`, zero `join`, zero `link`.
+`stage=receive` is a debug line and debug IS enabled (the `membership result=held`
+lines are debug), so this absence is measured, not filtered (L13).
+=> No client has ever sent one packet to the gameplay endpoint.
+
+## WHAT THE CLIENT ACTUALLY DOES INSTEAD (corrects the 20.69-era reading)
+
+20.69 recorded a BLANK ah-sid and read it as the wall. On the current build the
+client joins its own AH and gets a full membership ladder:
+
+    [AC PRIVATE CURRENT CON-Y EST-N AH->0 MEM-0]   Sent join request: [AH 9EAA3001:00200004]
+    [AC PRIVATE CURRENT CON-Y EST-Y AH->9eaa300100200004 MEM-1] ...
+    ... MEM-4] Acknowledged membership '4'.
+    ... MEM-5] Acknowledged membership '5'.
+
+So the AH join WORKS. What never changes is the classification: `PRIVATE CURRENT`
+on every line, and composition advertises/searches as `[PRIVATE activity]`.
+A blank `activity_host_changed: instance=PRIVATE CURRENT, ah-sid=` still appears
+once, at a transition, but it is no longer the standing state.
+
+### The peer round-trip that already happens, and dies
+
+The peer row DOES reach the client, and the client makes a reservation for it and
+then RELEASES it:
+
+    server: stage=membership_peer result=included key=0x846C8338F7D022E6 peer_row=1
+    client: [AC ... MEM-1] Sending peer-reservation release for machine 'E6:22:D0:F7:38:83:6...'
+    server: stage=message result=accept type=14 name=release_peer_reservation
+            handle=0x9EAA300100200004 payload=...E622D0F738836C84
+
+That release is the closest thing to a decision point we have ever observed on
+this front. Note the layer: this is the ACTIVITY-CLIENT reservation (svc-14), NOT
+the session-layer reserve 0x1417692E0 that 20.109 mapped. Do not conflate them.
+
+### Two clients are in DIFFERENT REGIONS
+
+`own_region=48 peer_region=56`. The citizen advertisement is written only into the
+region block whose index matches `citizen.regionIndex`, so a peer in another region
+carries no joinable endpoint for the region the reader is in. Whether region
+convergence is a precondition of L4 or a consequence of it is UNKNOWN. Do not
+"fix" the region until L4's decision function is read - forcing a region is a
+behaviour change and this front has already paid for guessing twice.
+
+## THE ONE QUESTION L4 REDUCES TO
+
+What makes the client choose a FOREIGN advertised host session as its AH target
+instead of its own? Everything downstream of that choice is built and read.
+
+Instrument (LESSONS 18c, already deployed and proven 4/4 last boot): the retail
+log funnel's `_ReturnAddress()` names the emitting function as a module-relative
+RVA. The lines that bracket the decision are all present in the current capture,
+so their callers are obtainable with NO new mechanism - only new target strings:
+
+  "Sending peer-reservation release"   the release decision (highest value)
+  "initiate_search"                    the PRIVATE/PUBLIC classifier
+  "matchmaking gatherer advertising"   the advertiser's privacy source
+  "activity_host_changed"              the AH-change consumer
+  "waiting to connect to AH"           the AC->AH connect gate
+  "join request to AH"                 the target chooser
+
+With .pdata bounds + an E8 xref scan (the 20.106 method), those RVAs open the
+decision's call graph with no further boots.
+
+## HYGIENE FIXED WHILE WRITING THIS
+
+`client.region_private`: mac carried `true`, rig has no such key (defaults false).
+Divergent since at least 20.82. The hook forces solo loads only when its filtered
+return site is reached, and that site has not been reached in any recent boot (no
+`stage=region result=forced|public` line, budget 8, both machines) - so the flag
+has been inert, not causal (that is 20.82's finding and it still holds). Set to
+false on the mac so the two machines are comparable. Settings-only, no rebuild.

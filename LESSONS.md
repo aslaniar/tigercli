@@ -191,6 +191,16 @@ failure mode from this front. DO NOT re-learn them.
     BEHAVIOUR changes only behind switches that can be flipped without a
     rebuild - p2(62) changed six bindings at once, froze, and its cause is
     still unknown and now unknowable.
+    COROLLARY 2 - PASS-THROUGH DETOUR ABI (2026-08-27, the p2(71)/p2(72) rig
+    freezes): a pass-through detour body must forward the ENTIRE stack tail,
+    not just the args it knows (4 registers + 12 stack slots, bit-exact; a
+    callee ignores slots beyond its ABI, but a body that under-declares feeds
+    the original frame garbage - reserve took >=7 args, admit ~10, and a
+    5-arg body hung session creation). AND: before attaching, statically
+    verify the target never reads its CALLER's frame beyond the arg area
+    (rbp-relative offsets far above the arg slots) - no forwarding depth can
+    fix a caller-frame read, and such a function must be hooked at its
+    wrapper (or not at all). Both verified-by-execution on the rig.
 
 ## RULE LIFECYCLE (2026-08-26)
 Every lesson above follows one flow: written here in full after its incident ->

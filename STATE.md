@@ -3,12 +3,22 @@
 STATUS: live (2026-08-27 ~10:2x; prior text = git history.
 FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.)
 
-Updated: 2026-08-27 ~11:1x. p2(67) BOOTED: lobby pairing WORKS both directions, no
-freeze, and the 20.83 shared-id risk did not bite - but the roster still named only
-self, because neither client was ever told a second member arrived (20.102). p2(68)
-supplies both halves: each shim learns the peer's xuid from the claim answer, fires
-LobbyChatUpdate, and serves member count/index at the corroborated slots 17/18.
-Deployed BOTH machines, server clean, claim table empty. READY TO BOOT.
+Updated: 2026-08-27 ~16:2x. p2(71)/p2(72) freeze bugs found and fixed; p2(73)
+observation boot COMPLETE (20.110): the self-pipeline is verified live on both
+machines and both roles, and the join request never fires because there is no
+client-to-client connect layer.
+DECISION TAKEN - ROAD C. Not A (peer-native Steam rendezvous: the client asked
+get_certificate once, got 0, and has never called send_rendezvous) and not B
+(in-process injection: the roster is a reconcile loop, so an entry with no live
+peer link is removed on the next tick and nothing replicates behind it). Road C
+makes the SERVER the group-session host and both clients its members. Its whole
+server half is already built - UDP endpoint, association, DTLS, peer transport,
+group host, and a membership publisher that names host + peer + player - and has
+NEVER received one datagram. Chain, link by link, with marks:
+FRONT_public-host-chain.md.
+NEXT GATE: BOOT_BRIEF_p2-74.md (GATE PASS), link L4 - why the client aims every
+activity-host join at its OWN session and never at the one this server
+advertised. Observation only; six caller-capture targets + one server line.
 
 ## WHERE WE ARE
 Both clients reach the Tower, run the retail chain, and see each other as `peer 1`.
@@ -16,35 +26,31 @@ Neither ever appears on the other's PLAYER roster. Thirteen boots have been spen
 the wrong altitude - see SCOPE, which supersedes every prior framing of this problem
 including 20.82's ("tracking data" is a self-healing warning, not the release: 20.105).
 
-## SCOPE (2026-08-27 ~12:4x - READ THIS BEFORE PLANNING ANYTHING)
-THE STEAM LAYER IS COSMETIC TO THIS GOAL. The managed-session player pipeline was
-read end to end and makes NO Steam call (20.106/20.107). Everything shipped on
-2026-08-27 - shared lobby id, LobbyChatUpdate, persona name, presence relay - works
-and feeds nothing. Do not add friends/matchmaking bindings for this goal.
+## SCOPE (2026-08-27; L3 static map -> 20.108/20.109; road C taken 16:2x)
+THE STEAM LAYER IS COSMETIC TO THIS GOAL. The managed-session player pipeline makes
+NO Steam call (20.106/20.107). Do not add friends/matchmaking bindings for this goal.
+THE ROSTER IS A RECONCILE LOOP fed by add-candidates, sourced from host-side
+reserve -> admit -> adoption into session+0xC8, driven by connection-layer type-0x0A
+through a global candidate table on the single network-pump thread. Every address,
+stride, and edge: 20.108 (pipeline) and 20.109 (seam) - do not re-copy them here.
+20.110 verified that pipeline live for SELF on both machines; the join plane never
+flows. Road C and its chain: FRONT_public-host-chain.md.
 
-THE ROSTER IS A RECONCILE LOOP, NOT AN INJECTION POINT. Per tick, per session slot
-(there are TEN): adds = candidates(+0xC8) MINUS added(+0x608); removals = the
-reverse. A value forced into +0xC8 once is deleted as a removal on the next tick.
-Only a SUSTAINED source works, and that source is the network session message plane
-(`player-add`/`player-refuse`/`player-remove`, 20.104) which we have never spoken.
-
-NEXT UNIT (static, no boot): locate the player-add message handler and read what it
-requires before it accepts one. Reservations are the prime suspect upstream -
-`no-reservation`/`no-ambassador-reservation` are join-refuse reasons, LESSONS notes a
-client freeze from naming a peer WITHOUT reserving a slot (20.53), and that lead was
-deprioritised for three boots once already. Do not deprioritise it again.
-
-## DEPLOYED (2026-08-27 11:52) - nothing here feeds the roster; see SCOPE
-  client DLLs  `a2b9b93646e14827` BOTH machines (p2(70)): lobby claim + membership
-               event + the census instrument (LESSONS 18) incl. caller capture.
-  server exe   `896b37eec11fe30d`: /lobby/claim (first-writer-wins, returns the
-               member list) and /presence on the PLAINTEXT admin listener 8099.
-               Both IN-MEMORY: RE_scripts/reset_lobby_claims.sh BETWEEN runs.
-  fork commit  p2(70) = ceed017; next number p2(71).
-## ROLLBACK: p2(67) `011fb9e2caec5e82` reached the Tower on both machines (mac/rig
-  .bak_p2d7_20260827_1111xx). Older good: p2(61) `4d4aef769e5a16c4` (20.93).
-  Residual risk in p2(68) is BEHAVIOURAL (an unexpected callback confusing matchmaking),
-  not a crash: the two new bindings take only integers and cannot fault.
+## DEPLOYED (2026-08-27 16:13) - p2(74) road-C observation, see BOOT_BRIEF_p2-74.md
+  client DLLs  `bf791db513362b41` BOTH machines: p2(73) + six new caller-capture
+               targets (peer-reservation release, initiate_search, matchmaking
+               gatherer advertising, activity_host_changed, waiting to connect to
+               AH, join request to AH). Six literals asserted post-copy.
+  server exe   `8870459b31b87cc2`: p2(73) + `ev=activity stage=join_target`, which
+               names own|advertised|unknown per activity-host join. Routes and the
+               claim table are IN-MEMORY: RE_scripts/reset_lobby_claims.sh BETWEEN
+               runs.
+  settings     mac `client.region_private` true -> false (rig never had the key).
+               Divergent since 20.82, measured inert there; declared in the brief.
+  fork commit  p2(74) = 38581f2; next number p2(75).
+## ROLLBACK: p2(73) `3e7f6ea1b60671a6` = mac .bak_p2d7_20260827_161348, rig
+  .bak_p2d7_20260827_161355; server p2(73) `896b37eec11fe30d`. DO NOT BOOT p2(71)
+  (ABI bug). Older good: p2(61) `4d4aef769e5a16c4`.
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
@@ -71,7 +77,7 @@ CLOSED BY EXECUTION: friends rich-presence cross-introduction as the JOIN ROUTE 
   pipeline never touches Steam (20.107) | type-12 wire shape (20.81) | delivery-gap
   theory (20.74.4) | gate-table<->reason-enum, which also makes the REASON BYTE
   unreliable (20.83/84) | naming route `reason_name` (20.85/86) | `client.region_private`
-  as privacy cause - HYGIENE STILL OPEN, mac true / rig absent (20.82) | ws 701/702
+  as privacy cause (20.82; hygiene CLOSED 08-27: both machines false) | ws 701/702
   as fireteam lead (20.82) | steam_player_group - derived from the roster (20.104).
 STANDING: member row shape by blind sweep (20.49-51, 20.61) | trailing-field values,
   untestable until a peer is actually admitted.
@@ -79,8 +85,8 @@ STANDING: member row shape by blind sweep (20.49-51, 20.61) | trailing-field val
 ## OPERATIONAL FACTS
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
     HISTORY NOTE: TWO COMMITS CLAIM p2(39) (f2d0995 Claude, 9639aa4 opencode).
-    Next number continues upward; do not renumber. DEPLOYED = p2(68) 071e083
-    (client 115a5b71, server 896b37ee); build tree matches deployed.
+    Next number continues upward; do not renumber. Deployed hashes live in
+    DEPLOYED above, not here; build tree matches deployed.
   - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8. BOTH
     targets take EXPLICIT source lists in Sunrise/CMakeLists.txt, NOT globs - a new
     .cpp must be added there or it silently fails to link (bit c2764aa and p2(67)).
