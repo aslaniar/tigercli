@@ -18,6 +18,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 |---|---|---|
 | STATE.md | live snapshot; header only | ALWAYS at session start (or run bootstrap_check.sh) |
 | LESSONS.md | deep layer | conditional, see triggers below |
+| TOOLS.md | instrument registry | before writing a new scanner/parser/probe (forks are debt) |
 | ENVIRONMENTS.md | deep env layer | touching deploys/tooling/Ghidra/cross-machine ops |
 | FINDINGS_2026-08-*.md | append-only archive | when cited by STATE/lessons/index |
 | HANDOFF_OPENCODE_2026-08-25_EVENING.md | newest handoff | taking over mid-front |
@@ -39,6 +40,8 @@ RE_output/INDEX_findings.md / INDEX_claims.md are generated, never hand-edited.
 - Spawning or briefing a lane -> lane-brief-template.md (OUTPUT-FIRST shape).
 - Claiming something about upstream/community code -> LESSONS.md #1 and #15.
 - Writing/editing project docs -> DOC GOVERNANCE below.
+- About to write ANY new script for a lane -> TOOLS.md first; generalize an
+  existing tool rather than fork it.
 - Platform/tooling specifics (Windows rig, Ghidra invocation, shell layers) ->
   ENVIRONMENTS.md.
 

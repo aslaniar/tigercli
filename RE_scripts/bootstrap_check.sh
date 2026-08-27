@@ -24,7 +24,7 @@ printf 'ENVIRONMENTS.md uncapped additions                   %s\n' "$envn"
 
 echo
 echo "== STATUS LINES (every dated doc opens with one; auditor verifies) =="
-for f in AGENTS.md LESSONS.md ENVIRONMENTS.md HANDOFF_*.md; do
+for f in AGENTS.md LESSONS.md ENVIRONMENTS.md TOOLS.md HANDOFF_*.md; do
   [ -f "$f" ] || continue
   if head -5 "$f" | grep -q '^STATUS:'; then
     echo "ok      $f"

@@ -48,6 +48,13 @@ still need `-a`. If a fresh shell cannot find a tool, re-import PATH:
 `export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"` (the PC form was
 PowerShell Environment-variable re-import).
 
+## [Mac-current] Python interpreters
+DEFAULT for anything touching sqlite or installed tooling: `/usr/bin/python3`.
+The default `python3` on PATH is miniconda's and its sqlite3 binding is broken
+(`ImportError: dlopen _sqlite3 ... _sqlite3_enable_load_extension`); scripts
+parse fine under it then fail at import time, so parse-checks do not catch it.
+gate_boot/build_index work under either; incident.py needs /usr/bin/python3.
+
 ## [PC-era] GHIDRA TOOLING RULE (2026-08-16, hard)
 All Ghidra automation runs in PYTHON (headless-analyzer scripts / PyGhidra),
 never Java - the Java batch files in RE_scripts (CountRunFunctions.java,
