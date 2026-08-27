@@ -50,6 +50,8 @@ against" rule.
 | RE_scripts/deploy_client_dll.sh <mac\|rig> "<literals>" | hash assert + literal grep IN deployed file |
 | RE_scripts/restamp_build_data.py | identity restamp after server rebuild |
 | RE_scripts/boot_record.py / boot_diff.py | boot artifact capture + cross-boot diff |
+| RE_scripts/reset_lobby_claims.sh | clears the IN-MEMORY lobby-claim table (restarts the server) and re-verifies listeners/nat; run between ANY two runs from p2(67) on, or a stale pairing silently invalidates the test |
+| RE_scripts/obf_fold.py | constant-folding helper for obfuscated code (self-test passed) |
 
 ## One-off probes (~172 files under RE_output/claims/*.py)
 Deliberately NOT registered. Grouped automatically as PROBE FAMILIES by
