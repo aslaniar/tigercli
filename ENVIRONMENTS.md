@@ -89,3 +89,24 @@ terminate` for killable-but-denied; reboot last. ALWAYS try rename first.
 CLAUDE.md at this root imports AGENTS.md so both harnesses read one source of
 truth. Model-tier mappings differ per harness (opencode ladder vs claude tiers) -
 see AGENTS.md SPEND MAP.
+
+## SHELL: two ways a tool-invoked command hangs after its work is done (2026-08-27)
+
+Both cost minutes and look like a crash. Neither is one.
+
+1. **A script that launches the server.** `mac-port/launch-server-macos.sh` (and anything
+   wrapping it, e.g. `RE_scripts/reset_lobby_claims.sh`) starts a long-lived process that
+   inherits the caller's stdout. A tool call waits for that pipe to close, so it hangs
+   forever even though the server came up fine. WORSE: if the wrapper already KILLED the
+   old server, an interrupt leaves NO server running at all - which then looks like the
+   overnight "marionberry" symptom (20.98). Launch it as a background job instead, and
+   verify with a separate short call (lsof + /lobby + nat probe).
+2. **ssh over the ControlMaster.** `RE_scripts/deploy_client_dll.sh rig` prints
+   `deployed to rig OK` and then hangs holding the multiplexed connection open. The
+   deploy IS complete at that point - the script's own hash+literal asserts have already
+   passed on the rig. Add `-o ServerAliveInterval=3 -o ServerAliveCountMax=2` when
+   probing, and never chain a rig deploy with other work in one call: an interrupt then
+   leaves the two machines on DIFFERENT builds.
+
+RULE: one long-running or ssh-touching action per call, and re-verify state after any
+interrupt rather than assuming the call did nothing.

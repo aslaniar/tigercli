@@ -81,6 +81,9 @@ STANDING: member row shape by blind sweep - the row read comes from schema, whic
   - Deploy server: RE_scripts/deploy_p2d6_gameplay.sh (gates inside; asserts
     deployed==built; restamps cache - old exe+cache pairs are inseparable). Client:
     deploy_client_dll.sh <mac|rig> "<literals...>" - hash + literal assert, never skip.
+  - NEVER launch the server or deploy to the rig chained with other work in one shell
+    call: both hang holding a pipe AFTER succeeding, and an interrupt then leaves the
+    server dead or the machines on different builds (ENVIRONMENTS.md "SHELL").
   - Server START (after deploy): nohup bash mac-port/launch-server-macos.sh (GPTK
     wine 7.7, SunriseServer prefix). Verify: lsof TCP 8443/30975/8099 + UDP 3074, and
     a crafted nat probe gets a 16B reply (snippet in HANDOFF_OPENCODE_TO_CLAUDE).

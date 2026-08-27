@@ -62,8 +62,18 @@ rel_mac="$(grep -ac 'Could not find tracking data' "$mac_log")"
 rel_rig=0; [[ -s "$rig_copy" ]] && rel_rig="$(grep -ac 'Could not find tracking data' "$rig_copy")"
 echo "  mac: $rel_mac    rig: $rel_rig"
 
+section "3b. THE LOBBY LANE INSTRUMENTS (did the event fire, and what answered?)"
+for pair in "MAC:$mac_log" "RIG:$rig_copy"; do
+  name="${pair%%:*}"; file="${pair#*:}"
+  [[ -s "$file" ]] || continue
+  grep -a 'lobby_member_entered\|num_lobby_members\|lobby_member_by_index\|rich_presence_store\|rich_presence_relay' "$file" \
+    | sed -E "s/^.*ev=steamnet/  $name /" | sort -u | head -10
+done
+echo "  (no lobby_member_entered = the member list never grew past one)"
+
 section "4. FREE MAP: unimplemented slots called, with argument shapes"
-echo "  (argument capture ships in p2(68); slot names only on p2(67))"
+echo "  a1 is the first real argument. Identical across machines = a constant/flag;"
+echo "  an xuid = an account query; module-offset pointers = strings."
 for pair in "MAC:$mac_log" "RIG:$rig_copy"; do
   name="${pair%%:*}"; file="${pair#*:}"
   [[ -s "$file" ]] || continue
