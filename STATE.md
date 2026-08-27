@@ -21,7 +21,7 @@ puts the routes on the plaintext admin listener (8099) with a worker-thread sock
 client, VERIFIED ON THE WIRE: both machines POST 200 and both GET both rows.
 
 ## DEPLOYED (2026-08-27 10:0x)
-  client DLLs  `7d8b453ab2d4a98e` BOTH machines (p2(65)). Friends methods do ZERO
+  client DLLs  `23a32b2f4ca26fe2` BOTH machines (p2(65)). Friends methods do ZERO
                I/O on the calling thread; a worker thread carries presence over
                HTTP to <externalServer.host>:8099. Ordinals unchanged from the
                VERIFIED ISteamFriends017 set {2 GetFriendCount, 3 GetFriendByIndex,
