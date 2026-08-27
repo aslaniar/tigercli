@@ -528,23 +528,48 @@ client refuses freezes it: six bodies was enough to hard-freeze the Mac.
     freeze and the next front if the counts reading fails.
     Every message type's schema is now one `schema_walk.py --tree` away.
 
-DEAD ENDS - DO NOT RESUME:
+DEAD ENDS - DO NOT RESUME (rewritten 2026-08-26 ~20:45; AUTHORITATIVE):
+
+CLOSED BY EXECUTION THIS SESSION (boots #10-#12):
+  - THE TYPE-12 WIRE SHAPE. Boot #10: `result=ok accepted=1` on a four-field,
+    two-descriptor, peer-bearing body. The client parses it. Settled. Do not
+    sweep, re-shape, or re-argue it.
+  - THE DELIVERY-GAP THEORY (20.74.4, which motivated p2(54)). Boot #10 shipped
+    BOTH endpoints (`body=4095`, `peer_citizen=1`) and the release fired anyway,
+    2 ms later, naming a LOOKUP failure and not an address. Refuted.
+  - THE GATE-TABLE <-> REASON-ENUM CORRESPONDENCE (20.83). Making fireteam
+    platform ids unique did not clear reason 1; it spread it. Retracted in 20.84.
+  - THE NAMING ROUTE TO THE DECISION (20.85 -> 20.86). `reason_name` is never
+    called on the release path: the release line names only a MACHINE, no
+    reason, so the byte goes straight to the wire. Hook attached, refusal
+    occurred, zero calls. Closed with mechanism.
+  - `client.region_private` AS THE CAUSE OF PRIVATE (20.82). Its decision path
+    never runs - budget 8, zero lines, both machines. HYGIENE, still open: the
+    Mac sets it true and the RIG HAS NO SUCH KEY. Divergent config.
+  - WEB-SERVICE OPCODES 701/702 as a fireteam lead (20.82). Already tagged
+    subclass-swap in web_service_runtime.cpp. Prior work, not a new seam.
+
+STANDING, from earlier sessions:
   - MEMBER ROW SHAPE **BY BLIND SWEEP**. Six shapes swept, none informative.
-    NOTE (20.61): the row no longer has to be guessed - the client's own schema
-    says 32 fixed slots x 31-bit rows. Reading it off the schema is not a resume
-    of the sweep; do not start another sweep.
-  - TRAILING-FIELD VALUES (counts vs masks). Every verdict predates p2(45) and
-    was measured against a self-peer. NOTE (20.77): foreign rows are now
-    ACCEPTED (mac acked rev 5 with the peer row) - the acceptance barrier this
-    entry guarded against is partially gone; treat trailing fields as testable
-    against an EST-Y peer pair only after guest-role convergence lands.
-  - "SYMMETRIC FIXUP-RELEASE" claims. Boot #8 disproof: rig=reason 1, mac=reason
-    5, asymmetric timing (rig MEM-1 immediate, mac MEM-5 +112 s). Never average
-    the two hosts' verdicts again.
+    The row no longer has to be guessed (20.61): 32 fixed slots x 31-bit rows,
+    off the client's own schema. Reading the schema is not a resume of the sweep.
+  - TRAILING-FIELD VALUES (counts vs masks). **The 20.77 note that used to sit
+    here is RETRACTED** - 20.78 proved the mac never acked a peer-bearing body;
+    that ack was a post-withdrawal SOLO body. Every trailing-field verdict on
+    record still predates p2(45) and was measured against a self-peer. Not
+    testable until a peer is actually admitted.
   - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER; the svc-43 contents lane; the
-    peer-subnet egress relaxation; the physics gates.
-    NOTE (20.74): search results DO get served (served_descriptor=1 twice in
-    boot #8) but no client acted - the failure is downstream of serving, not in it.
+    peer-subnet egress relaxation; the physics gates. Search results DO get
+    served and no client acts (20.74). NOTE: `session_search` fires ONCE per
+    boot, ~143 s before the second client exists (20.79 gap 3), so no boot
+    ORDER can make the searcher the second player.
+
+CORRECTED, NOT DEAD:
+  - "SYMMETRIC FIXUP-RELEASE". The old entry recorded rig=1 / mac=5 as proof of
+    asymmetry. As of boots #11 and #12 BOTH machines say reason 1, all four
+    releases, reproducibly - the asymmetry is GONE and the Mac's 5 -> 1 shift is
+    a stable property of the current build (20.84/20.86), still unexplained. The
+    advice survives the fact: do not average the two hosts' verdicts; read both.
 
 --- everything below predates 2026-08-25 evening; treat as history ---
 
