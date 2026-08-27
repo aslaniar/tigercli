@@ -1,10 +1,9 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~13:00 (**p2(53) DEPLOYED - DNS hooks fixed.** The mac's
-stun hang is our own shim: DnsQuery was substituted with "localhost" +
-cache-only flags, which never returns records under Wine. All four DNS hook
-entry points now substitute the numeric redirect host (192.168.1.164) directly,
-dropping the option flags entirely. Ready for re-test boot #4.) READ THIS WHOLE
+Updated: 2026-08-26 ~15:45 (**p2(54) DEPLOYED - PEER-ADVERTISEMENT DELIVERY.**
+Each type-12 body now carries BOTH hosts' citizen advertisements, each in its
+own region slot. This closes the 20.74.4 delivery gap: the foreign peer row
+arrives WITH a joinable endpoint. Re-test boot #5 ready.) READ THIS WHOLE
 HEADER before any deploy.
 
 >> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
@@ -53,8 +52,8 @@ OPERATIONAL FACTS:
 ## p2(53) FIXES THE HOOK; SEPARATED ACCOUNTS ALREADY HOLD (20.68-20.70).
 
 DEPLOYED RIGHT NOW:
-  server exe   `6cef0f586f8626bf` (p2(52): ws503 is authoritative - never adopts
-               client proposals; seven gates rc=0)
+  server exe   `1babdb0c18d3978e` (p2(54): peer-advertisement delivery + ws503 authority;
+               seven gates rc=0)
   client DLLs  `ffbf223e19cd4a9a` on BOTH machines (p2(53): DNS hooks substitute
                the numeric redirect host 192.168.1.164 directly instead of
                "localhost" + cache-only flags)
