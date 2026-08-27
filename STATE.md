@@ -78,7 +78,9 @@ STANDING:
 ## OPERATIONAL FACTS
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
     HISTORY NOTE: TWO COMMITS CLAIM p2(39) (f2d0995 Claude, 9639aa4 opencode).
-    Next number continues upward; do not renumber. Last commit: p2(64)+missed-file.
+    Next number continues upward; do not renumber. Last commit: 1533fb7 (p2(64)
+    + TLS status diagnostic). NOTE: deployed client 4173ae4b predates 1533fb7
+    (that commit only adds a server-side log line; redeploy optional).
   - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8
     (src/steam/** compiles ONLY into steam_api64.dll; client hooks too).
   - Deploy server: bash RE_scripts/deploy_p2d6_gameplay.sh (gates inside;
