@@ -14,7 +14,8 @@ against" rule.
 
 | Tool | For | Check |
 |---|---|---|
-| RE_scripts/build_index.py | regenerate INDEX_findings/INDEX_claims; --lint names undated entries | entry count == grep '^## ' totals |
+| RE_scripts/db_hygiene.sh | opencode DB report/vacuum guard | refuses while a session is live; dry-run default |
+| RE_scripts/build_index.py --root X | regenerate indexes for any checkout | entry count == grep '^## ' totals |
 | RE_scripts/bootstrap_check.sh | session-start instrument: budgets, STATUS lines, index liveness | always prints BOOTSTRAP OK last |
 | RE_scripts/gate_boot.py <brief> | mechanical pre-boot checklist gate | --literals fails loud on missing literal in deployed binary |
 | RE_scripts/incident.py | incident digest: DB events + logs + procs + hashes | prints LIVENESS counts; exit 1 if root-bound sections all empty |

@@ -1,3 +1,5 @@
+STATUS: historical - superseded by HANDOFF_OPENCODE_2026-08-25_EVENING.md and STATE.md (marked 2026-08-26). Kept for archaeology.
+
 # HANDOFF TO CLAUDE - 2026-08-23 ~23:3x (fresh session, self-contained)
 
 You are taking the pen on the Destiny/Sunrise private-server fork. This

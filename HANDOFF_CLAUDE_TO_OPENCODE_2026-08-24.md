@@ -1,3 +1,5 @@
+STATUS: historical - superseded by HANDOFF_OPENCODE_2026-08-25_EVENING.md and STATE.md (marked 2026-08-26). Kept for archaeology.
+
 # HANDOFF: Claude Code -> opencode, 2026-08-24 ~19:0x
 # From the Claude session that took the peer-visibility front after your
 # 2100 + manager-key lanes landed. I am near my context limit; you have the pen.

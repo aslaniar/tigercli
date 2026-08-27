@@ -32,6 +32,7 @@ FINDINGS_GLOB = "FINDINGS_2026-*.md"
 CLAIMS_DIR = ROOT / "RE_output" / "claims"
 OUT_FINDINGS = ROOT / "RE_output" / "INDEX_findings.md"
 OUT_CLAIMS = ROOT / "RE_output" / "INDEX_claims.md"
+RUN_ROOT = ROOT  # rebound by --root in main(); used for relative display paths
 
 ENTRY_RE = re.compile(r"^## (\d+\.\d+[a-z]?)[ \t]+(.*)$")
 # continuation heading lines that belong to the previous entry's header block
@@ -46,10 +47,10 @@ LINK_PATTERNS = [
 ]
 
 
-def parse_findings():
+def parse_findings(findings_dir):
     """Return list of dicts: id, file, title, ts, text, links."""
     entries = []
-    files = sorted(ROOT.glob(FINDINGS_GLOB), reverse=True)
+    files = sorted(findings_dir.glob(FINDINGS_GLOB), reverse=True)
     cur = None
     for path in files:
         try:
@@ -140,7 +141,7 @@ def write_claims_index():
     fam_counts = {}
     for p in files:
         stem = p.stem.lower()
-        rel = str(p.relative_to(ROOT))
+        rel = str(p.relative_to(RUN_ROOT))
         st = p.stat()
         refs = 0
         ref_files = []
@@ -181,9 +182,19 @@ def write_claims_index():
     return rows
 
 
-def main():
+def main(argv):
+    root = ROOT
+    if "--root" in argv:  # index a different checkout's corpus (e.g. main)
+        root = Path(argv[argv.index("--root") + 1]).resolve()
+    # rebind module paths so write_* and glob helpers follow --root
+    global CLAIMS_DIR, OUT_FINDINGS, OUT_CLAIMS, RUN_ROOT
+    CLAIMS_DIR = root / "RE_output" / "claims"
+    OUT_FINDINGS = root / "RE_output" / "INDEX_findings.md"
+    OUT_CLAIMS = root / "RE_output" / "INDEX_claims.md"
+    RUN_ROOT = root
+    findings_dir = root
     lint_only = "--lint" in sys.argv
-    entries = parse_findings()
+    entries = parse_findings(findings_dir)
     problems = []
     undated = [e for e in entries if not e["ts"]]
     if undated:
@@ -192,7 +203,7 @@ def main():
     if lint_only:
         stale = OUT_FINDINGS.exists() and any(
             OUT_FINDINGS.stat().st_mtime < p.stat().st_mtime
-            for p in ROOT.glob(FINDINGS_GLOB))
+            for p in findings_dir.glob(FINDINGS_GLOB))
         if stale:
             problems.append("INDEX_findings.md older than newest FINDINGS file (stale index)")
         if problems:
@@ -207,13 +218,13 @@ def main():
     write_findings_index(entries)
     rows = write_claims_index() if CLAIMS_DIR.exists() else []
     n_orph = sum(1 for r in rows if r[5:] and r[3] == 0)
-    print(f"wrote {OUT_FINDINGS.relative_to(ROOT)} ({len(entries)} entries, "
+    print(f"wrote {OUT_FINDINGS.relative_to(RUN_ROOT)} ({len(entries)} entries, "
           f"{len([e for e in entries if e['ts']])} dated)")
-    print(f"wrote {OUT_CLAIMS.relative_to(ROOT)} ({len(rows)} files, {n_orph} orphan candidates)")
+    print(f"wrote {OUT_CLAIMS.relative_to(RUN_ROOT)} ({len(rows)} files, {n_orph} orphan candidates)")
     if undated:
         print(f"NOTE: {len(undated)} entries lack timestamps - run --lint for the list")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

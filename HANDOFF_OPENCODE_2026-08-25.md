@@ -1,3 +1,5 @@
+STATUS: historical - superseded by HANDOFF_OPENCODE_2026-08-25_EVENING.md and STATE.md (marked 2026-08-26). Kept for archaeology.
+
 # Handoff — Sunrise fork, peer/multiplayer front (2026-08-25 evening)
 
 You are taking over a standalone dedicated server for Destiny 2 (Season of

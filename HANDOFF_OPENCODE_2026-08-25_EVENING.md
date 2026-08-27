@@ -1,3 +1,5 @@
+STATUS: live (newest handoff as of 2026-08-26; verify against STATE.md header, which outranks handoffs when both are current).
+
 # Handoff — Sunrise fork, peer front (2026-08-25 ~22:10)
 
 The previous session ended at its limit mid-way through opening the client's
