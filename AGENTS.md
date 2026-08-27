@@ -21,7 +21,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | TOOLS.md | instrument registry | before writing a new scanner/parser/probe (forks are debt) |
 | ENVIRONMENTS.md | deep env layer | touching deploys/tooling/Ghidra/cross-machine ops |
 | FINDINGS_2026-08-*.md | append-only archive | when cited by STATE/lessons/index |
-| HANDOFF_OPENCODE_2026-08-25_EVENING.md | newest handoff | taking over mid-front |
+| HANDOFF_2026-08-27_LAYER-SHIFT.md | newest handoff | ALWAYS when taking over - it carries the scope shift |
 | RE_output/claims/lane-brief-template.md | lane contract | spawning any lane |
 | INCIDENT_2026-08-25_false-loops.md | closed incident | failure/silence investigation |
 

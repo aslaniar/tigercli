@@ -154,6 +154,44 @@ failure mode from this front. DO NOT re-learn them.
     generalised, and it was re-learned the expensive way after already being
     written down once.
 
+18. **INSTRUMENT THE SPACE, NOT THE HYPOTHESIS.**
+    A boot that tests a guess returns one bit. A boot that observes a whole
+    surface returns a map, and maps make the next three boots unnecessary.
+    THE UNIVERSAL UNKNOWN-CODE INSTRUMENT, in three parts, all cheap and all
+    read-only:
+      (a) SIZE THE TABLE PAST THE INTERFACE. Fill every slot of a shim vtable
+          with a per-slot logging stub and make the table WIDER than the
+          interface is believed to be. Then the client's own calls name the
+          real ABI. (This absorbs the 20.97 candidate "a shim vtable must span
+          the interface, not the features" - spanning it is what makes the
+          census possible, not merely what avoids the crash.)
+      (b) CAPTURE ARGUMENTS, NOT JUST NAMES. A slot number says a call happened;
+          the argument registers say what it wanted. Read rcx/rdx/r8/r9 in the
+          stub: declaring four parameters is safe for a callee that takes fewer,
+          because a short call logs stale register contents rather than faulting.
+          Judge an argument by whether it is STABLE ACROSS MACHINES (a constant
+          or flag), an identity (an xuid), or a module-offset pointer (a string).
+      (c) CAPTURE CALLERS FROM ANY FUNNEL YOU ALREADY HOOK. `_ReturnAddress()`
+          in a noinline detour body is the caller's code address. Report it as a
+          module-RELATIVE RVA, because image bases differ per machine and only
+          the RVA is comparable across logs or against a disassembly. With
+          .pdata for function bounds and an E8-displacement scan for xrefs, that
+          one address opens a whole call graph WITH NO FURTHER BOOTS.
+    Cost of not having it (2026-08-27): p2(62)..p2(66), five builds and three
+    boots spent guessing friends ordinals from a published header. The census
+    boot then answered the whole question at once AND killed the lane. Argument
+    capture, added one boot later, immediately refuted 20.101's own conclusion.
+    Caller capture, one boot after that, retracted a premise held since 20.82.
+    REPLACES: nothing is removed - this SUBSUMES the three lesson candidates
+    left pending by 20.98 (guessed ordinals as a crash class; tables spanning
+    the interface; census-before-binding), which are now one rule with one
+    mechanism instead of three prose fragments.
+    COROLLARY (earned the same day): bundle pure OBSERVATION freely, because
+    logging cannot break anything and therefore costs no attribution. Bundle
+    BEHAVIOUR changes only behind switches that can be flipped without a
+    rebuild - p2(62) changed six bindings at once, froze, and its cause is
+    still unknown and now unknowable.
+
 ## RULE LIFECYCLE (2026-08-26)
 Every lesson above follows one flow: written here in full after its incident ->
 converted where possible into an executable gate / brief field / rubric line ->
