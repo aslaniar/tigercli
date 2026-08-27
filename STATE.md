@@ -246,9 +246,17 @@ DEAD ENDS - DO NOT RESUME:
     says 32 fixed slots x 31-bit rows. Reading it off the schema is not a resume
     of the sweep; do not start another sweep.
   - TRAILING-FIELD VALUES (counts vs masks). Every verdict predates p2(45) and
-    was measured against a self-peer. Re-run only after a real peer is proven.
+    was measured against a self-peer. NOTE (20.77): foreign rows are now
+    ACCEPTED (mac acked rev 5 with the peer row) - the acceptance barrier this
+    entry guarded against is partially gone; treat trailing fields as testable
+    against an EST-Y peer pair only after guest-role convergence lands.
+  - "SYMMETRIC FIXUP-RELEASE" claims. Boot #8 disproof: rig=reason 1, mac=reason
+    5, asymmetric timing (rig MEM-1 immediate, mac MEM-5 +112 s). Never average
+    the two hosts' verdicts again.
   - PASSIVE SEARCH RESULTS AS THE JOIN TRIGGER; the svc-43 contents lane; the
     peer-subnet egress relaxation; the physics gates.
+    NOTE (20.74): search results DO get served (served_descriptor=1 twice in
+    boot #8) but no client acted - the failure is downstream of serving, not in it.
 
 --- everything below predates 2026-08-25 evening; treat as history ---
 
