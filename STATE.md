@@ -3,23 +3,25 @@
 STATUS: live (2026-08-27 ~10:2x; prior text = git history.
 FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.)
 
-Updated: 2026-08-27 ~10:3x. TWO independent defects found by reading BEFORE booting:
-p2(64)'s presence relay never left the client process (20.99), and its friends
-bindings moved SetRichPresence off the one slot the publish was measured arriving at
-(20.100). Both fixed. p2(66) deployed BOTH machines = census + publish, deliberately
-NOT the milestone swing. Server clean, presence table empty. READY TO BOOT.
+Updated: 2026-08-27 ~10:4x. CENSUS BOOT DONE (p2(66), both machines, both in the
+Tower). THE FRIENDS LANE IS CLOSED - slot 64 is not SetRichPresence and no
+string-pair setter is called at all (20.101). THE REAL MECHANISM IS THE STEAM LOBBY:
+managed_session creates one per session, each client creates ITS OWN, so the two
+sessions are disjoint by construction. join_lobby is implemented and never called.
+NEXT = the lobby lane (p2(67)).
 
 ## WHERE WE ARE (one paragraph)
 Both clients connect to our external server, run the full retail matchmaking chain,
-and each SAW the other as `peer 1` in activity membership - then released it:
-"Could not find tracking data for peer '1'" (20.82 link 4). Root cause located:
-tracking data = managed-session (platform-plane) player records; populated ONLY by
-platform-layer joins. Retail's join-target mechanism = friends rich-presence key
-'connect' = "/connect:" + LE own-xuid (verified both machines). p2(64) implemented
-it but relayed through client::network::consume_http, which answers ONLY /SignOn -
-so every store was silently dropped and no peer row could exist (20.99). p2(65)
-puts the routes on the plaintext admin listener (8099) with a worker-thread socket
-client, VERIFIED ON THE WIRE: both machines POST 200 and both GET both rows.
+and each SEES the other as `peer 1` - then releases it: "Could not find tracking
+data for peer '1'". Tracking data = managed-session player records, and 20.101
+identified what actually populates them: THE MANAGED SESSION'S MEMBERSHIP IS A STEAM
+LOBBY. "Adding player [xuid=..]" already fires on every boot - always for exactly
+one xuid, the client's own - because each client's create_lobby invents its OWN
+lobby id locally (mac 0x010900000CC46DB7, rig 0x010900000CC46DB4) and nothing ever
+hands either one a foreign id. The friends rich-presence route was a wrong turn: the
+census proved slot 64 is not SetRichPresence and NO string-pair setter is called on
+that interface. Salvage from it: the presence transport (20.99) is a working
+cross-machine key/value store, reusable as the lobby-id channel.
 
 ## DEPLOYED (2026-08-27 10:0x)
   client DLLs  `c5387787cade0779` BOTH machines (p2(66)). Friends table 256 slots
@@ -34,19 +36,20 @@ client, VERIFIED ON THE WIRE: both machines POST 200 and both GET both rows.
                /presence/store?xuid=<hex>&key=<k>&value=<v>; GET /presence ->
                "xuid key value" lines. IN-MEMORY, and EMPTY as of the relaunch.
   fork commit  p2(66); next number p2(67).
-## THE TEST - contract + all branches: claims/BOOT_BRIEF_p2-66.md. NOT the milestone
-  attempt. User boots BOTH machines (Whisky GUI) into the Tower; it answers two:
-  (a) CENSUS - every friends slot destiny2 calls, now the table spans 256:
-      grep -a 'stage=stub table=0' <client log> | grep -oE 'slot=[0-9]+' | sort -u
-      Anything outside {3,5,43,64} is new and is where enumeration + the presence
-      read actually live. That list unblocks the milestone build.
-  (b) PUBLISH - `rich_presence_store value=/connect:<hex>` -> `rich_presence_relay
-      http=200` -> the PEER's GET showing both rows = publish path closed.
-      `result=not_a_string_pair` = slot 64 is not SetRichPresence (safe, logged,
-      and arg1/arg2 name the real signature).
-  Milestone chain (peer read -> "Adding player" -> release absent) waits for the
-  census. Fallback if it ever goes green and release still fires: the 828-bit
-  session-plane member table (0x808086F8, activity-schema-global-table.md, 20.95).
+## NEXT: THE LOBBY LANE (p2(67)) - every step evidence-backed by 20.101
+  1. create_lobby publishes own {activity, lobby id} to the server (reuse the 8099
+     presence store - already proven cross-machine, 20.99).
+  2. Second client's create_lobby returns the ALREADY-ADVERTISED lobby id instead of
+     inventing one, so both managed sessions name the SAME lobby.
+  3. Fire a LobbyChatUpdate callback for the peer (queue_callback already exists and
+     create_lobby already uses it) to provoke member enumeration.
+  4. Serve the member-enumeration matchmaking slots the callback provokes - which
+     ones they are gets MEASURED by the same census method, not guessed.
+  SUCCESS SIGNAL: "Adding player [xuid=<PEER's xuid>]" - note the line already fires
+  every boot for the client's OWN xuid, so read WHICH xuid, never just the line.
+  Then: tracking-data release ABSENT = two guardians, one Tower instance.
+  Fallback if release still fires: 828-bit session-plane member table (0x808086F8,
+  activity-schema-global-table.md, 20.95).
 ## ROLLBACK (if frozen again)
   p2(65) = `23a32b2f4ca26fe2` (mac/rig .bak_p2d7_20260827_1020xx) - working transport,
   wrong bindings. p2(61) = `4d4aef769e5a16c4` last FULL-CHAIN-good (20.93): mac
@@ -57,15 +60,20 @@ client, VERIFIED ON THE WIRE: both machines POST 200 and both GET both rows.
     20.97: guessed ordinals froze pre-title; ordinals now from sdk isteamfriends.h).
   - consume_http answers ONLY /SignOn - anything that must reach the standalone
     server goes over the network, not through it (20.99). No I/O on friends slots.
-  - A MEASURED CALL OUTRANKS A PUBLISHED HEADER. This client's friends object does
-    not match isteamfriends.h at the slots we have measured; do not re-derive
-    ordinals from it, and do not bind 3/5/43 until the census names them (20.100).
+  - A MEASURED CALL OUTRANKS A PUBLISHED HEADER (20.100/20.101). Census first:
+    logged_empty over a table wider than the interface names every real caller.
+  - "Adding player [xuid=..]" fires EVERY boot for the client's own xuid. Read WHICH
+    xuid; the bare line is not a success signal (20.101).
   - Solo control boot before any two-machine run (incident p2(59) rule).
   - Never return fabricated ids to client enumeration loops (p2(63) phantom-friend).
   - Dead ends + parked fronts: STATE DEAD ENDS below + FINDINGS DO-NOTs.
 ## DEAD ENDS - DO NOT RESUME (authoritative; mechanism quotes in the cited FINDINGS)
 
-CLOSED BY EXECUTION (boots #10-#12): type-12 wire shape (20.81) | delivery-gap
+CLOSED BY EXECUTION: FRIENDS RICH-PRESENCE CROSS-INTRODUCTION - slot 64 is not
+  SetRichPresence and no string-pair setter is called on that interface at all;
+  friends slots called are only 3/5/43, a few times each (20.101). The p2(62)/p2(63)
+  freeze cause is UNKNOWN and no longer worth finding: the out-of-bounds theory is
+  retired (nothing above slot 79 is ever called). | type-12 wire shape (20.81) | delivery-gap
   theory (20.74.4) | gate-table<->reason-enum (20.83/84) | naming route
   `reason_name` (20.85/86) | `client.region_private` as privacy cause - HYGIENE
   STILL OPEN, mac sets it true and rig lacks the key (20.82) | ws 701/702 as
