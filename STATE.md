@@ -3,11 +3,12 @@
 STATUS: live (2026-08-27 ~10:2x; prior text = git history.
 FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.)
 
-Updated: 2026-08-27 ~10:5x. THE FRIENDS LANE IS CLOSED (20.101). The mechanism is the
-STEAM LOBBY: managed_session creates one per session and each client invented ITS OWN,
-so the two sessions were disjoint by construction. p2(67) pairs them - a first-writer-
-wins claim on the server, PROVEN race-free in both directions before deploy. Deployed
-BOTH machines, server clean, claim table empty. READY TO BOOT.
+Updated: 2026-08-27 ~11:1x. p2(67) BOOTED: lobby pairing WORKS both directions, no
+freeze, and the 20.83 shared-id risk did not bite - but the roster still named only
+self, because neither client was ever told a second member arrived (20.102). p2(68)
+supplies both halves: each shim learns the peer's xuid from the claim answer, fires
+LobbyChatUpdate, and serves member count/index at the corroborated slots 17/18.
+Deployed BOTH machines, server clean, claim table empty. READY TO BOOT.
 
 ## WHERE WE ARE (one paragraph)
 Both clients connect to our external server, run the full retail matchmaking chain,
@@ -22,28 +23,27 @@ census proved slot 64 is not SetRichPresence and NO string-pair setter is called
 that interface. Salvage from it: the presence transport (20.99) is a working
 cross-machine key/value store, reusable as the lobby-id channel.
 
-## DEPLOYED (2026-08-27 10:5x) - p2(67), the lobby lane's first boot
-  client DLLs  `011fb9e2caec5e82` BOTH machines. create_lobby no longer invents an id
-               it keeps: it claims its Nth-lobby ordinal on the server and a worker
-               thread queues LobbyCreated/LobbyEnter with the WINNING id, so both
-               machines' Nth lobby settles on one. Falls back to the local id after
-               10 attempts = exactly p2(66) behaviour if the server is down.
-               Friends interface is back to p2(61)'s two bindings (slot 64 REFUTED).
-  server exe   `d8338bc0b63116b2` (seven gates passed). POST /lobby/claim?seq=&lobby=
-               -> winning id as bare hex, first writer wins per ordinal; GET /lobby ->
-               the table; both logged `ev=lobby stage=claim ... result=host|join`.
-               IN-MEMORY: a server restart clears the pairing, so restart between runs.
-  fork commit  p2(67) = 0d8b543; next number p2(68).
-## THE TEST: claims/BOOT_BRIEF_p2-67.md is the contract and holds every branch,
-  the read-back greps, and the pre-named 20.83 risk. In one line: steps 1-2 of the
-  lobby lane are in this build, steps 3-4 are not, and the success signal is
-  "Adding player" naming the PEER's xuid - never the bare line (20.101).
-  Most likely partial: pairing works but the roster still names only self => the game
-  needs a membership CHANGE EVENT (step 3, LobbyChatUpdate) and that becomes p2(68).
-## ROLLBACK: p2(66) `c5387787cade0779` booted clean both machines (mac/rig
-  .bak_p2d7_20260827_1051xx). Older: p2(61) `4d4aef769e5a16c4` (20.93),
-  .bak_p2d7_20260827_0106xx. New failure mode to watch for is a HANG at matchmaking
-  (callbacks never delivered), not a crash - bounded by the 10-attempt fallback.
+## DEPLOYED (2026-08-27 11:1x) - p2(68), lobby lane steps 3-4
+  client DLLs  `115a5b715f217c52` BOTH machines. Learns the peer xuid from the claim
+               answer, fires LobbyChatUpdate(506) on membership growth, serves
+               GetNumLobbyMembers(17)/GetLobbyMemberByIndex(18). Unimplemented slots
+               now log ARGUMENT REGISTERS, so a wrong ordinal still names the real
+               one in the same boot.
+  server exe   `896b37eec11fe30d` (seven gates passed). POST /lobby/claim?seq=&lobby=
+               &xuid= -> "<winner> <member>..." all bare hex; first writer wins per
+               ordinal, membership recording is idempotent so the host discovers a
+               late peer by re-polling. GET /lobby -> table. IN-MEMORY: run
+               RE_scripts/reset_lobby_claims.sh BETWEEN runs.
+  fork commit  p2(68); next number p2(69).
+## THE TEST: claims/BOOT_BRIEF_p2-68.md is the contract and holds every branch.
+  Read it with `bash RE_scripts/boot_verdict.sh` (both clients + server, rules
+  mechanically). Success signal is still an "Adding player" xuid that is NOT the local
+  machine's - never the bare line (20.101). Section 4 of that output is now a slot +
+  ARGUMENT map, so a negative result names the next target instead of costing a boot.
+## ROLLBACK: p2(67) `011fb9e2caec5e82` reached the Tower on both machines (mac/rig
+  .bak_p2d7_20260827_1111xx). Older good: p2(61) `4d4aef769e5a16c4` (20.93).
+  Residual risk in p2(68) is BEHAVIOURAL (an unexpected callback confusing matchmaking),
+  not a crash: the two new bindings take only integers and cannot fault.
 ## HARD RULES (all earned 08-26/27)
   - NO .text patching, and NO interface slot bound by a guessed ordinal (20.92/20.97).
     A MEASURED CALL OUTRANKS A PUBLISHED HEADER: isteamfriends.h disagreed with this
@@ -73,9 +73,8 @@ STANDING: member row shape by blind sweep - the row read comes from schema, whic
 ## OPERATIONAL FACTS
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
     HISTORY NOTE: TWO COMMITS CLAIM p2(39) (f2d0995 Claude, 9639aa4 opencode).
-    Next number continues upward; do not renumber. DEPLOYED = p2(67) 0d8b543
-    (client 011fb9e2, server d8338bc0). The BUILD TREE IS AHEAD: p2(68) staging adds
-    argument capture to the census stub - build output 8cfb1302 is NOT deployed.
+    Next number continues upward; do not renumber. DEPLOYED = p2(68) 071e083
+    (client 115a5b71, server 896b37ee); build tree matches deployed.
   - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8. BOTH
     targets take EXPLICIT source lists in Sunrise/CMakeLists.txt, NOT globs - a new
     .cpp must be added there or it silently fails to link (bit c2764aa and p2(67)).

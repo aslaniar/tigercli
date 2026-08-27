@@ -45,13 +45,27 @@ if [[ "$target" == "mac" ]]; then
   [[ -f "$live" ]] || die "no live DLL at $live"
   cp -p "$live" "$live.bak_p2d7_$stamp"
   echo "backed up $(basename "$live").bak_p2d7_$stamp"
+  # 2026-08-27: this used to copy, then verify, then die() on a failed literal check -
+  # LEAVING THE COPY IN PLACE. One machine ended up on the new build and the other on the
+  # old one while the output said ABORT, which is precisely the "tested a binary that was
+  # not what you thought" class this script exists to prevent. Verify the BUILD first, and
+  # roll the live file back if anything fails after the copy.
+  for literal in "$@"; do
+    count="$(grep -ac "$literal" "$built" || true)"
+    [[ "$count" -ge 1 ]] || die "instrument literal '$literal' NOT present in the BUILD OUTPUT - nothing deployed, $live untouched"
+  done
   cp "$built" "$live"
+  restore() { cp -p "$live.bak_p2d7_$stamp" "$live"; echo "ROLLED BACK $live from .bak_p2d7_$stamp" >&2; }
   live_hash="$(shasum -a 256 "$live" | cut -d' ' -f1)"
-  [[ "$live_hash" == "$built_hash" ]] || die "deployed DLL != build output ($live_hash vs $built_hash)"
+  if [[ "$live_hash" != "$built_hash" ]]; then
+    restore; die "deployed DLL != build output ($live_hash vs $built_hash)"
+  fi
   echo "hash match ${live_hash:0:16}"
   for literal in "$@"; do
     count="$(grep -ac "$literal" "$live" || true)"
-    [[ "$count" -ge 1 ]] || die "instrument literal '$literal' NOT present in deployed $live"
+    if [[ "$count" -lt 1 ]]; then
+      restore; die "instrument literal '$literal' NOT present in deployed $live"
+    fi
     echo "literal ok ($count): $literal"
   done
 else
