@@ -23,19 +23,18 @@ census proved slot 64 is not SetRichPresence and NO string-pair setter is called
 that interface. Salvage from it: the presence transport (20.99) is a working
 cross-machine key/value store, reusable as the lobby-id channel.
 
-## DEPLOYED (2026-08-27 10:0x)
-  client DLLs  `c5387787cade0779` BOTH machines (p2(66)). Friends table 256 slots
-               (was 80; client calls to offset 0x690) so every unbound slot NAMES
-               ITSELF instead of reading past the array. ONE new binding:
-               set_rich_presence at slot 64, on MEASUREMENT (publish arrives there
-               t=2662 every boot), behind a VirtualQuery arg guard. 3/5/43 are
-               called but UNKNOWN - left unbound. Friends methods do ZERO I/O on the
-               calling thread; a worker carries presence to <ext.host>:8099.
-  server exe   `7ff2b4918ae27ee7` (relaunched clean 10:0x, seven gates passed).
-               Presence routes are on the PLAINTEXT ADMIN LISTENER 8099: POST
-               /presence/store?xuid=<hex>&key=<k>&value=<v>; GET /presence ->
-               "xuid key value" lines. IN-MEMORY, and EMPTY as of the relaunch.
-  fork commit  p2(66); next number p2(67).
+## DEPLOYED (2026-08-27 10:0x) - p2(66) is the CENSUS build; it has now RUN
+  client DLLs  `c5387787cade0779` BOTH machines. Friends table 256 slots, all
+               logged_empty except personaName=0, overlayNeedsPresent=49 and
+               set_rich_presence=64 - and the boot REFUTED slot 64 (non-string args
+               on both machines), so that binding comes out in p2(67).
+               KNOWN REGRESSION: presence_worker never starts in this build - its
+               only reachable caller bails at the argument guard first (20.101 #7).
+  server exe   `7ff2b4918ae27ee7` (seven gates passed). Cross-machine key/value
+               store on the PLAINTEXT ADMIN LISTENER 8099, PROVEN both directions:
+               POST /presence/store?xuid=<hex>&key=<k>&value=<v>; GET /presence ->
+               "xuid key value" lines. IN-MEMORY. This is the lobby-id channel.
+  fork commit  p2(66) = 9abc573; next number p2(67).
 ## NEXT: THE LOBBY LANE (p2(67)) - every step evidence-backed by 20.101
   1. create_lobby publishes own {activity, lobby id} to the server (reuse the 8099
      presence store - already proven cross-machine, 20.99).
@@ -50,11 +49,9 @@ cross-machine key/value store, reusable as the lobby-id channel.
   Then: tracking-data release ABSENT = two guardians, one Tower instance.
   Fallback if release still fires: 828-bit session-plane member table (0x808086F8,
   activity-schema-global-table.md, 20.95).
-## ROLLBACK (if frozen again)
-  p2(65) = `23a32b2f4ca26fe2` (mac/rig .bak_p2d7_20260827_1020xx) - working transport,
-  wrong bindings. p2(61) = `4d4aef769e5a16c4` last FULL-CHAIN-good (20.93): mac
-  .bak_p2d7_20260827_010620, rig .bak_p2d7_20260827_010634. Server 7ff2b491 stays
-  (presence routes are inert without callers).
+## ROLLBACK: p2(66) `c5387787cade0779` booted clean both machines - it IS the safe
+  base now. Older: p2(61) `4d4aef769e5a16c4` (20.93), mac/rig
+  .bak_p2d7_20260827_0106xx. Server 7ff2b491 stays (routes inert without callers).
 ## HARD RULES (all earned 08-26/27)
   - NO client .text patching / no interface-slot binds by guessed ordinal (20.92,
     20.97: guessed ordinals froze pre-title; ordinals now from sdk isteamfriends.h).
@@ -121,15 +118,15 @@ STANDING: member row shape by blind sweep - the row read comes from schema, whic
 ## READ FIRST (any session taking over)
   1. AGENTS.md (router) + its conditional triggers; boot work ALSO loads LESSONS.md
      PRE-BOOT CHECKLIST and runs gate_boot.py on the brief.
-  2. BOOT_BRIEF_p2-66.md = the standing test contract (p2-62 and p2-65 SUPERSEDED,
-     20.99 / 20.100).
-  3. FINDINGS_2026-08-25.md 20.100 -> 20.93 newest-first; walk supersession via
+  2. FINDINGS 20.101 FIRST - it closes the friends lane and opens the lobby one.
+     Boot briefs p2-62/65/66 are all superseded by it.
+  3. FINDINGS_2026-08-25.md 20.101 -> 20.93 newest-first; walk supersession via
      RE_output/INDEX_findings.md or q.sh. Then 20.96/20.97 + activity-name-table.md
      + activity-schema-global-table.md for the fallback emission target.
   4. INCIDENT p2(59) freeze rules; INCIDENT_2026-08-25_false-loops.md (L13/14/11).
   5. Contract refs in claims/: s1-accept-contract.md (BAP), msg12-schema-decoded.md,
-     transport-relay-design.md, client-steam-vtable-names.md, msg12-parser-read.md,
-     steamfriends-vtable-audit.md (read WITH 20.100 - parts of it are retracted).
+     transport-relay-design.md, client-steam-vtable-names.md, msg12-parser-read.md.
+     steamfriends-vtable-audit.md is LARGELY RETRACTED - read only with 20.100/20.101.
   6. Captures contain NUL bytes - grep with `grep -a`. HANDOFF_OPENCODE_TO_CLAUDE_
      2026-08-27.md is HISTORICAL as of 20.99 (its section 2 briefs the dead relay);
      the rest of it still holds.
