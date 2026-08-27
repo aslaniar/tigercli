@@ -1,10 +1,11 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~15:45 (**p2(54) DEPLOYED - PEER-ADVERTISEMENT DELIVERY.**
-Each type-12 body now carries BOTH hosts' citizen advertisements, each in its
-own region slot. This closes the 20.74.4 delivery gap: the foreign peer row
-arrives WITH a joinable endpoint. Re-test boot #5 ready.) READ THIS WHOLE
-HEADER before any deploy.
+Updated: 2026-08-26 ~18:10 (**BOOT #9 RESULT: THE MAC ACCEPTED THE FOREIGN PEER
+ROW - acked rev 5 with zero fixups, zero type-14s, no privacy-mode.** The
+delivery-gap fix worked. Remaining gap = both clients still self-host; neither
+takes GUEST role toward the other's instance. Member keys proven boot-scoped.
+Next: guest-role mechanism. FINDINGS 20.77.) READ THIS WHOLE HEADER before any
+deploy.
 
 >> THE PEER BOOT RAN (20.64). The client named its reason for the first time:
 >> **`tried-to-join-self`** - BOTH MACHINES ARE PLAYING THE SAME ACCOUNT.
@@ -46,30 +47,32 @@ OPERATIONAL FACTS:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
 
-## HEADLINE: THE STALL IS OURS, NOT RETAIL'S. THE MAC'S DNS-SHIM HANG - SUBSTITUTING
-## "LOCALHOST" WITH CACHE-ONLY FLAGS - NEVER RETURNS RECORDS UNDER WINE, SO STUN
-## NEVER RAN, MANAGED SESSIONS NEVER STARTED, AND EVERY INSTANCE STAYED PRIVATE.
-## p2(53) FIXES THE HOOK; SEPARATED ACCOUNTS ALREADY HOLD (20.68-20.70).
+## HEADLINE: BOOT #9 - THE MAC ACCEPTED THE FOREIGN PEER ROW (acked rev 5, 41 ms
+## after push, ZERO fixups / type-14s / privacy-mode). THE p2(54) DELIVERY FIX
+## WORKED. MEMBER KEYS PROVEN BOOT-SCOPED (mac key changed across boots; rig's
+## stable that day but both are session-scoped by design). REMAINING GAP: BOTH
+## CLIENTS SELF-HOST; NEITHER TAKES GUEST ROLE AGAINST THE OTHER. NEXT: guest-role
+## mechanism (FINDINGS 20.77).
 
 DEPLOYED RIGHT NOW:
   server exe   `1babdb0c18d3978e` (p2(54): peer-advertisement delivery + ws503 authority;
                seven gates rc=0)
-  client DLLs  `ffbf223e19cd4a9a` on BOTH machines (p2(53): DNS hooks substitute
-               the numeric redirect host 192.168.1.164 directly instead of
-               "localhost" + cache-only flags)
-  fork         `upstream-gameplay-scoped` @ `a1e250d` (p2(53)), clean
+  client DLLs  `e957951643ed987a` on BOTH machines (p2(54): region writer accepts
+               two advertisements - own + peer citizen in per-session slots)
+  fork         `upstream-gameplay-scoped` @ `04276f0` (p2(54)), clean
   settings     rig `state.local_account_key: 1`;
                `membership_sweep_pin: 0` (ARMED, packed_masks), cap 2
-  identities   Mac slot0 …100100/…101; Rig slot1 …110100/…103 - VERIFIED on wire
+  identities   mac memberKey boot-scoped (6F52AA… this boot), acct …100100 char …101;
+               rig memberKey 846C…, acct …110100 char …103
   instruments  keepalive names slot=; svc-24 logs answered soid; ws503 logs
-               proposed vs answered; type-13/14 payloads logged raw
+               proposed vs answered; type-13/14 payloads logged raw;
+               stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT BOOT = re-test #4. Decisive lines in the MAC client log:
-  stun: 'Sending IP discovery STUN packet', 'Valid STUN response', 'NAT type open',
-  'Disposing our STUN endpoint' (all absent in every prior mac boot);
-  demonware: bdSocketRouterConfig warn + managed_session creates + posse
-  session_id fills + NOJIP 'Moving on'; then EST-Y and privacy-mode either falls
-  or names a new condition.
+NEXT BOOT = re-test #5 target: the GUEST-ROLE mechanism. Both clients now
+establish and accept rows; what remains is one client joining the other's
+instance instead of self-hosting. Investigate: advertisement timing during
+setup:matchmaking, or explicit host/guest role negotiation our flow never runs.
+Instrument candidates: managed_session creation triggers, posse role selection.
 
 TO MAKE THE PEER ROW IMPOSSIBLE AGAIN: set `membership_sweep_pin: 5` (solo).
   settings: `membership_sweep_pin: 5` (= solo, publishes NO peer row),
