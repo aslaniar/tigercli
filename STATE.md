@@ -1,6 +1,13 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~18:22 (**BOOT #9's HEADLINE IS RETRACTED. The mac never
+Updated: 2026-08-26 ~19:05 (**p2(55) FIXES THE THREE p2(54) DEFECTS; the wire
+gate reproduces the failure offline and was seen to FAIL before being trusted.
+BUILT AND GATED, NOT DEPLOYED - the deploy stops the live server, so it belongs
+to the boot window. The type->key hunt is OPEN: the type-indexed-array reading
+is REFUTED, so gaps G4/G5 are BLOCKED on an xref lane, not cheap. FINDINGS
+20.80.**)
+
+PREVIOUS HEADER (2026-08-26 ~18:22): (**BOOT #9's HEADLINE IS RETRACTED. The mac never
 saw a foreign peer row: the encoder REFUSED all four peer-bearing bodies
 (`encode_fail` x4, `body_capture` x0, `peers valid: 0x1` everywhere). p2(54) is
 broken and destructive - it retires the local host session on every peer push.
@@ -120,7 +127,25 @@ CENSUS in FINDINGS 20.79, which is the answer to "what else is missing":
      but only type 12's packed key is known (0x808086A8, from the membership
      orchestrator's chain). 9/10/17/45/54 have no key. Bounded work, not a
      command.
-Order: fix -> G4 -> G5 (with the G6 key hunt, width-first) -> then price G1/G2. The strategic fact
+Order: fix -> G4 -> G5 (with the G6 key hunt) -> then price G1/G2.
+  STATUS 2026-08-26 ~19:05 (FINDINGS 20.80):
+    fix  DONE. p2(55) @ 5e475cf; exe 6db65e1671458158, dll 6e461d3901363c71.
+         Six-case wire gate, verified to fail with the bug reinstated. NOT
+         DEPLOYED - run deploy_p2d6_gameplay.sh in the boot window (its step 3
+         restamps the cache, which is why --s1-test/--equip-diff/
+         --selection-version-test read rc=1 on an un-restamped candidate).
+    G6   REFUTED-AND-ADVANCED. The `0x141FA4180 - 12*8` type-indexed table was
+         fitted on type 12 and tested on type 12; three shape checks refute it.
+         What stands: descriptor objects hold their key at +0x00 (NOT +0x08,
+         which is the registry node's offset); the descriptor array is
+         0x7FF6443B4EE0..0x7FF6443D2560, stride 0x20, 3,765 unique keys; the
+         minidump is REQUIRED (the unpacked exe lacks the heap and returns
+         nulls); RE_scripts/schema_root_census.py classifies shapes behind an
+         oracle. Route: xref each type's handler to its .data descriptor slot
+         (disasm_fn.py), types 9/10/54 first.
+    G4   BLOCKED on G6 - correcting 20.79, which called it cheapest. The wire
+         SLOT is proven; the CONTENT needs the schema, which needs the key.
+    G5   BLOCKED on G6, same reason. Do not guess either layout. The strategic fact
 this validation surfaced: the client's own self-advertisement is addressed by
 **SteamNetworkingIdentity**, not by IP - `steamid:76561198776753861#a5f35ad459839106`
 (mac) / `...862#eb75049d0a05270b` (rig), `routable=0` on both. We have spent six

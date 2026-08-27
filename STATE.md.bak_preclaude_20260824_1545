@@ -1,0 +1,664 @@
+# STATE - living snapshot (the single source of "where we are")
+
+Updated: 2026-08-24 ~14:3x.
+
+## HEADLINE: "FULL END-TO-END DIFFERENT ACCOUNT SUPPORT" IS CLOSED AND
+## BOOT-PROVEN (P2-D4, 2026-08-24 ~14:3x, FINDINGS 20.25). NEXT: PEER VISIBILITY.
+
+Both clients relogged after a server restart: Mac hunter kept its arc subclass,
+rig warlock kept its void subclass - pulled from state.db, which now carries
+accounts ...0100100 + ...110100 with 61 items each and all nine slot-1
+subclass instances. Rig menu shows all three subclasses; rig family-4 objects
+49 -> 55 (Mac parity); reader CLEAN on both legs; ensure/seed correctly silent
+on the second boot. TOP OPEN ITEM: opcode-2100 ability-change mutate failures
+(6x this boot, BOTH peers; apply_ability_change refuses; pre-existing but it
+blocks verifying ability-PICK persistence). Then the manager-key map (ws-503
+echo suspect) gates the distinct-guardian identity front. THEN peer visibility:
+two guardians in ONE shared instance needs the gameplay/entity plane wired into
+server_main (20.11a).
+
+## HEADLINE: 2100 MUTATE NEVER WORKED (HASH-SPACE MISMATCH) + MANAGER-KEY
+## MODEL SOLVED: RETAIL PERSISTS IDENTITY, WS-503 MIRRORS IT (2026-08-24 ~15:1x,
+## FINDINGS 20.26, claims/p2-managerkey-map.md).
+
+2100: apply_ability_change scans plugSource; client hashes live in a different
+identifier space (present in raw caches as LE u32 in repeating records, absent
+from all extracted domains). No result=ok ever recorded. Diagnostic deployed
+(backups *.bak_p2d5diag_*): unmatched hash now logs equipped list, all entries'
+plug/group/kind, and whether the hash resolves as an item def. One live click
+completes the mapping evidence.
+
+MANAGER KEY: retail persists an account identity across boots client-side;
+presents it in ws-503; server adopts+echoes; manager keyed from the 503
+exchange (first subscribe landed 64us after it). The 10:23 hang = settings edit
+moved OUR identity while retail presented ITS OWN persisted value. Fix ladder
+E1-E4 in the claims doc: locate/rewrite retail's stored identity and/or make
+ws-503 server-authoritative for provisioned slots; success = request, roots,
+producer, and slot identity all reading ...110100 with fast sign-in.
+
+## EARLIER TODAY - SUPERSEDED HEADLINES (newest first, kept for the arc)
+
+## HEADLINE: THE THREE DIFFERENT-ACCOUNT BLOCKS ARE CLOSED AND DEPLOYED. THE RIG
+## IS A FULL FIRST-CLASS ACCOUNT IN THE DATABASE NOW (2026-08-24 ~14:2x, 20.24).
+
+Commits 3e6ea14/82135be/ecd8ad6; server exe rebuilt + deployed (backups
+*.bak_p2d4_20260824_141507), cache restamped ts 0x6A8CB3A7 size 0x2CFC000,
+eqHash UNCHANGED 0xAC65559674A52DD8.
+
+- MISSING SUBCLASSES ROOT CAUSE CORRECTED (supersedes 20.23's data-scope read):
+  Parser::character() had no "inventory" handler - every account's built State
+  carried zero storage items. Fixed (+ optional flags field, ceiling 32->64).
+- PERSISTENCE: seed_from_settings seeds every provisioned slot under its
+  authored band; idempotent ensure adds missing slots to existing DBs.
+- ACTIVITY: sessions relocated to process-wide runtime::storage::g_activity
+  (world state is not account-scoped); prepare_session names its owning slot;
+  per-slot rebuilds can no longer drop live sessions. Matchmaking keeps the old
+  pattern (adjacent debt).
+- IDENTITY UNTOUCHED BY DESIGN: rig stays legacy band; peers share rebased
+  soids. Manager-key map recorded - mapping it is the FIRST task of the
+  distinct-guardian front. Do not re-band the rig before that.
+- HARNESS: 17 new gates; ensure-path 499 checks exit 0; fresh-seed path seeds
+  both accounts. Known debt: accounts[0] authored defs are stale-capture
+  (29 fresh-env failures, predates this front).
+
+## HEADLINE: THE KEYING FRONT IS CLOSED AND BOOT-PROVEN. WHAT BLOCKS TRUE
+## MULTI-ACCOUNT IS NOW ARCHITECTURAL: THREE SUBSYSTEMS ARE SINGLE-ACCOUNT
+## BY CONSTRUCTION (2026-08-24 ~12:4x, FINDINGS 20.23).
+THE OWNER'S SYMPTOM ROOT-CAUSED: on the rig only the equipped subclass appears
+in the menu. state.db holds **one account** - `accounts` 1 row, `characters` 3
+rows, `items` 61 rows, `items bucket_id=16` 3 per character, ALL slot 0. There
+are NO slot-1 rows. The rig's account lives only in memory from
+settings.json accounts[1], which authors the equipped subclass and not the
+spares. Data scope, not protocol. It also explains the family-4 object counts
+(Mac 55/56 vs rig 49).
+=> The keying sweep fixed everything that WAS a keying problem. "Full end-to-end
+distinct accounts" now needs three architectural changes, not arguments:
+  1. PER-PEER ACTIVITY STATE - both prepare_session overloads read
+     `g_states[kLegacyAccount].activity` outright (20.22).
+  2. PER-ACCOUNT PERSISTENCE - the DB schema/rows are single-account; slot 1 is
+     never written or loaded, so its 801/2100 changes almost certainly do not
+     survive a restart (untested).
+  3. A MULTI-ACCOUNT SEED - seed_from_settings reads slot 0 only.
+Then peer visibility (the gameplay plane is still absent from server_main).
+ALSO: identity is still shared (ws-503 rebases slot 1 onto slot 0's soid band),
+and re-banding the rig's settings alone splits the client and hangs sign-in
+(20.18/20.22) - the queuez manager-key source must be mapped first.
+MAC STABILITY: three crashes today (prepare_for_orbit, activity_world_transition,
+Tower transition), no crash reports, no server anomaly, DLL untouched
+(83345d39, Aug 23). The parked ship-render/black-screen intermittent reproduced
+again and was cleared by a subclass swap - third data point, Mac-only. Consider
+unparking.
+
+
+## HEADLINE: TWO PROVISIONED ACCOUNTS, TWO DIFFERENT GUARDIANS, BOTH IN THE
+## TOWER AT ONCE (2026-08-24 ~11:1x, FINDINGS 20.21). THREE DEFECTS OF ONE
+## FAMILY CLOSED THIS SESSION.
+
+/ladder: 4 authenticated sessions (Mac conn 1+2 slot0, rig conn 3+4 slot1).
+Two activity sessions, both dest=city_tower_social_d2, players ...0101 (Mac)
+and ...0103 (rig) - DIFFERENT characters, each with its own inventory band
+(slot0 6000.., slot1 4100..) and its own channel keys. 435 seals, zero off-key,
+ZERO invalid signatures, zero family-4 refusals, zero move_selection failures.
+Reader CLEAN, exit 0. The rig's 'character:signin' took 5,188 ms and exited
+cleanly - it was 82,477 ms and a timeout before the 20.20 fix.
+THE ARC: 20.17 the staging reset the mirror's accountKey (second peer served
+the FIRST peer's account) + refused-but-sent manifests; 20.20 the web-service
+select handler called an unkeyed setter (every peer's pick moved slot zero's
+selection). All three are one family: a provisioned-slot argument defaulted or
+dropped, correct for slot 0 and only slot 0.
+NOT ESTABLISHED: the two peers still SHARE an account soid (both activity
+identities read acct=0x9EAA300100100100 - ws-503's rebase plus the unkeyed
+session_soid_base()), so DISTINCT-GUARDIAN cohabitation is still untested; and
+peer visibility is not wired (neither client sees the other - the gameplay
+plane is still absent from server_main, 20.11a). Standing in the same named
+destination is not sharing a world.
+DONE SINCE (2026-08-24 ~11:4x, FINDINGS 20.22, commits c3450c4 + cdbde8c,
+BUILT AND HARNESS-VERIFIED BUT **NOT YET DEPLOYED** - the running server is
+still e93d08c3906b317b): all 29 defaulted `AccountKey = kLegacyAccount`
+parameters DELETED, so every call site must name a slot and this defect class
+is now a COMPILE ERROR. The compiler immediately found what the hand census
+could not: `prepare_item_republish` was being passed `after.accountKey` in the
+`bool clearedSockets` POSITION at both call sites - AccountKey is a uint8_t, so
+slot 0 read false and worked by accident while slot 1 read TRUE and published
+the synthetic socket-RESET frame built from the legacy account (opcode 801 and
+2100, every non-legacy peer). Also fixed: prepare_subclass_selection ignoring
+its own key, unkeyed prepare_ability_change, and the activity seed/roster pair
+(now keyed off session.accountKey).
+BIGGEST FINDING, and it resizes the next front: THE ACTIVITY PLANE IS
+SINGLE-ACCOUNT BY CONSTRUCTION. Both prepare_session overloads read
+`g_states[kLegacyAccount].activity` outright - one activity state shared by
+every peer. The census called this an unkeyed accessor; it is not, it is a
+design limitation. Per-peer activity state is what distinct-guardian
+cohabitation actually requires.
+NEXT: deploy + boot-test the sweep (nothing about it is boot-proven); then peer
+visibility / per-peer activity state.
+Census (partly superseded by 20.22): RE_output/claims/p2-defaulted-account-key-census.md.
+
+## HEADLINE: THE BLACK SCREEN AT CHARACTER SELECT IS ROOT-CAUSED AND FIXED -
+## AN UNKEYED SETTER MOVED THE OTHER PLAYER'S SELECTION (FINDINGS 20.20).
+## THIRD INSTANCE OF ONE DEFECT FAMILY. DEPLOYED, BOOT UNTESTED.
+
+`select_character()` called `state::set_selected_character(soid, changed)` with
+no slot, and that parameter is DEFAULTED to kLegacyAccount - so every peer's
+character pick moved SLOT ZERO's selection. The keyed `prepare_selection_move`
+then read its own slot, found the selection unmoved, and refused:
+`family4 stage=prepare result=fail step=move_selection` -> `queuez stage=select
+result=fail` -> no Family-4 move frame -> the peer sits in 'character:signin'
+until it times out, black screen with a live cursor. Invisible with one client
+because slot zero IS the default; and it silently moved the MAC's selected
+character while the Mac stood in the Tower. Fixed as a SWEEP (commit 8307a74,
+exe e93d08c3906b317b): every unkeyed accessor on the web-service and
+outcome-staging paths where the key was already in scope. Harness 480/480 with
+a gate that drives the real opcode-504 handler; negative control fails.
+THE WALL HAS MOVED TWICE: pre-20.17 the rig died at the cross-account serve
+before ever reaching a select (0 move_selection failures in those captures);
+post-20.17 it reaches select and dies there (2 failures in each of the last two
+boots). 20.18's identity-split mechanism is WITHDRAWN as the cause - boot 3 ran
+with no split and failed identically.
+STILL UNKEYED AND DEFERRED (inert only while the peers share a rebased soid):
+activity_keepalive_seed.cpp:34, activity_roster_snapshot.cpp:47,
+server_http.cpp:31 sign_on(), persistence.cpp:619. Sweep them BEFORE the
+distinct-guardian front, because that front is exactly what arms them.
+
+## HEADLINE: THE ACCOUNT-KEY DEFECT IS FIXED AND WIRE-VERIFIED UNDER TWO
+## CONCURRENT CLIENTS (20.17 + 20.18). THE REMAINING BLACK SCREEN AT PICK IS
+## A CLIENT IDENTITY SPLIT THE RESOID CAUSES - RIG REVERTED, RESOID RE-OPENED.
+
+P2-D1 boot, 2026-08-24 ~10:3x: `p2d1_boot_read.py` reports CLEAN, exit 0.
+Every client subscribe stayed keyed to its own slot all session (Mac key=0,
+rig key=1), zero family-4 refusals, and each connection's item payload stayed
+pinned to its own soid band (slot0 6000.., slot1 4100..). The C4 mid-burst key
+flip is gone. ATTRIBUTION: `family4_resubscribe result=adopt` never fired, so
+defect 1 (the key wipe) was the whole story and defect 2 (refused-but-sent)
+was latent - the policy is still correct, just not yet load-bearing.
+THE BLACK SCREEN AT PICK IS SEPARATE AND I CAUSED IT: re-banding the rig's
+local legacy block splits the client's own account identity (...110100) from
+its queuez MANAGER key (...0100100, what every subscribe roots on and what
+retail's sign-on path feeds). The game's own family-zero producer then never
+emits an entry - proven by A/B against the Mac in the same boot, where the
+producer emits at t=68832 and sign-in completes in 3.1 s, versus the rig
+stalling 82.5 s in 'character:signin' and leaving 'unavailable'. Rig REVERTED
+and verified. 20.16's "the revert kills the resoid theory" is WITHDRAWN (rule
+11: that revert failed for the cross-account reason, so it never tested the
+resoid's own mechanism). Do not re-apply the resoid until the manager-key
+source is mapped.
+
+Reading the queuez ladder before touching it found a second defect in the
+same expression as the assigned one, and it is the one that explains the
+wall: `stage_family4_snapshot` built its after-image from a SCRATCH
+SessionState, so publishing it reset every field family four does not own -
+including `accountKey`, which is stamped exactly once at svc-25 and never
+re-stamped. The FIRST family-4 manifest a session recorded therefore
+re-pointed that session at the legacy slot. Proven on ONE connection's wire
+(C4, conn=3 = the slot-1 rig, 52 ms): `subscribe_in family=3 key=1` with item
+soids 4100.. -> `companion family=4 recorded=1` -> `subscribe_in family=4
+key=0` with item soids 6000... The rig was handed the MAC's account under its
+own root. Single-client boots never saw it: slot 0 over slot 0 is a no-op.
+The assigned defect (refused-but-sent) is real and also fixed, by policy: a
+subscription is answered with the full-snapshot flag at the initial version,
+which REPLACES the peer's store, so the mirror now ADOPTS what it delivered
+(the measured family-three rule, same client-side parser). Commit e17cf3e;
+harness 476/476, negative control fails exactly the six new gates.
+NEXT: the dual-client boot. Nothing about this is boot-proven yet.
+
+## PRIOR HEADLINE: SECOND PROVISIONED ACCOUNT IN THE TOWER - THE P2 TOWER
+## BLOCKER WAS ONE UNKEYED SEAL SITE (FINDINGS 20.14)
+
+The Season-of-Arrivals fork boots and plays solo end to end on the private
+server, AND a second machine provisioned into slot 1 now signs on, reaches
+orbit, and STANDS IN city_tower_social_d2. The Tower blocker that killed
+P2-B1 was a single line: the activity-push path sealed with state::bap()'s
+legacy default key instead of the peer's own channel keys - proven by the
+svc-25 identity + crypto-fingerprint instruments (keyfp F0EF.. vs 2B7A.. on
+the fatal frame), fixed in activity_keepalive_push.cpp:102. Identity was
+never broken: both links matched slot 1 (matched=slot1 served=1). Next:
+second client simultaneously (G1 two sessions / G3 cross-talk / G4 restart
+persistence), then peer visibility (entity front).
+
+The Season-of-Arrivals fork boots and plays solo end to end on the private
+server (destination loads, full inventory/equipment persistence, subclass +
+ability swapping, preferences publishing). Docs/community layer is DONE and
+PUBLIC. 2026-08-23: a second machine (Windows gaming rig, 192.168.1.136)
+connected to the Mac-hosted server (192.168.1.164), passed sign-on AND
+content_check, and loaded the Tower (FINDINGS_2026-08-23.md 20.1). The fix
+was ONE settings string per machine (manifest config_guid is install-
+local, not portable); zero source changes. Next multiplayer gates: guest
+accounts (P2), then peer visibility (entity front).
+
+## THE DEPLOYED STACK RIGHT NOW (verified 2026-08-24 ~09:4x)
+
+  server exe  446feb2ae6944b2e (27,178,496 B)  pid 1593, board empty
+              RE_output/s1_accept/sunrise-server.exe, launched via
+              mac-port/launch-server-macos.sh (GPTK wine, own prefix)
+  cache       ts 0x6A8C742C size 0x02CFC000 eqHash 0xAC65559674A52DD8
+              (SizeOfImage moved 0x2CFB000 -> 0x2CFC000 this build; older
+               STATE/handoff lines quoting 0x2CFB000 are stale)
+  instruments LIVE: stage=identity, stage=arm, stage=crypt, stage=subscribe_in
+              (now the trustworthy key= column), stage=family4_refusal
+              (+key=), stage=family4_resubscribe result=adopt (new).
+              All marked "strip when the dual-account front closes".
+  invariants  17/18 green pre + post (DETAIL_COVERAGE red = expected/inert).
+              FAMILY4_MONOTONIC now accepts a drop to EXACTLY the initial
+              version as the designed re-subscribe reset; any other decrease
+              is still a rollback.
+  admin       binds 192.168.1.164:8099 - NOT 127.0.0.1. A curl to loopback
+              returns EMPTY with exit 0 and reads exactly like a dead server.
+  clients     DLLs UNTOUCHED (mac 83345d39, rig 162972c7). The staging file
+              also compiles into steam_api64, but BAP is answered by the
+              standalone server here, so the in-process copy is off-path.
+  backups     *.bak_p2d1_20260824_094250 (exe + cache)
+  HAZARD      Sunrise/src/server/runtime/server_main.cpp (the
+              --print-provisioned-hash flag) is IN the deployed exe and STILL
+              UNCOMMITTED. Pre-existing; owner call.
+
+## THE PRIOR DEPLOYED, WORKING STACK (verified 2026-08-22 ~23:1x)
+
+  server exe  04a3a1caf9fdc923   RE_output/s1_accept/sunrise-server.exe
+              (Lane C dashboard + /events + seq ring + bind_address,
+               + collector fixes: 3 compile breaks, SO_REUSEADDR on admin
+               AND https, dashboard filter, /flags bounds clamp)
+  client dll  67f3d0531a543b91   Game/bin/x64/steam_api64.dll
+              (Lane E protocol tape, boot-validated; item_gate uninstalled)
+  cache       build_data ts=0x6A8A90A5 size=0x02C4F000 (restamped per rebuild)
+              eqHash 0xA8E1DA67DFA2118F - DRIFTED from 0xE8683B305DA99CD7 by
+              the 22:46 play session (LIVE state; server self-restamps @20)
+  flag bank   5,255 rows curated (account 4,931 / char 5 / profile 142 /
+              char_obj 177); runtime bank lengths 12,300 / 256 / 512 / 4,096
+  invariants  17/17 GREEN (RE_output/scripts/check_invariants.py)
+  client log  core.logging.levels.client = "info" (retail + tape visible;
+              item_gate still installed -> ~114k lines/boot)
+  dashboard   http://127.0.0.1:8099/  (survives client death - proven)
+  PRIOR ARTIFACTS backed up as *.bak_preobs_20260822_224433
+
+## THE OBSERVABILITY PROGRAM - ALL 5 LANES LANDED + VERIFIED (2026-08-22)
+
+Purpose: make system state legible to the USER, not only to an AI reading
+8 MB of log; and a prerequisite for multiplayer, where nobody can read races
+out of a static file. All five deliverables verified by the main session
+against disk, not accepted from report-backs.
+
+  A cockpit        DONE. lane_cockpit.md. Tools: live_console.py (Mac paths,
+                   item_gate suppressed), live_client/server_tail.sh,
+                   retail_view.py.
+  B queryable boot DONE + VERIFIED. lane_boot_record.md. boot_diff(A4,B4)
+                   names EXACTLY world_population_carrier 7->8, nothing
+                   spurious; boot_diff(A4,R4) CLEAN. Records in
+                   RE_output/boots/.
+  C dashboard      DONE + FIXED. lane_dashboard.md. Landed 3 compile breaks
+                   and 2 runtime bugs (below); all fixed and verified.
+  D invariants     DONE + VERIFIED. lane_invariants.md. 17/17 green live;
+                   RED at 12,549 on the saturated backup with char_obj
+                   correctly staying green.
+  E protocol tape  DONE + VERIFIED ON THE WIRE. lane_protocol_tape.md.
+
+THE VALIDATION BOOT (2026-08-22 ~22:46, all four gates PASSED):
+- Dashboard served during the boot AND after the client was force-quit.
+- 114 tape=1 rows; predicted sign-on sequence reproduced exactly
+  (svc=123 queue_update on PRIMARY session=0, then svc=9 activity_message
+  on FAH session=1). Every kind named, zero unknowns, max type=54 inside
+  the 0..58 registry.
+- CROSS-CHECK: server and client type histograms IDENTICAL
+  (58 auth_sense / 23 global_activity_state / 12x10 membership_replication /
+  1 each bubble_host_table, join_result, entity_slot_notification), counts
+  94 == 94, sizes differ by a CONSTANT 28 bytes (len=601 <-> size=573;
+  len=234 <-> size=206) = the BAP frame header the server counts and the
+  client dispatcher does not. => the handbook's p46 envelope layout is now
+  INDEPENDENTLY CONFIRMED AGAINST LIVE TRAFFIC.
+- 352 ev=retail lines returned at client=info.
+- 115,572-row two-sided record captured (closes Lane B's last open item).
+
+## OPEN ITEMS (ranked; none block solo play)
+
+1. ~~item_gate source fix~~ **CLOSED 23:2x**: install commented out
+   (client_hook_activation.cpp, 6a63d9a treatment); DLL rebuilt + deployed
+   (steam_api64 67f3d0531a543b91). Runtime confirmation = the NEXT client
+   boot (expect the client log to fall from ~114k lines to ~1.2k with retail
+   + tape intact). The f4dump diagnostics in family4_object_staging /
+   roster_snapshot are the SAME closed-front class ("strip when the
+   weapons/model front closes", 261 rows/boot) - not yet retired.
+2. ~~Multiplayer M1 - remote connect~~ **DONE 2026-08-23 ~12:4x**: rig
+   (192.168.1.136) signed on against the Mac server and loaded
+   city_tower_social_d2; family-4 join snapshot ACTIVE on the wire. The
+   blocker was NEVER TLS - the rig client answered SignOn + manifest GET
+   in-process all along and died at content_check on a manifest GUID
+   mismatch (guid hashes pkg mtimes -> install-local, not portable). Fix =
+   per-machine config_guid from RE_output/scripts/manifest_guid_from_cache.py.
+   Full chain: FINDINGS_2026-08-23.md 20.1. Next: guest accounts (P2),
+   then entity front for peer visibility.
+3. **Guest accounts (P2) + two-client M3**: identity/keying GREEN under two
+   concurrent clients; distinct-guardian cohabitation = NEW WALL
+   (2026-08-23 ~23:1x, FINDINGS 20.14/20.15).
+   TOWER BLOCKER CLOSED (20.14): one line - activity-push/keepalive path
+   sealed with `state::bap()`'s legacy default key instead of
+   `state::bap(session.accountKey)`; fixed + wire-verified (C2: Tower loaded
+   on slot-1 rig, roster ok, zero invalid signatures).
+   M3 DUAL SIGN-ON (G1): Mac=slot0 / rig=slot1, distinct channel keys,
+   zero off-key seals across 520 seals, zero signature failures. Rig local
+   state RE-STAGED into the slot-1 soid band (...110100/01/02/03; backup
+   settings.json.bak_m3g1_resoid); family-4 snapshot records under the new
+   root (objects=49 recorded=1).
+   NEW WALL - NOW A NAMED DEFECT (2026-08-23 ~23:3x, FINDINGS 20.15/20.16):
+   when a second client signs on, the FIRST client's presence-driven
+   family-4 re-subscribe carries a CHANGED manifest (55->56 objects), which
+   stage_family4_snapshot refuses (replay_mismatch) while the caller still
+   SENDS the frame -> client applies version N+1 content while the server
+   mirror stays at N -> mirror/client desync -> downstream kicks (PONY /
+   black screen / marionberry on whichever side touches the desynced state).
+   subscribe_in instrument data corrects the earlier attribution: the
+   refused legacy-root subscribes were the MAC's refresh, not the rig.
+   The rig REVERTED settings still failed (C4), which also EXONERATES the
+   resoid as the cause; rig is back on legacy band (backup
+   settings.json.bak_m3g1_resoid holds the ...110 variant for later).
+   QUEUEZ MIRROR-DESYNC FRONT: CODE DONE 2026-08-24 ~09:4x (FINDINGS 20.17,
+   commit e17cf3e, deployed exe 446feb2a). Two defects, one expression:
+   (1) the staging wiped the mirror's `accountKey` (and the family-zero
+   ladder) because its candidate was scratch-built - the second peer was
+   served the FIRST peer's account from its first family-4 record onward,
+   proven on one connection's wire; (2) the assigned refused-but-sent desync,
+   now resolved by POLICY: a subscription answer carries the full-snapshot
+   flag at the initial version and REPLACES the peer's store, so the mirror
+   ADOPTS the delivered manifest (the measured family-three rule; both
+   families share the client-side parser). Still refuses in ONE window:
+   family3Phase != normal (character change mid-flight). The unsolicited
+   re-push guard in consume_deferred is untouched. Harness 476/476;
+   negative control against the old staging fails exactly the six new gates
+   and no others. 20.16's "the refusals are the MAC's (key=0)" is WITHDRAWN -
+   key=0 was the wiped mirror. Its open questions 1/2/3 are answered in
+   20.17; question 2's front=0x32D7B974 is a DEFINITION id, not a soid.
+   RIG IS NOW ON THE ...110 BAND (2026-08-24 ~10:2x, done + verified from the
+   rig's own parse): state.account.primary_soid = 0x9EAA300100110100 and its
+   three characters ...110101/02/03, matching server slot 1; state.accounts[]
+   and config_guid untouched. Rig backup settings.json.bak_p2d1_20260824_1024.
+   CORRECTION: the documented backup `settings.json.bak_m3g1_resoid` does NOT
+   hold the ...110 variant - it is BYTE-IDENTICAL to the legacy-band live file
+   (sha AD3341439F93C2CD). It is a PRE-edit copy that the C4 revert restored;
+   the ...110 variant never survived. The edit was re-done with
+   RE_scripts/rig/resoid_settings.py. Rig install lives at
+   C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\Sunrise
+   (one tree only; NOT the Desktop path the handoff implies).
+   WHY IT MATTERED (20.17): ws-503 ADOPTS the client's presented
+   primary_soid into that peer's slot and rebases its character soids
+   (web_service_runtime.cpp:199 -> set_primary_soid). The rig is currently on
+   the LEGACY band, so signing on rewrites server slot 1 onto slot 0's account
+   + character soids - both slots then share identity keys with different
+   inventories. That is also why the C4 companion recorded instead of hitting
+   front_ne_root. Restore the rig's settings.json.bak_m3g1_resoid (the ...110
+   band, = server slot 1 0x9EAA300100110100) before the distinct-guardian
+   boot. Does NOT reopen the resoid-as-cause question (still cleared).
+   NEXT: the dual-client boot (brief at the end of 20.17 - watch that the
+   rig's subscribe_in stays key=1 all session, that family4_refusal is gone,
+   and whether family4_resubscribe result=adopt ever fires). Then G3/G4 from
+   orbit-parked clients, then P4 gameplay-plane wiring for cohabitation.
+   Ship-render/black-screen-on-entry: INTERMITTENT, parked (two data
+   points). Open questions list in 20.16.
+   EVIDENCE: RE_output/boots/20260823_m3_g1r_resoid_retry/ and
+   .../20260823_p2c1_identity_crypt/. Server exe lineage tonight:
+   4f2685e6 -> bcd76e88 -> cc62e95a (instrumented). Backups
+   *.bak_p2b2_20260823_213659.
+
+4. **Release engineering**: adapt .github/workflows/build.yml to attach
+   sunrise-server.exe per tagged release (+ checksums; NO pdb).
+5. **Attribution bisect**: which saturated flag scope broke rendering (~3
+   boots, zero graphics delta). Input preserved (.bak_preflagrevert, verified
+   12,549 rows). Closes the 15.9 attribution gap.
+6. **Entity front W1-W8** (static enemies): emission deployed, flag OFF
+   (`world_population`). Prerequisite for multiplayer P4 peer visibility.
+   Ladder: RE_output/claims/lane_entity_scope.md.
+7. **Upstream reconcile**: fresh fetch 2026-08-23 = **45 behind, 94
+   ahead** of stanuwu/Sunrise:master (upstream tip 0188841, 2026-08-21).
+   21 conflict-risk commits identified incl. upstream's own opcode-801
+   subclass lane (parallel invention of our swap front - do NOT blind-merge)
+   and a 273-file tree-wide refactor. Full triage:
+   RE_output/community/intel-sweep-2026-08-23.md.
+   Policy pending; divergence intentional until then.
+8. ~~/flags response-budget overflow~~ **CLOSED 23:2x**: it was an
+   out-of-bounds WRITE, not just an over-read - (kResponseCapacity - used)
+   underflows as size_t once snprintf's would-be length pushes `used` past
+   the buffer. Now clamped with a reserved tail and a "truncated" flag.
+   Verified with a 1 KiB test build against the real 4 KB response: stayed
+   in bounds, stayed VALID JSON, reported truncated=true + true run_count,
+   server survived.
+9. **Research repo publish decision**: origin still points at tigercli.git
+   (wrong project).
+10. **Shader-cache persistence** (Mac QoL): no MoltenVK/DXMT cache persists;
+    every launch compiles cold; new equipped models crash-prone at pick.
+11. Helmet front: RESOLVED-PARKED (16.4) - control is vestigial, no consumer.
+12. Parked unchanged: verb layer; vendor storefront loop (scoped 18.2);
+    bucket-builder strictness; ForcedDestination wiring.
+
+## HAZARD: THE SHARED WORKTREE IS DIRTY (lanes C and E commit into it)
+
+RE_build/Sunrise-fork-inventory (branch `integration`) carries UNCOMMITTED
+work from 2026-08-21 ~22:15 that predates this program: CMakeLists.txt,
+Sunrise.vcxproj, client_hook_activation.cpp, character_record_encoder.{cpp,h},
+family4_object_staging.cpp (+40), roster_snapshot.cpp (+47), and the ENTIRE
+UNTRACKED src/client/hooks/item_gate/ directory. A blanket `git add -A` in
+that worktree sweeps ~100 lines of unrelated S2/datagen work into an
+observability commit. Lane C confirmed it commits only its own files and does
+NOT touch CMakeLists (headers only). Owner decision still outstanding: is the
+08-21 work still wanted, or superseded by the 18.3 MSVC line?
+
+## WHAT IS PUBLIC VS INTERNAL
+
+PUBLIC: github.com/aslaniar/Sunrise, master @ **c30a72d** (docs set +
+SERVER-SIDE-SPEC.md rev 2026-08-22 + scripts/{launch-server-macos.sh,
+server-settings.template.json, restamp_build_data.py}; the 18.3 MSVC line:
+windns_compat shipped in-tree, sln builds both targets, egress signatures
+aligned to the Windows SDK; CI green). d2-unlock-index-tables repo (CC0).
+Knowledge dump as PDF via Discord.
+INTERNAL ONLY: knowledge dump md/pdf sources + handbook digest & text
+(RE_output/{community,dumps}), claims/ (380+ files), RE_scripts tooling,
+RE_output runtime artifacts (never ship: game-derived caches/DBs, live
+tokens, oo2core proprietary DLL).
+
+## CORRECTIONS TO THE RECORD (supersede older text; do not re-derive)
+
+- 20.16's "the revert failing KILLS the resoid-causes-it theory" is WITHDRAWN
+  (20.18). The C4 revert failed for the CROSS-ACCOUNT reason (the key wipe,
+  since fixed), so that boot never tested the resoid's own mechanism. Rule 11
+  again: an exoneration is only valid in the direction it was tested.
+- 20.15's "family-4 companion RECORDS under the new root" was an INFERENCE:
+  the companion log line does not print a root, and the refusal lines in that
+  same boot carry root=...0100100. No rig subscribe has ever carried the ...110
+  root, resoid or not.
+
+- 20.16's "every legacy-root family-4 refusal belongs to the MAC's presence
+  refresh (key=0)" is WITHDRAWN (20.17): `key=` reads `before.accountKey`,
+  and that field was the thing being corrupted. The refusals arrived on the
+  RIG's own connection, 16 ms after its own key=1 subscribe. An instrument
+  column is only as trustworthy as the field it reads.
+- 20.16's `front=0x32D7B974` is a family-4 ACCOUNT-OBJECT DEFINITION ID, not
+  a soid: the refusal line prints `objects.front().id`, and queuez `Object`
+  is {u32 id = definition id, u64 version = soid}. It is identical on every
+  family-4 snapshot. Nothing "presence/group-shaped" to hunt.
+- A family-4 re-subscribe now RESETS the mirror's family-4 version to zero by
+  design (the full-snapshot answer replaces the peer's store). FAMILY4_
+  MONOTONIC was taught this; a drop to any OTHER value is still a rollback.
+
+- UPSTREAM DELTA: STATE's earlier "~115 commits behind" was WRONG, and so was
+  an intermediate "2 behind" read (taken from a STALE remote-tracking ref).
+  Fresh fetch 2026-08-22 22:0x: **45 behind, 98 ahead**. Always fetch before
+  quoting a divergence count.
+- "Silencing item_gate leaves ~1-2k readable lines" is WRONG: retail is
+  Level::info too, so client=warn leaves only the warn/error floor (~0-100
+  lines this boot: 2 warn, 0 error). Corrected by Lane A.
+- The BAP service names were NOT missing: src/middleware/bap/frame.h already
+  carries RequestService/ResponseService/NotificationService enums, and Lane E
+  verified they are NUMERICALLY IDENTICAL to the handbook registry (27/24/2,
+  programmatic cross-check). They were simply never wired into the log line.
+- handle_message_observer's `type=%u` column is the BAP SERVICE NUMBER, not
+  the activity-message wire type (Lane E, verified against two incidents).
+- 14.17 "flags fully exonerated" INVALID (one-directional test) - superseded
+  by 15.8/15.9.
+- 15.2 "silently seeded nothing" WITHDRAWN -> 15.4: server REFUSES to boot
+  with state.characters present (ordering defect; publisher is client-only).
+- ONE repository (RE_build/Sunrise-fork) with linked worktrees; inventory tree
+  = worktree of it.
+- SocketPolicy authored==nativeDefaults byte-identical on wire (15.5);
+  entryList=0 on gear correct (refuted x4); no equippability flag exists in
+  the family-4 object (greyed = client derivation).
+- helmetMode has NO consumer in this build (16.2-16.4).
+- Preferences are one-way (no write-back path); in-game changes die at boot.
+- Deadorbit: local/embedded HTTP branch does NOT serve ticket_drop; external-
+  mode URL rewrite intercepts it fine.
+- M1 BLOCKER RECLASSIFIED (2026-08-23, supersedes the 19.x/handoff text):
+  the remote-rig failure was NOT wine-TLS and NOT silent. SignOn POST and
+  the manifest GET were answered IN-PROCESS all along; the kill was
+  bootflow:content_check "guid mismatch", and the "15 s silent gap" was the
+  cleanup state's task timeout after that kick. Evidence:
+  RE_output/boots/20260823_m1_remote_rig/rig_client_log.txt lines 257-268;
+  full chain in FINDINGS_2026-08-23.md 20.1.
+
+## HARD-WON TRAPS (each cost a real failure; do not re-learn)
+
+- A DEFAULTED PROVISIONED-SLOT ARGUMENT IS THE RECURRING HAZARD (three
+  instances: a9d1cbc `state::bap()`, 20.17 the scratch-built mirror, 20.20
+  `set_selected_character`). Twelve state APIs carry
+  `AccountKey key = kLegacyAccount`; the default compiles silently at every
+  unkeyed call site and behaves CORRECTLY for slot 0, which is the only slot a
+  single-client test exercises. When touching any multi-account path, grep for
+  the call sites, not the declarations.
+- A GATE IS WORTHLESS UNTIL ITS NEGATIVE CONTROL RUNS (twice in one session,
+  2026-08-24). Both first drafts passed against the broken code: one exercised
+  a code path the defect did not live on, the other asserted against the State
+  setter when the defect was the CALLER. Run every new gate against the
+  pre-fix build before trusting it.
+
+- RE-BANDING THE RIG'S LOCAL SOID SPLITS THE CLIENT IN TWO (2026-08-24,
+  20.18): `state.account.primary_soid` moves the client's PUBLISHED identity,
+  but the queuez MANAGER key - what every family subscribe roots on - is fed by
+  retail's sign-on path and does NOT move. The game's own family-zero producer
+  then emits nothing, the seed hook fights it 36x/second forever, and sign-in
+  hangs ~82 s before leaving 'unavailable' (a black screen with a live cursor).
+  Distinct-guardian testing needs BOTH to move; map the manager-key source
+  first (in-process ws-503 echo is the prime suspect).
+- AN INSTRUMENT'S conn COLUMN IS STALE DURING A DEFERRED RE-PUSH (2026-08-24):
+  a re-push runs on the connection's own timer, so no inbound transport frame
+  precedes it and "last seen conn" belongs to whoever last spoke. This produced
+  a false "key flip" that read as a live defect. p2d1_boot_read.py now detects
+  re-push blocks and prints conn=repush; the real fix is to print the session
+  id in the subscribe_in line itself.
+
+- A BACKUP'S NAME IS NOT ITS CONTENT (2026-08-24, cost: nearly booting the
+  confound we set out to clear). `settings.json.bak_m3g1_resoid` was recorded
+  in three places as "the ...110 variant"; it is byte-identical to the
+  legacy-band live file. In this repo `bak_<label>` usually means "taken
+  BEFORE <label>". Hash a backup before trusting what it holds.
+- SSH TO THE RIG NEEDS A LIVE ControlMaster (2026-08-24): the handoff's
+  `-o ControlPath=~/.ssh/cm-rig` form has no credentials of its own and the
+  socket dies with rig sleep / session end. Re-open with
+  `ssh -M -S ~/.ssh/cm-rig -o ControlPersist=8h -N -f rasla@192.168.1.136`
+  from a plain shell with nothing appended - a duplicated host token makes the
+  master refuse sessions AND its own -O exit. ping proves nothing (ICMP is
+  blocked); use the ssh handshake as the liveness test.
+- ADMIN BINDS THE LAN ADDRESS, NOT LOOPBACK (2026-08-24): the log says
+  `ev=admin stage=listen result=ok port=8099 bind=192.168.1.164`. A curl to
+  127.0.0.1:8099 returns an EMPTY body with exit 0 - indistinguishable from a
+  dead server. Always query the bound address.
+- A SCRATCH-BUILT AFTER-IMAGE IS A SILENT FIELD WIPE (2026-08-24, cost: the
+  whole dual-client wall, and a boot to find the same bug in family three
+  earlier - the boot-G roster refusal). Any staging that builds `Struct x{}`
+  and fills only its own fields resets everything else in that struct when
+  published. Build after-images from the BEFORE-image and overwrite only what
+  the operation owns. Grep the queuez/staging tree before adding another.
+
+- DXMT cold-compile pick-crash: changing an EQUIPPED item's definition forces
+  cold shader compiles at pick (no persistent shader cache on macOS) ->
+  silent death, no SEH/minidump. State every experiment's GRAPHICS DELTA.
+- Truncated log trap: build_data identity warn prints expected_eq SHORT with
+  NUL+garbage mid-line. NEVER read expected values from logs; compute
+  (RE_output/scripts/bootL_eqhash_exact.py, validated).
+- eqHash is LIVE state: ability/equipment commits drift it; the server
+  self-restamps offset 20 itself. Compute before comparing.
+- CROSS-PROCESS ANCHOR TRAP (new, Lane B): same-name core events on the two
+  sides are NOT the same real moment - the client's core lines come from the
+  in-process DLL, the server's from the standalone wine server that booted
+  minutes earlier (observed disagreement ~5.3 s). Only WIRE events (transport
+  accept / bap) are true shared moments. merge_logs.py's PRIMARY anchor has
+  ZERO client-side hits on every capture currently on disk.
+- SNAPSHOT IS A VALUE TYPE (new, Lane C): core::log::snapshot::Snapshot is
+  std::array<Entry,128> (~134 KB) returned BY VALUE. Enlarging the ring to
+  4096 makes it ~4.3 MB in any caller's frame - the admin thread's default
+  1 MB stack cannot hold it. Gate capacity per-target and raise the thread
+  stack before enlarging.
+- STALE CONFIG DECOY (new, Lane C): RE_output/s1_accept/settings.json (root
+  level, https_port 443, Windows paths) is IGNORED. The live file is
+  RE_output/s1_accept/Sunrise/settings.json. Do not read the decoy as config.
+- Use /usr/bin/python3 for sqlite3 work (miniconda python has broken _sqlite3).
+  Sandbox also cannot open state.db.bak_* in place - copy to scratch first.
+- Cache surgery: details SORTED by definitionIndex; itemDetailCount u32 @36;
+  payload checksum two-segment recipe; eqHash @20 OUTSIDE checksummed region.
+- One-directional negative != exoneration. Record the test DIRECTION.
+- NO settings write-back exists: published once from settings.json; in-game
+  changes cannot survive a boot.
+- Git EPERM curse (hit twice): reads via cat work, git gets EPERM on
+  .git/config. FIX: copy .git to scratch, verify, swap fresh copy into place
+  at identical path. If instance #3 appears, budget a real diagnosis session.
+- ADMIN PORT / TIME_WAIT (new, 2026-08-22): the dashboard polls 8099 every
+  second, so its own just-closed connections sit in TIME_WAIT and a quick
+  server restart could not rebind - and admin bind failure is FATAL
+  (ev=admin result=fail reason=bind -> initialize stage=admin result=fail ->
+  server exits). FIXED by setting SO_REUSEADDR on the admin listener,
+  matching bap_listener.cpp. Verified with 9 TIME_WAIT sockets present at
+  relaunch. https_listener now carries the same option (the client holds
+  8443 for a whole session and would fail identically once it has live
+  connections; not reproducible on THIS Mac because the hybrid architecture
+  answers config/SignOn in-process so 8443 never sees client traffic).
+  discovery_listener is UDP - TIME_WAIT is TCP-only, so it is not exposed.
+- Flag banks must stay CURATED: blanket saturation -> client discards part of
+  the family-4 join snapshot while all server-side checks stay green.
+- CONTENT-MANIFEST GUID IS INSTALL-LOCAL (2026-08-23, cost: the whole M1
+  blocker misread as TLS): the guid = SHA256 over pkg stems/ids/patchIdx/
+  sizes/lastWriteTime. Two machines with the SAME build produce DIFFERENT
+  guids (mtimes) while serving byte-identical manifest sizes - never copy a
+  config_guid between installs; derive per machine via
+  RE_output/scripts/manifest_guid_from_cache.py (validated against the Mac
+  cache first).
+- INLINE MULTI-LINE POWERSHELL OVER SSH SILENTLY NO-OPS (2026-08-23): exit 0,
+  no output, NO effect on disk. Write a .ps1, scp it, run with -File, then
+  VERIFY the edit landed before building on it.
+- ADMIN /ladder AND /state EMIT INVALID JSON WHEN ANY SESSION EXISTS
+  (2026-08-23, FINDINGS 20.2): leading comma before the first row. FIXED,
+  DEPLOYED, WIRE-VERIFIED 2026-08-23 ~13:1x (commit 2a0da29) - board is
+  17/17 green with a live session. Kept as the pattern: empty-board reads
+  hid this bug all day; a serializer must be proven with DATA present.
+
+## DEPLOY RULES (binding)
+
+Kill old server first. Restamp build_data identity after any exe rebuild
+(offsets 12/16; scripts/restamp_build_data.py). Recompute eqHash after
+equipped items/levels/policy/plugs changes (flags do NOT feed it). Content
+JSONs override cache at boot. Verify observer call volume BEFORE deploying a
+hook. Verify THE WIRE changed before accepting a negative. One destiny2.exe
+per boot. Byte-exact settings copies. No debuggers. Restart the server before
+blaming state. BOOT BRIEF RULE: purpose/payoff, falsifiable claim, what it
+does NOT test, GRAPHICS DELTA. NEW: run check_invariants.py before and after
+a boot - it seeds the monotonic baselines and catches the saturation class.
+
+## MAC PORT ESSENTIALS (stable)
+
+Client rides Game/bin/x64/steam_api64.dll in Whisky bottle "Sunrise"
+(DllOverrides winemetal=b, d3d10core=n,b per-app required). Server =
+llvm-mingw cross-compile under GPTK wine 7.7, own prefix,
+mac-port/launch-server-macos.sh. Hybrid architecture: config-manifest GET +
+SignOn answered IN-PROCESS by the client DLL (wine inbound TLS impossible -
+permanent); BAP/discovery/admin external on 30975/3074/3075/8443/8099;
+gameplay ~30976 UDP even ports. Build -- -j 8.
+
+## MILESTONES
+
+S0 standalone-server extraction DONE (+Mac port). S1 persistence +
+content-driven datagen DONE (+swap front). S2 static world population
+STARTED (scoping done, emission deployed flag-off, W1-W8 ladder ready).
+S3 combat / S4 missions / S5+ NOT STARTED (handbook + playbook now exist
+externally; estimates revised down for early missions).
+TWO-BUG FRONT DONE (2026-08-22) => FIRST SHIPPABLE BASELINE.
+M3 DUAL-CLIENT COHABITATION (partial) DONE 2026-08-24: two provisioned
+accounts, two DIFFERENT guardians, both in city_tower_social_d2 at once, with
+isolated per-slot data and keys (FINDINGS 20.21). Peers cannot yet SEE each
+other, and they still share an account soid - both are the next front.
+COMMUNITY PUBLICATION ARC DONE (2026-08-22, FINDINGS 18.1).
+MSVC BUILD FRONT DONE (2026-08-22, FINDINGS 18.3, CI green on c30a72d).
+OBSERVABILITY PROGRAM IN FLIGHT (2026-08-22 ~21:3x, lanes A-E; D verified).
+Next natural fronts: finish A-E -> multiplayer P1 bind-address -> guest
+accounts; entity front W1-W3; attribution bisect as a cheap warm-up.
