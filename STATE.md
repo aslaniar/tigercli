@@ -1,6 +1,17 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~19:45 (**THE CHAIN IS WALKED END TO END (20.82). The
+Updated: 2026-08-26 ~19:55 (**PATH (A) PAID OFF IMMEDIATELY. The client's
+33-entry JOIN-GATE TABLE is read (.data 0x141FECDE0) and entry [28] is
+`target_fireteam_is_not_ours` - and BOTH MACHINES WERE PUBLISHING THE IDENTICAL
+FIRETEAM PLATFORM ID (0x109000000000002), because `create_lobby` derived it from
+a PER-PROCESS counter. That gate could never pass; the rig was right to say
+`tried-to-join-self`. p2(57) makes lobby ids unique per machine (XOR, not ADD -
+the naive form collides on exactly our two machines). DLL `63f5fbda6b83e0b4`
+DEPLOYED TO BOTH. READY TO BOOT: BOOT_BRIEF_p2-57.md. Prediction: the rig stops
+saying reason 1 and starts saying reason 5 (privacy, gate [27], untouched).
+FINDINGS 20.83.**)
+
+PREVIOUS HEADER (2026-08-26 ~19:45): (**THE CHAIN IS WALKED END TO END (20.82). The
 roster peer is refused because the MANAGED SESSION holds one member, and it
 holds one member because NEITHER CLIENT IS EVER GIVEN A JOIN TARGET.
 `send_rendezvous` = 0 on BOTH machines, every boot: nobody ever tries to make
@@ -126,7 +137,28 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT (post 20.82) - THE BLOCKER IS THE DIRECTORY AT THE SESSION LAYER.
+NEXT = BOOT p2(57) (BOOT_BRIEF_p2-57.md). One variable: unique lobby ids.
+  Liveness line: `ev=steamnet stage=lobby_create ... lobby=0x... account=0x...`
+  Predicted ids - mac 0x010900000CC46DB7 / 0x01090000EA0CF3EE,
+                  rig 0x010900000CC46DB4 / 0x01090000EA0CF3ED.
+  If both machines print the SAME lobby id the fix did not take and nothing
+  downstream in that boot means anything.
+  HAZARD: the Mac may black-screen again (20.81, unchanged suspect). It is a
+  render hang, not a crash - the log stays good; let it sit ~60 s then quit.
+
+RETAIL MAP READ THIS SESSION (20.83), keep for the next lanes:
+  - join-gate table .data 0x141FECDE0, 33 entries; [27] privacy, [28] not-ours.
+  - AC properties .rdata 0x141BEA7D0: fireteam / group_current / GROUP_TARGET
+    is_connected + session_id. `activity_host_group_target_session_id` is the AH
+    a guest joins. Every line we hold says CURRENT; no client has ever held a
+    TARGET.
+  - bubble_host states .rdata 0x141C283E8 incl.
+    `bubble_host:connect_to_posse_activity_host` - the guest step, between
+    `idle` and `load_world`. Ours go idle -> load_world every time.
+  - `starting public AH` / `joining public AH` / `public AH instance ready`.
+  - TOOL: RE_scripts/xref_scan.py (has --self-test against a known xref).
+
+STILL OPEN behind the boot - THE DIRECTORY AT THE SESSION LAYER.
 Something must hand client B the existence, id (`8954314B:5E1013E6`) and address
 (`steamid:76561198776753862#...`) of client A's fireteam session AS A JOIN
 TARGET. The managed session is Demonware `system-link-demonware`, has vacancy
