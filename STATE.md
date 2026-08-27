@@ -1,17 +1,22 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~18:10 (**BOOT #9 RESULT: THE MAC ACCEPTED THE FOREIGN PEER
-ROW - acked rev 5 with zero fixups, zero type-14s, no privacy-mode.** The
-delivery-gap fix worked. Remaining gap = both clients still self-host; neither
-takes GUEST role toward the other's instance. Member keys proven boot-scoped.
-Next: guest-role mechanism. FINDINGS 20.77.) READ THIS WHOLE HEADER before any
-deploy.
+Updated: 2026-08-26 ~18:22 (**BOOT #9's HEADLINE IS RETRACTED. The mac never
+saw a foreign peer row: the encoder REFUSED all four peer-bearing bodies
+(`encode_fail` x4, `body_capture` x0, `peers valid: 0x1` everywhere). p2(54) is
+broken and destructive - it retires the local host session on every peer push.
+The acked rev 5 was the post-withdrawal SOLO body.** Full evidence + the three
+defects: FINDINGS 20.78; the retraction: 20.77.) READ THIS WHOLE HEADER before
+any deploy.
 
->> RESOLVED (20.68-20.77): accounts are separated, identities hold on the wire,
->> and boot #9 proved the mac ACCEPTS the foreign peer row (acked rev 5, zero
->> releases). The old tried-to-join-self / same-account wall is fully dismantled.
->> Remaining: one client must take GUEST role against the other's instance
->> (FINDINGS 20.77 next steps).
+>> STILL RESOLVED (20.68-20.74): accounts are separated and identities hold on
+>> the wire. That part stands and was measured independently of any peer body.
+>> NOT RESOLVED: whether a client ACCEPTS a foreign peer row. That has never
+>> been tested. Every verdict on it - 20.64's reason 1 / reason 5, 20.74's
+>> fixup-release, boot #9's "acceptance" - was measured on a self-peer, or on a
+>> body that never shipped.
+>>
+>> GREP THESE CAPTURES WITH `grep -a`. They contain NUL bytes; plain grep
+>> returns nothing and reads as a clean null.
 
 READ FIRST, IN THIS ORDER (for any session taking over):
   1. AGENTS.md at this root - lessons 13-16 + THE PRE-BOOT CHECKLIST are binding.
@@ -45,12 +50,40 @@ OPERATIONAL FACTS:
     C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\.
   - Identities: Mac default steamId ...861; rig authors ...862 in its Sunrise/settings.json.
 
-## HEADLINE: BOOT #9 - THE MAC ACCEPTED THE FOREIGN PEER ROW (acked rev 5, 41 ms
-## after push, ZERO fixups / type-14s / privacy-mode). THE p2(54) DELIVERY FIX
-## WORKED. MEMBER KEYS PROVEN BOOT-SCOPED (mac key changed across boots; rig's
-## stable that day but both are session-scoped by design). REMAINING GAP: BOTH
-## CLIENTS SELF-HOST; NEITHER TAKES GUEST ROLE AGAINST THE OTHER. NEXT: guest-role
-## mechanism (FINDINGS 20.77).
+## HEADLINE: p2(54) CANNOT ENCODE A PEER-BEARING BODY. FOUR INCLUSIONS, FOUR
+## `encode_fail`, ZERO `body_capture`, `peers valid: 0x1` in all 13 client dumps.
+## THE "ACCEPTED" ACK WAS THE SOLO BODY PUSHED 41 ms AFTER THE PEER ROW WAS
+## WITHDRAWN. p2(54) IS ALSO DESTRUCTIVE: EVERY PEER PUSH RETIRES THE LOCAL
+## HOST SESSION. THREE DEFECTS, ALL FIXABLE WITHOUT A BOOT - FINDINGS 20.78.
+
+DO NOT BOOT UNTIL 1-3 BELOW ARE FIXED AND THE WIRE GATE HAS BEEN SEEN TO FAIL
+WITHOUT THE FIX. A boot now re-measures the same nothing.
+
+  1. `meaningful_bit_count()` and `region_block_end_bit()`
+     (middleware/bap/activity_message/replicate_membership.h) add
+     `kDescriptorBitCount` for `citizen.present` and NOT for
+     `peerCitizen.present`. p2(54) made the region writer emit a second
+     1,024-bit descriptor and updated neither. The writer overflows its span
+     and the encode is refused. THIS IS THE DIRECT CAUSE.
+  2. `activity_membership_push.cpp:258-259` overrides the builder's verdict:
+     `wire.peerCitizen.present = peerSessionId != 0;` marks a ZEROED
+     advertisement present, with `regionIndex = 0`, so the region writer emits
+     128 zero bytes at bubble 0. Delete the override; let
+     `build_advertisement`'s own `present` stand.
+  3. Both advertisements are requested at the SAME key -
+     `region_machine_id(region.index)` with the LOCAL session's region - so the
+     peer call retires the row the local call just made and returns
+     `no_host_session`. Build the peer advertisement at the PEER's region, or
+     not at all. The code comment claiming "48 -> bubble 6, 56 -> bubble 7, no
+     collision" describes behaviour the code does not have.
+
+  GATE GAP THAT LET THIS SHIP: `run_membership_wire_test` sets only
+  `peerPresent`; neither of its two cases populates ANY descriptor. Seven gates
+  went rc=0 on a build that cannot encode a peer body in production. Add the
+  both-descriptors case in the same commit as the fix.
+
+MEMBER KEYS PROVEN BOOT-SCOPED - this one survives (measured on keepalive lines,
+independent of any peer body).
 
 DEPLOYED RIGHT NOW:
   server exe   `1babdb0c18d3978e` (p2(54): peer-advertisement delivery + ws503 authority;
@@ -66,10 +99,19 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT BOOT = re-test #5 target: the GUEST-ROLE mechanism. Both clients now
-establish and accept rows; what remains is one client joining the other's
-instance instead of self-hosting. Investigate: advertisement timing during
-setup:matchmaking, or explicit host/guest role negotiation our flow never runs.
+NEXT = NOT A BOOT. Fix 1-3 above, extend the wire gate, and then make the
+DIRECTORY-vs-INTRODUCTION call (20.78's analysis section). The strategic fact
+this validation surfaced: the client's own self-advertisement is addressed by
+**SteamNetworkingIdentity**, not by IP - `steamid:76561198776753861#a5f35ad459839106`
+(mac) / `...862#eb75049d0a05270b` (rig), `routable=0` on both. We have spent six
+boots building the directory (who is in the instance) while the introduction
+(how you reach them) is a Steam P2P rendezvous no byte of which we have ever
+carried. Lane T priced that route already
+(RE_output/claims/transport-relay-design.md, callback id=1298
+`RecvP2PRendezvous_t`, 528 B vs a 32-byte ring cap).
+CAUTION: the `local=` / `public=` fields in `ev=matchmaking stage=descriptor`
+are MISPARSED ASCII of that steamid string (115.116.101.97 = 's','t','e','a').
+Never cite them as addresses.
 Instrument candidates: managed_session creation triggers, posse role selection.
 
 TO MAKE THE PEER ROW IMPOSSIBLE AGAIN: set `membership_sweep_pin: 5` (solo).
