@@ -1,6 +1,16 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~19:05 (**p2(55) FIXES THE THREE p2(54) DEFECTS; the wire
+Updated: 2026-08-26 ~19:20 (**BOOT #10: THE PEER ROW SHIPPED AND THE CLIENT
+ACCEPTED IT. `body=4095` x4 (peer row + BOTH endpoints), zero encode_fail,
+`result=ok accepted=1` on the client. It READ the peer out of our row - and
+refused him 2 ms later: `Could not find tracking data for peer '1' ... machine
+id E6:22:D0:F7:38:83:6C:84` (= the rig's member key). THE DELIVERY-GAP THEORY IS
+REFUTED - endpoints were delivered and nothing changed. THE REAL GATE: the
+client resolves a peer through a TRACKING TABLE the membership message does not
+populate; posse and fireteam hold `player #0` only, on both machines, all boot.
+FINDINGS 20.81.**)
+
+PREVIOUS HEADER (2026-08-26 ~19:05): (**p2(55) FIXES THE THREE p2(54) DEFECTS; the wire
 gate reproduces the failure offline and was seen to FAIL before being trusted.
 BUILT AND GATED, NOT DEPLOYED - the deploy stops the live server, so it belongs
 to the boot window. The type->key hunt is OPEN: the type-indexed-array reading
@@ -106,7 +116,28 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT = NOT A BOOT. Fix 1-3 above, extend the wire gate, then work the SIX-GAP
+NEXT (post boot #10, FINDINGS 20.81), in order:
+  1. FIND WHAT POPULATES THE PEER TRACKING TABLE. This is the nearest gate and
+     everything else sits behind it. The client looks a peer up by MACHINE ID in
+     a table the type-12 roster does not fill; the posse/fireteam session
+     (`networking:session:membership`, ids fireteam:B1F73462:B2ED6203 /
+     posse:599A4769:CFCB1502) is where a second player would have to appear, and
+     it held `player #0` only on both machines for the whole boot. This is a
+     FRESH RE target - not the activity plane of the last six boots.
+  2. PIN THE MAC BLACK SCREEN (free). Membership update 4 logged "PAH tabulated
+     data now includes us"; update 5 - the one with a SECOND region record -
+     processed the same data and logged no such line, and no transition started.
+     Publish a peer row WITHOUT the peer advertisement (the `same_region` path
+     already builds exactly that body, 3967) and see whether "includes us"
+     returns. INFERRED, not proven. The Mac did NOT crash - it kept logging
+     network traffic ~3 min; this is a render hang with a live sim thread.
+  3. Types 8 -> 9/10 and the schema-key xref lane stay open, below (1).
+  RETIRED BY EXECUTION: the type-12 wire shape (`result=ok accepted=1` settles
+  it) and the delivery-gap line (20.74.4).
+
+--- the pre-boot-#10 plan follows; (1) above supersedes its ordering ---
+
+OLD NEXT = NOT A BOOT. Fix 1-3 above, extend the wire gate, then work the SIX-GAP
 CENSUS in FINDINGS 20.79, which is the answer to "what else is missing":
   G1 the Steam LOBBY is the instance container (max=32 = the roster's 32 slots)
      and `create_lobby` hands BOTH machines the same made-up ids
