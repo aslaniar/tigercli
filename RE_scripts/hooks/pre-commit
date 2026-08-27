@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# pre-commit - parse-check gate for staged .py / .sh / .bash (NO-SYNTAX-TAX
+# conversion, 2026-08-26). Blocks the commit when a staged script does not
+# parse. Install once: bash RE_scripts/install_hooks.sh  (sets core.hooksPath).
+# Scopes: whole repo, but only tracked staged files with those extensions;
+# deletions skipped. Fails loud listing every offending file.
+set -u
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+fail=0
+for f in $staged; do
+  case "$f" in
+    *.py)
+      if ! python3 -c "import sys; compile(open('$f', encoding='utf8').read(), '$f', 'exec')" 2>/tmp/gate_pyerr; then
+        echo "SYNTAX-TAX GATE: python parse FAIL: $f"
+        sed 's/^/    /' /tmp/gate_pyerr | head -5
+        fail=1
+      fi ;;
+    *.sh|*.bash)
+      if ! bash -n "$f" 2>/tmp/gate_basherr; then
+        echo "SYNTAX-TAX GATE: bash parse FAIL: $f"
+        sed 's/^/    /' /tmp/gate_basherr | head -5
+        fail=1
+      fi ;;
+  esac
+done
+if [ "$fail" -ne 0 ]; then
+  echo "commit BLOCKED (fix or stage a parse-clean version)."
+  exit 1
+fi
+exit 0
