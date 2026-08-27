@@ -1,6 +1,28 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~20:35 (**p2(58) BUILT AND DEPLOYED TO BOTH MACHINES - the
+Updated: 2026-08-26 ~20:40 (**BOOT #12: the hook ATTACHED, the refusal
+HAPPENED on both machines, and `reason_name` was NEVER CALLED - the ABSENCE
+negative, exactly as pre-named. Mechanism understood: the release log line
+carries NO reason (`Sending peer-reservation release for machine '...'`), so
+nothing on that path needs a reason NAME; the byte goes straight to the wire and
+we only ever see it because OUR SERVER decodes the type-14 payload. THE NAMING
+ROUTE TO THE DECISION IS CLOSED. New candidate (marked, not claimed): the reason
+may be a CONSTANT at the fixup call site, not the result of a comparison.
+Reason 1 now reproducible across boots #11 and #12, all four releases.
+FINDINGS 20.86.**)
+
+>> SESSION HANDOFF 2026-08-26 ~20:40 (Claude Code -> opencode). Everything
+>> below is current. The three things a new session must not re-learn:
+>>   1. The peer row DELIVERS and the client ACCEPTS it (`result=ok accepted=1`,
+>>      boot #10). The wire shape of type 12 is SETTLED. Do not re-open it.
+>>   2. The blocker is 20.82 link 4: the client resolves a peer through a
+>>      TRACKING TABLE that the type-12 roster does not populate. Posse and
+>>      fireteam hold `player #0` only, on both machines, every boot.
+>>      `send_rendezvous` = 0 always - nobody ever attempts contact.
+>>   3. Four fronts have been closed by execution this session; the DEAD ENDS
+>>      block below is authoritative. Read it before proposing anything.
+
+PREVIOUS HEADER (2026-08-26 ~20:35): (**p2(58) BUILT AND DEPLOYED TO BOTH MACHINES - the
 reason-decision instrument. Hooks `reason_name(int)` at 0x1416E1620 (signature
 verified UNIQUE in .text before shipping) and reports each distinct
 (reason, return-site) pair once, printing the site as an RVA AND as a static VA
@@ -165,7 +187,22 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT = BOOT p2(58) (BOOT_BRIEF_p2-58.md), then disassemble the reported
+NEXT, for whoever picks this up (the naming route is CLOSED - 20.86):
+  1. HOOK THE TYPE-14 SEND PATH in the activity-client module. Anchors:
+     `activity_client_send_message` referenced at 0x1404FB7D4; send wrapper
+     0x1404FB790 reads [rsi+0x65BC0] and [rcx+0x6C18] then calls [r10+0x28].
+     0x6C18 sits in the self-key cluster at 0x6C30 that msg12-parser-read.md
+     already named. Capture type + body at send; the reason's origin is in the
+     caller's frame. This tests the CONSTANT candidate directly.
+  2. OR go straight at 20.82 link 4 - what populates the peer tracking table.
+     Four consecutive entries now point here, and if the reason IS a constant
+     this is the ONLY remaining question.
+  Pattern for either hook: client/hooks/bootflow/peer_reason.cpp (p2(58)) is the
+  freshest example - signature verified unique OFFLINE before shipping, dedupe
+  on the (value, site) pair rather than a line budget, report the site as an RVA
+  AND a static VA so it feeds disasm_fn.py with no arithmetic.
+
+SUPERSEDED = BOOT p2(58) (BOOT_BRIEF_p2-58.md), then disassemble the reported
 `static=` addresses. Read from BOTH clients:
   `ev=peerlink stage=reason result=ok`                      <- install, always
   `ev=peerlink stage=reason value=N name=... site_rva=... static=0x14......`
