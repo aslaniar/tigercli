@@ -3,10 +3,11 @@
 STATUS: live (2026-08-27 ~10:2x; prior text = git history.
 FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.)
 
-Updated: 2026-08-27 ~10:2x. p2(64) WAS DEAD ON ARRIVAL - its presence relay never
-left the client process (20.99). p2(65) moves the routes to the plaintext admin
-listener and PROVES the cross-machine exchange on the wire before booting.
-Deployed BOTH machines. Server clean, table empty. READY FOR THE BOOT TEST.
+Updated: 2026-08-27 ~10:3x. TWO independent defects found by reading BEFORE booting:
+p2(64)'s presence relay never left the client process (20.99), and its friends
+bindings moved SetRichPresence off the one slot the publish was measured arriving at
+(20.100). Both fixed. p2(66) deployed BOTH machines = census + publish, deliberately
+NOT the milestone swing. Server clean, presence table empty. READY TO BOOT.
 
 ## WHERE WE ARE (one paragraph)
 Both clients connect to our external server, run the full retail matchmaking chain,
@@ -21,29 +22,34 @@ puts the routes on the plaintext admin listener (8099) with a worker-thread sock
 client, VERIFIED ON THE WIRE: both machines POST 200 and both GET both rows.
 
 ## DEPLOYED (2026-08-27 10:0x)
-  client DLLs  `23a32b2f4ca26fe2` BOTH machines (p2(65)). Friends methods do ZERO
-               I/O on the calling thread; a worker thread carries presence over
-               HTTP to <externalServer.host>:8099. Ordinals unchanged from the
-               VERIFIED ISteamFriends017 set {2 GetFriendCount, 3 GetFriendByIndex,
-               5 PersonaState, 6 PersonaName, 36 RequestUserInfo, 41
-               SetRichPresence, 43 GetFriendRichPresence, 46 RequestFriendRP}.
+  client DLLs  `c5387787cade0779` BOTH machines (p2(66)). Friends table 256 slots
+               (was 80; client calls to offset 0x690) so every unbound slot NAMES
+               ITSELF instead of reading past the array. ONE new binding:
+               set_rich_presence at slot 64, on MEASUREMENT (publish arrives there
+               t=2662 every boot), behind a VirtualQuery arg guard. 3/5/43 are
+               called but UNKNOWN - left unbound. Friends methods do ZERO I/O on the
+               calling thread; a worker carries presence to <ext.host>:8099.
   server exe   `7ff2b4918ae27ee7` (relaunched clean 10:0x, seven gates passed).
                Presence routes are on the PLAINTEXT ADMIN LISTENER 8099: POST
                /presence/store?xuid=<hex>&key=<k>&value=<v>; GET /presence ->
                "xuid key value" lines. IN-MEMORY, and EMPTY as of the relaunch.
-  fork commit  3f7e9d2 (p2(65)); next number p2(66).
-## THE TEST - contract + all failure branches: claims/BOOT_BRIEF_p2-65.md
-  User boots BOTH machines (Whisky GUI) into the Tower. Chain, in order:
-  presence_worker ok -> rich_presence_relay http=200 -> presence_fetch rows>=1 ->
-  peer_rich_presence result=ok (PEER's "/connect:<le-hex>") -> managed_session
-  "Adding player [xuid=<peer>]" -> tracking-data release ABSENT = MILESTONE.
-  Release still firing with all of that green -> next emission target is the
-  828-bit session-plane member table (0x808086F8, activity-schema-global-table.md,
-  20.95). Every branch has a distinct log signature; they are named in the brief.
+  fork commit  p2(66); next number p2(67).
+## THE TEST - contract + all branches: claims/BOOT_BRIEF_p2-66.md. NOT the milestone
+  attempt. User boots BOTH machines (Whisky GUI) into the Tower; it answers two:
+  (a) CENSUS - every friends slot destiny2 calls, now the table spans 256:
+      grep -a 'stage=stub table=0' <client log> | grep -oE 'slot=[0-9]+' | sort -u
+      Anything outside {3,5,43,64} is new and is where enumeration + the presence
+      read actually live. That list unblocks the milestone build.
+  (b) PUBLISH - `rich_presence_store value=/connect:<hex>` -> `rich_presence_relay
+      http=200` -> the PEER's GET showing both rows = publish path closed.
+      `result=not_a_string_pair` = slot 64 is not SetRichPresence (safe, logged,
+      and arg1/arg2 name the real signature).
+  Milestone chain (peer read -> "Adding player" -> release absent) waits for the
+  census. Fallback if it ever goes green and release still fires: the 828-bit
+  session-plane member table (0x808086F8, activity-schema-global-table.md, 20.95).
 ## ROLLBACK (if frozen again)
-  p2(64) = `4173ae4b3ad5bc7b`: mac .bak_p2d7_20260827_100030, rig
-  .bak_p2d7_20260827_100038 (same vtable, dead relay - only useful to isolate the
-  worker thread). p2(61) = `4d4aef769e5a16c4` last FULL-CHAIN-good (20.93): mac
+  p2(65) = `23a32b2f4ca26fe2` (mac/rig .bak_p2d7_20260827_1020xx) - working transport,
+  wrong bindings. p2(61) = `4d4aef769e5a16c4` last FULL-CHAIN-good (20.93): mac
   .bak_p2d7_20260827_010620, rig .bak_p2d7_20260827_010634. Server 7ff2b491 stays
   (presence routes are inert without callers).
 ## HARD RULES (all earned 08-26/27)
@@ -51,26 +57,23 @@ client, VERIFIED ON THE WIRE: both machines POST 200 and both GET both rows.
     20.97: guessed ordinals froze pre-title; ordinals now from sdk isteamfriends.h).
   - consume_http answers ONLY /SignOn - anything that must reach the standalone
     server goes over the network, not through it (20.99). No I/O on friends slots.
+  - A MEASURED CALL OUTRANKS A PUBLISHED HEADER. This client's friends object does
+    not match isteamfriends.h at the slots we have measured; do not re-derive
+    ordinals from it, and do not bind 3/5/43 until the census names them (20.100).
   - Solo control boot before any two-machine run (incident p2(59) rule).
   - Never return fabricated ids to client enumeration loops (p2(63) phantom-friend).
   - Dead ends + parked fronts: STATE DEAD ENDS below + FINDINGS DO-NOTs.
 ## DEAD ENDS - DO NOT RESUME (authoritative; mechanism quotes in the cited FINDINGS)
 
-CLOSED BY EXECUTION (boots #10-#12):
-  - TYPE-12 WIRE SHAPE - parses, accepted, two descriptors + peer row. (20.81)
-  - DELIVERY-GAP THEORY - both endpoints shipped; release named a LOOKUP failure,
-    not an address. (20.74.4, refuted by boot #10)
-  - GATE-TABLE <-> REASON-ENUM - unique fireteam ids SPREAD reason 1. (20.83/84)
-  - NAMING ROUTE (`reason_name`) - hook attached, refusal occurred, zero calls.
-    (20.85 -> 20.86)
-  - `client.region_private` as privacy-mode cause - path never ran. HYGIENE STILL
-    OPEN: mac sets it true, rig lacks the key. (20.82)
-  - WS opcodes 701/702 as fireteam lead - known subclass-swap. (20.82)
-STANDING:
-  - MEMBER ROW SHAPE BY BLIND SWEEP - six shapes, none informative; the row read
-    comes from schema (20.61), which is not resuming the sweep. (20.49-51)
-  - TRAILING-FIELD VALUES (counts vs masks) - untestable until a peer is actually
-    admitted; every prior verdict was measured on self-peers pre-p2(45).
+CLOSED BY EXECUTION (boots #10-#12): type-12 wire shape (20.81) | delivery-gap
+  theory (20.74.4) | gate-table<->reason-enum (20.83/84) | naming route
+  `reason_name` (20.85/86) | `client.region_private` as privacy cause - HYGIENE
+  STILL OPEN, mac sets it true and rig lacks the key (20.82) | ws 701/702 as
+  fireteam lead, known subclass-swap (20.82).
+STANDING: member row shape by blind sweep - the row read comes from schema, which
+  is NOT resuming the sweep (20.49-51, 20.61) | trailing-field values (counts vs
+  masks) - untestable until a peer is admitted; all prior verdicts were measured on
+  self-peers pre-p2(45).
 
 ## OPERATIONAL FACTS
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
@@ -79,10 +82,9 @@ STANDING:
     deployed client 7d8b453a and server 7ff2b491 both BUILT FROM IT.
   - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8
     (src/steam/** compiles ONLY into steam_api64.dll; client hooks too).
-  - Deploy server: bash RE_scripts/deploy_p2d6_gameplay.sh (gates inside;
-    asserts deployed==built; restamps cache - old exe+cache pairs are inseparable).
-  - Deploy client DLL: RE_scripts/deploy_client_dll.sh <mac|rig> "<literals...>" -
-    hash assert + literal grep IN the deployed file; never skip.
+  - Deploy server: RE_scripts/deploy_p2d6_gameplay.sh (gates inside; asserts
+    deployed==built; restamps cache - old exe+cache pairs are inseparable). Client:
+    deploy_client_dll.sh <mac|rig> "<literals...>" - hash + literal assert, never skip.
   - Server START (after deploy): nohup bash mac-port/launch-server-macos.sh
     (GPTK wine 7.7, SunriseServer prefix). Verify: lsof TCP 8443/30975/8099 + UDP
     3074; crafted nat probe gets 16B reply (python snippet in morning handoff).
@@ -111,14 +113,15 @@ STANDING:
 ## READ FIRST (any session taking over)
   1. AGENTS.md (router) + its conditional triggers; boot work ALSO loads LESSONS.md
      PRE-BOOT CHECKLIST and runs gate_boot.py on the brief.
-  2. BOOT_BRIEF_p2-65.md = the standing test contract (p2-62 SUPERSEDED - it
-     briefed a build whose relay never left the process, 20.99).
-  3. FINDINGS_2026-08-25.md 20.99 -> 20.93 newest-first; walk supersession via
+  2. BOOT_BRIEF_p2-66.md = the standing test contract (p2-62 and p2-65 SUPERSEDED,
+     20.99 / 20.100).
+  3. FINDINGS_2026-08-25.md 20.100 -> 20.93 newest-first; walk supersession via
      RE_output/INDEX_findings.md or q.sh. Then 20.96/20.97 + activity-name-table.md
      + activity-schema-global-table.md for the fallback emission target.
   4. INCIDENT p2(59) freeze rules; INCIDENT_2026-08-25_false-loops.md (L13/14/11).
-  5. Contract refs: claims/s1-accept-contract.md (BAP), msg12-schema-decoded.md,
-     transport-relay-design.md, client-steam-vtable-names.md, msg12-parser-read.md.
+  5. Contract refs in claims/: s1-accept-contract.md (BAP), msg12-schema-decoded.md,
+     transport-relay-design.md, client-steam-vtable-names.md, msg12-parser-read.md,
+     steamfriends-vtable-audit.md (read WITH 20.100 - parts of it are retracted).
   6. Captures contain NUL bytes - grep with `grep -a`. HANDOFF_OPENCODE_TO_CLAUDE_
      2026-08-27.md is HISTORICAL as of 20.99 (its section 2 briefs the dead relay);
      the rest of it still holds.
