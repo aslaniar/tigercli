@@ -99,8 +99,28 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT = NOT A BOOT. Fix 1-3 above, extend the wire gate, and then make the
-DIRECTORY-vs-INTRODUCTION call (20.78's analysis section). The strategic fact
+NEXT = NOT A BOOT. Fix 1-3 above, extend the wire gate, then work the SIX-GAP
+CENSUS in FINDINGS 20.79, which is the answer to "what else is missing":
+  G1 the Steam LOBBY is the instance container (max=32 = the roster's 32 slots)
+     and `create_lobby` hands BOTH machines the same made-up ids
+     (0x0109000000000002/3) from a per-process counter. No cross-machine lobby
+     registry exists. certificate=0, relay tickets=0 -> routable=0.
+  G2 the INTRODUCTION path is broken in three places: `send_rendezvous` is a
+     log-only sink that transports nothing; inbound `RecvP2PRendezvous_t` is
+     528 B against a 32-byte ring cap; no SDR credentials.
+  G3 `session_search` fires ONCE per boot, 143 s before the second client
+     existed. No mechanism re-opens matchmaking. A "mac first, then rig"
+     sequence cannot work.
+  G4 type-54 `bubble_host_table` is a SINGLE ZERO BYTE pushed once in the join
+     burst and never again - a proven wire slot with no content. Cheapest
+     unexplored lever, and it speaks to host/guest directly.
+  G5 8 `request_activity_host` -> 9/10 is STILL ACCEPT-NOOP. That pair IS the
+     guest-role mechanism the last three briefs asked for.
+  G6 "any message type is one command away" is OVERSTATED - the walker works,
+     but only type 12's packed key is known (0x808086A8, from the membership
+     orchestrator's chain). 9/10/17/45/54 have no key. Bounded work, not a
+     command.
+Order: fix -> G4 -> G5 (with the G6 key hunt, width-first) -> then price G1/G2. The strategic fact
 this validation surfaced: the client's own self-advertisement is addressed by
 **SteamNetworkingIdentity**, not by IP - `steamid:76561198776753861#a5f35ad459839106`
 (mac) / `...862#eb75049d0a05270b` (rig), `routable=0` on both. We have spent six
