@@ -1,6 +1,16 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~19:20 (**BOOT #10: THE PEER ROW SHIPPED AND THE CLIENT
+Updated: 2026-08-26 ~19:45 (**THE CHAIN IS WALKED END TO END (20.82). The
+roster peer is refused because the MANAGED SESSION holds one member, and it
+holds one member because NEITHER CLIENT IS EVER GIVEN A JOIN TARGET.
+`send_rendezvous` = 0 on BOTH machines, every boot: nobody ever tries to make
+contact. Rig log now captured - it fails the IDENTICAL lookup on the mac's key,
+so the reason-enum asymmetry is one mechanism with two labels, VERIFIED.
+NOT READY FOR A BOOT: no instrument on this build can produce new information.
+Two leads killed without spending a boot - `region_private` (its decision path
+never ran) and ws 701/702 (already tagged subclass-swap).**)
+
+PREVIOUS HEADER (2026-08-26 ~19:20): (**BOOT #10: THE PEER ROW SHIPPED AND THE CLIENT
 ACCEPTED IT. `body=4095` x4 (peer row + BOTH endpoints), zero encode_fail,
 `result=ok accepted=1` on the client. It READ the peer out of our row - and
 refused him 2 ms later: `Could not find tracking data for peer '1' ... machine
@@ -116,7 +126,30 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT (post boot #10, FINDINGS 20.81), in order:
+NEXT (post 20.82) - THE BLOCKER IS THE DIRECTORY AT THE SESSION LAYER.
+Something must hand client B the existence, id (`8954314B:5E1013E6`) and address
+(`steamid:76561198776753862#...`) of client A's fireteam session AS A JOIN
+TARGET. The managed session is Demonware `system-link-demonware`, has vacancy
+(12 public + 1 friend-only), is addressed by SteamNetworkingIdentity, and its id
+IS the Steam lobby id our shim invents. Pick one:
+  (A) FIND THE RETAIL MECHANISM - census BAP/web services for the fireteam join
+      target. Correct and slow; no anchor located yet, and per 20.80 we cannot
+      read arbitrary message schemas (only type 12's key is known).
+  (B) FABRICATE THE TARGET IN THE SHIM - our server already logs both sessions'
+      ids and steamid addresses from `advertisement_update`; hand the foreign
+      session to the client DLL as a join target. Same move Lane V designed for
+      the friends roster (20.46) and never built. Lands on the client's own
+      `target_*` gate table (.rdata 0x141C84768+, transcribed in 20.82), which
+      is a readable failure surface.
+  BEHIND BOTH: the Steam P2P transport (gap 2) - `send_rendezvous` is a log-only
+  sink, inbound needs >=528 B against a 32-byte ring. Now on the critical path.
+  HYGIENE: the Mac has `"region_private": true`; the RIG HAS NO SUCH KEY and
+  defaults false. Divergent config; harmless this boot only because the hook
+  never fired. Fix before it matters.
+
+--- the post-boot-#10 plan follows; 20.82 supersedes its ordering ---
+
+OLD NEXT (post boot #10, FINDINGS 20.81), in order:
   1. FIND WHAT POPULATES THE PEER TRACKING TABLE. This is the nearest gate and
      everything else sits behind it. The client looks a peer up by MACHINE ID in
      a table the type-12 roster does not fill; the posse/fireteam session
