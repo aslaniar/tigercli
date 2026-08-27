@@ -3,12 +3,11 @@
 STATUS: live (2026-08-27 ~10:2x; prior text = git history.
 FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.)
 
-Updated: 2026-08-27 ~10:4x. CENSUS BOOT DONE (p2(66), both machines, both in the
-Tower). THE FRIENDS LANE IS CLOSED - slot 64 is not SetRichPresence and no
-string-pair setter is called at all (20.101). THE REAL MECHANISM IS THE STEAM LOBBY:
-managed_session creates one per session, each client creates ITS OWN, so the two
-sessions are disjoint by construction. join_lobby is implemented and never called.
-NEXT = the lobby lane (p2(67)).
+Updated: 2026-08-27 ~10:5x. THE FRIENDS LANE IS CLOSED (20.101). The mechanism is the
+STEAM LOBBY: managed_session creates one per session and each client invented ITS OWN,
+so the two sessions were disjoint by construction. p2(67) pairs them - a first-writer-
+wins claim on the server, PROVEN race-free in both directions before deploy. Deployed
+BOTH machines, server clean, claim table empty. READY TO BOOT.
 
 ## WHERE WE ARE (one paragraph)
 Both clients connect to our external server, run the full retail matchmaking chain,
@@ -23,76 +22,68 @@ census proved slot 64 is not SetRichPresence and NO string-pair setter is called
 that interface. Salvage from it: the presence transport (20.99) is a working
 cross-machine key/value store, reusable as the lobby-id channel.
 
-## DEPLOYED (2026-08-27 10:0x) - p2(66) is the CENSUS build; it has now RUN
-  client DLLs  `c5387787cade0779` BOTH machines. Friends table 256 slots, all
-               logged_empty except personaName=0, overlayNeedsPresent=49 and
-               set_rich_presence=64 - and the boot REFUTED slot 64 (non-string args
-               on both machines), so that binding comes out in p2(67).
-               KNOWN REGRESSION: presence_worker never starts in this build - its
-               only reachable caller bails at the argument guard first (20.101 #7).
-  server exe   `7ff2b4918ae27ee7` (seven gates passed). Cross-machine key/value
-               store on the PLAINTEXT ADMIN LISTENER 8099, PROVEN both directions:
-               POST /presence/store?xuid=<hex>&key=<k>&value=<v>; GET /presence ->
-               "xuid key value" lines. IN-MEMORY. This is the lobby-id channel.
-  fork commit  p2(66) = 9abc573; next number p2(67).
-## NEXT: THE LOBBY LANE (p2(67)) - every step evidence-backed by 20.101
-  1. create_lobby publishes own {activity, lobby id} to the server (reuse the 8099
-     presence store - already proven cross-machine, 20.99).
-  2. Second client's create_lobby returns the ALREADY-ADVERTISED lobby id instead of
-     inventing one, so both managed sessions name the SAME lobby.
-  3. Fire a LobbyChatUpdate callback for the peer (queue_callback already exists and
-     create_lobby already uses it) to provoke member enumeration.
-  4. Serve the member-enumeration matchmaking slots the callback provokes - which
-     ones they are gets MEASURED by the same census method, not guessed.
-  SUCCESS SIGNAL: "Adding player [xuid=<PEER's xuid>]" - note the line already fires
-  every boot for the client's OWN xuid, so read WHICH xuid, never just the line.
-  Then: tracking-data release ABSENT = two guardians, one Tower instance.
-  Fallback if release still fires: 828-bit session-plane member table (0x808086F8,
-  activity-schema-global-table.md, 20.95).
-## ROLLBACK: p2(66) `c5387787cade0779` booted clean both machines - it IS the safe
-  base now. Older: p2(61) `4d4aef769e5a16c4` (20.93), mac/rig
-  .bak_p2d7_20260827_0106xx. Server 7ff2b491 stays (routes inert without callers).
+## DEPLOYED (2026-08-27 10:5x) - p2(67), the lobby lane's first boot
+  client DLLs  `011fb9e2caec5e82` BOTH machines. create_lobby no longer invents an id
+               it keeps: it claims its Nth-lobby ordinal on the server and a worker
+               thread queues LobbyCreated/LobbyEnter with the WINNING id, so both
+               machines' Nth lobby settles on one. Falls back to the local id after
+               10 attempts = exactly p2(66) behaviour if the server is down.
+               Friends interface is back to p2(61)'s two bindings (slot 64 REFUTED).
+  server exe   `d8338bc0b63116b2` (seven gates passed). POST /lobby/claim?seq=&lobby=
+               -> winning id as bare hex, first writer wins per ordinal; GET /lobby ->
+               the table; both logged `ev=lobby stage=claim ... result=host|join`.
+               IN-MEMORY: a server restart clears the pairing, so restart between runs.
+  fork commit  p2(67) = 0d8b543; next number p2(68).
+## THE TEST: claims/BOOT_BRIEF_p2-67.md is the contract and holds every branch,
+  the read-back greps, and the pre-named 20.83 risk. In one line: steps 1-2 of the
+  lobby lane are in this build, steps 3-4 are not, and the success signal is
+  "Adding player" naming the PEER's xuid - never the bare line (20.101).
+  Most likely partial: pairing works but the roster still names only self => the game
+  needs a membership CHANGE EVENT (step 3, LobbyChatUpdate) and that becomes p2(68).
+## ROLLBACK: p2(66) `c5387787cade0779` booted clean both machines (mac/rig
+  .bak_p2d7_20260827_1051xx). Older: p2(61) `4d4aef769e5a16c4` (20.93),
+  .bak_p2d7_20260827_0106xx. New failure mode to watch for is a HANG at matchmaking
+  (callbacks never delivered), not a crash - bounded by the 10-attempt fallback.
 ## HARD RULES (all earned 08-26/27)
-  - NO client .text patching / no interface-slot binds by guessed ordinal (20.92,
-    20.97: guessed ordinals froze pre-title; ordinals now from sdk isteamfriends.h).
-  - consume_http answers ONLY /SignOn - anything that must reach the standalone
-    server goes over the network, not through it (20.99). No I/O on friends slots.
-  - A MEASURED CALL OUTRANKS A PUBLISHED HEADER (20.100/20.101). Census first:
-    logged_empty over a table wider than the interface names every real caller.
-  - "Adding player [xuid=..]" fires EVERY boot for the client's own xuid. Read WHICH
-    xuid; the bare line is not a success signal (20.101).
+  - NO .text patching, and NO interface slot bound by a guessed ordinal (20.92/20.97).
+    A MEASURED CALL OUTRANKS A PUBLISHED HEADER: isteamfriends.h disagreed with this
+    client at every slot we checked (20.100/20.101). Census first - logged_empty over
+    a table WIDER than the interface names every real caller, for free.
+  - consume_http answers ONLY /SignOn. Anything that must reach the standalone server
+    goes over the network (steam/interfaces/server_link.h), not through it (20.99).
+    No blocking I/O on a game-thread interface method, ever.
+  - "Adding player [xuid=..]" fires EVERY boot for the caller's own xuid. Read WHICH
+    xuid; the bare line proves nothing (20.101).
   - Solo control boot before any two-machine run (incident p2(59) rule).
   - Never return fabricated ids to client enumeration loops (p2(63) phantom-friend).
   - Dead ends + parked fronts: STATE DEAD ENDS below + FINDINGS DO-NOTs.
-## DEAD ENDS - DO NOT RESUME (authoritative; mechanism quotes in the cited FINDINGS)
-
-CLOSED BY EXECUTION: FRIENDS RICH-PRESENCE CROSS-INTRODUCTION - slot 64 is not
-  SetRichPresence and no string-pair setter is called on that interface at all;
-  friends slots called are only 3/5/43, a few times each (20.101). The p2(62)/p2(63)
-  freeze cause is UNKNOWN and no longer worth finding: the out-of-bounds theory is
-  retired (nothing above slot 79 is ever called). | type-12 wire shape (20.81) | delivery-gap
-  theory (20.74.4) | gate-table<->reason-enum (20.83/84) | naming route
-  `reason_name` (20.85/86) | `client.region_private` as privacy cause - HYGIENE
-  STILL OPEN, mac sets it true and rig lacks the key (20.82) | ws 701/702 as
-  fireteam lead, known subclass-swap (20.82).
-STANDING: member row shape by blind sweep - the row read comes from schema, which
-  is NOT resuming the sweep (20.49-51, 20.61) | trailing-field values (counts vs
-  masks) - untestable until a peer is admitted; all prior verdicts were measured on
-  self-peers pre-p2(45).
+## DEAD ENDS - DO NOT RESUME (one line each; mechanism lives in the cited FINDINGS)
+CLOSED BY EXECUTION: friends rich-presence cross-introduction - no string-pair setter
+  is called on that interface at all, and only slots 3/5/43 are ever called (20.101;
+  the p2(62)/p2(63) freeze cause is unknown and no longer worth finding, the
+  out-of-bounds theory being retired) | type-12 wire shape (20.81) | delivery-gap
+  theory (20.74.4) | gate-table<->reason-enum, which also makes the REASON BYTE an
+  unreliable signal (20.83/84) | naming route `reason_name` (20.85/86) |
+  `client.region_private` as privacy cause - HYGIENE STILL OPEN, mac sets it true and
+  rig lacks the key (20.82) | ws 701/702 as fireteam lead, subclass-swap (20.82).
+STANDING: member row shape by blind sweep - the row read comes from schema, which is
+  NOT resuming the sweep (20.49-51, 20.61) | trailing-field values (counts vs masks) -
+  untestable until a peer is actually admitted (all verdicts pre-p2(45) used self-peers).
 
 ## OPERATIONAL FACTS
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
     HISTORY NOTE: TWO COMMITS CLAIM p2(39) (f2d0995 Claude, 9639aa4 opencode).
-    Next number continues upward; do not renumber. Last commit: 3f7e9d2 (p2(65));
-    deployed client 7d8b453a and server 7ff2b491 both BUILT FROM IT.
-  - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8
-    (src/steam/** compiles ONLY into steam_api64.dll; client hooks too).
+    Next number continues upward; do not renumber. Last commit: 0d8b543 (p2(67));
+    deployed client 011fb9e2 and server d8338bc0 both BUILT FROM IT.
+  - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8. BOTH
+    targets take EXPLICIT source lists in Sunrise/CMakeLists.txt, NOT globs - a new
+    .cpp must be added there or it silently fails to link (bit c2764aa and p2(67)).
   - Deploy server: RE_scripts/deploy_p2d6_gameplay.sh (gates inside; asserts
     deployed==built; restamps cache - old exe+cache pairs are inseparable). Client:
     deploy_client_dll.sh <mac|rig> "<literals...>" - hash + literal assert, never skip.
-  - Server START (after deploy): nohup bash mac-port/launch-server-macos.sh
-    (GPTK wine 7.7, SunriseServer prefix). Verify: lsof TCP 8443/30975/8099 + UDP
-    3074; crafted nat probe gets 16B reply (python snippet in morning handoff).
+  - Server START (after deploy): nohup bash mac-port/launch-server-macos.sh (GPTK
+    wine 7.7, SunriseServer prefix). Verify: lsof TCP 8443/30975/8099 + UDP 3074, and
+    a crafted nat probe gets a 16B reply (snippet in HANDOFF_OPENCODE_TO_CLAUDE).
     8443 TLS is BROKEN (SEC_E_UNSUPPORTED_FUNCTION) - do not route anything new
     through it. SignOn rides in-process consume_http, which answers ONLY /SignOn;
     everything else that must reach the server uses the plaintext admin listener
@@ -108,8 +99,8 @@ STANDING: member row shape by blind sweep - the row read comes from schema, whic
   - Rig: ssh master ~/.ssh/cm-rig to rasla@192.168.1.136 (password only to REOPEN);
     ICMP is firewalled so `ping` is NOT an aliveness test - the socket is. Sleep
     disabled on AC. Game dir C:\Users\rasla\...\destiny-preservation\dcv build\bin\x64\.
-  - Identities: mac steamId ...861 (xuid ...ec5, DEFAULT - no key in settings.json);
-    rig ...862 (...ec6, authored). Member keys are BOOT-SCOPED; never hardcode.
+  - Identities: mac steamId ...861 / xuid ...ec5 (DEFAULT, no key in settings.json);
+    rig ...862 / ...ec6 (authored). Member keys are BOOT-SCOPED; never hardcode.
   - Mac: /usr/bin/python3 for DB/sqlite (miniconda's sqlite3 is broken here);
     plain `python3` for capstone; rg for corpus greps.
 
