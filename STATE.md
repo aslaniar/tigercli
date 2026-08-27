@@ -1,6 +1,15 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~20:05 (**BOOT #11: p2(57) WORKED - lobby ids are unique,
+Updated: 2026-08-26 ~20:30 (**EMITTER LANE (20.85): the peer-link diagnostic
+subsystem is LOCATED (reason-name table .data 0x142037510, 35 entries, index ==
+reason; accessor 0x1416E1620; five printer sites in 0x14176..0x1417A) and
+**20.64's enum reading is now VERIFIED by a second independent route**. The
+DECISION SITE IS NOT REACHED - the walk ends in a 27-arm observer fan-out with
+.vmp0 above it. NEXT = HOOK `reason_name` (5-instruction leaf, distinctive
+signature) and log (reason, return address); that names the deciding call site
+directly and settles 20.84's address candidate for free.**)
+
+PREVIOUS HEADER (2026-08-26 ~20:05): (**BOOT #11: p2(57) WORKED - lobby ids are unique,
 byte for byte as predicted - AND MY PREDICTION FAILED. The MAC moved from
 `privacy-mode` to `tried-to-join-self`; BOTH machines now say reason 1 after a
 change that made them strictly MORE distinct. The 20.83 gate-table <-> reason
@@ -147,7 +156,16 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT = NOT A BOOT. Stay on path (A), and INSTRUMENT BEFORE INTERVENING
+NEXT = BUILD THE `reason_name` HOOK (20.85). One file under client/hooks/,
+~80 lines, no server change, no protocol risk. Signature:
+`cmp ecx,0x23 / ja / movsxd rax,ecx / lea rcx,[rip+X] / mov rax,[rcx+rax*8] / ret`
+at 0x1416E1620. Log (reason, _ReturnAddress()) on every call - it fires on the
+boring path too, so the liveness item is free. The returned call site is the
+deciding function; disassemble it and the comparison is read directly.
+Pattern to copy: client/hooks/bootflow/region_private.cpp and
+composition_check.cpp (signature scan + detour + budgeted report).
+
+OLD NEXT (superseded by the above) = NOT A BOOT. Stay on path (A), and INSTRUMENT BEFORE INTERVENING
 (lesson 2 - one confident prediction was just refuted on this exact question):
   1. Locate the emitter of the type-14 peer-reservation release and read what it
      compares before choosing the reason byte. The release log strings are in
