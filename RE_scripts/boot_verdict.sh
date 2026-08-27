@@ -88,7 +88,8 @@ elif [[ "$verdict" == "PEER IS ON THE ROSTER" ]]; then
   echo "Roster shared but the release STILL fires -> next target is the 828-bit"
   echo "session-plane member table (0x808086F8, activity-schema-global-table.md, 20.95)."
 else
-  echo "Roster still names only self. If pairing in section 1 DID agree, a shared"
-  echo "lobby id is not sufficient: the game needs a membership CHANGE EVENT."
-  echo "That is step 3 (LobbyChatUpdate via queue_callback) = p2(68)."
+  echo "Roster still names only self. As of 20.104 the shared lobby id, the membership"
+  echo "event and the peer name lookup are ALL done and none of them reach the roster."
+  echo "Every remaining Steam-side lever is downstream of it, so the open question is"
+  echo "WHO CALLS \"Adding player\" - static analysis on managed_session, not a boot."
 fi
