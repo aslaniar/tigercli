@@ -1,6 +1,16 @@
 # STATE - living snapshot (the single source of "where we are")
 
-Updated: 2026-08-26 ~19:55 (**PATH (A) PAID OFF IMMEDIATELY. The client's
+Updated: 2026-08-26 ~20:05 (**BOOT #11: p2(57) WORKED - lobby ids are unique,
+byte for byte as predicted - AND MY PREDICTION FAILED. The MAC moved from
+`privacy-mode` to `tried-to-join-self`; BOTH machines now say reason 1 after a
+change that made them strictly MORE distinct. The 20.83 gate-table <-> reason
+correspondence is **RETRACTED**. The reason byte is a symptom of the
+tracking-data miss, not a gate verdict. Everything else unchanged: peers valid
+0x1, zero TARGET lines, same tracking-data miss. Enum decode re-verified and
+SOUND, so the result is real. NEXT: instrument, not another fix guess - locate
+the release emitter and read what it compares. FINDINGS 20.84.**)
+
+PREVIOUS HEADER (2026-08-26 ~19:55): (**PATH (A) PAID OFF IMMEDIATELY. The client's
 33-entry JOIN-GATE TABLE is read (.data 0x141FECDE0) and entry [28] is
 `target_fireteam_is_not_ours` - and BOTH MACHINES WERE PUBLISHING THE IDENTICAL
 FIRETEAM PLATFORM ID (0x109000000000002), because `create_lobby` derived it from
@@ -137,7 +147,29 @@ DEPLOYED RIGHT NOW:
                proposed vs answered; type-13/14 payloads logged raw;
                stage=body_capture dumps peer-bearing type-12 heads (160 B)
 
-NEXT = BOOT p2(57) (BOOT_BRIEF_p2-57.md). One variable: unique lobby ids.
+NEXT = NOT A BOOT. Stay on path (A), and INSTRUMENT BEFORE INTERVENING
+(lesson 2 - one confident prediction was just refuted on this exact question):
+  1. Locate the emitter of the type-14 peer-reservation release and read what it
+     compares before choosing the reason byte. The release log strings are in
+     NEITHER the image nor the 08-15 dump (20.82), so approach via
+     `activity_client_send_message` / the type-14 send path, not the log text.
+     Tool: RE_scripts/xref_scan.py (self-tests against a known xref).
+  2. That read also settles the ADDRESS CANDIDATE below for free, and it answers
+     what a "known" peer must look like - which IS 20.82 link 4.
+  3. Only then decide whether a per-session advertised endpoint is worth building.
+
+CANDIDATE, NOT A CLAIM (20.84): the last field still identical between the two
+clients' descriptors is the JOIN ADDRESS. Every citizen advertisement carries
+`endpoint::advertised()` and the server binds ONE gameplay endpoint (port
+30976), so each client sees a peer whose join address equals its own.
+`join.machineId` already differs (region_machine_id, regions 48 vs 56). Do NOT
+build on this before step 1.
+
+CAPTURE GOTCHA: RE_output/captures/20260826_195738_p2-57_unique_lobby/
+server_sunrise.log spans boots #10 AND #11 (server never restarted). Boot #11 =
+sessions ...000A / ...000D, t>3000000. Filter or the boots blend.
+
+OLD NEXT (superseded) = BOOT p2(57) (BOOT_BRIEF_p2-57.md). One variable: unique lobby ids.
   Liveness line: `ev=steamnet stage=lobby_create ... lobby=0x... account=0x...`
   Predicted ids - mac 0x010900000CC46DB7 / 0x01090000EA0CF3EE,
                   rig 0x010900000CC46DB4 / 0x01090000EA0CF3ED.
