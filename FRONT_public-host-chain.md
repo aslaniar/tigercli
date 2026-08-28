@@ -103,37 +103,35 @@ false on the mac so the two machines are comparable. Settings-only, no rebuild.
 SETTLED: L4 is the client's own choice, on both roles. Six deciding functions are
 named by RVA and .pdata bounds; the chooser is fn 0x140C0CF30 (6938 B).
 
-CLOSED BY 20.113 + 20.114 - THE CHAIN IS COMPLETE FROM THE SEARCH ANSWER DOWN.
+*** L6 AND L7 ARE DONE (p2(78), 20.118). *** Forcing the TOWER's region public
+(slice set 56, settings-only) made the client dial the gameplay endpoint for the
+first time: 64 datagrams, DTLS, establish, group join, membership built, player
+added, `join result=completed`. Client side: reserve fired for a second machine at
+member state 10 = ESTABLISHED, peers valid went 0x1 -> 0x3, the activity client took
+the PUBLIC TARGET role, and the tracking-data warning and peer-reservation release
+(20.112) did not fire at all.
 
-20.113: the activity client does not trust BAP membership. It walks the game's OWN
-managed-session member table (reached via the session id at +0x1C7C0, gated on
-session state 6..9 at +0x1AEF8) and keeps only members whose state reads 10 =
-ESTABLISHED. Everything else is warned about and released (20.112).
+The chain from 20.114 is now open from step 2 to step 7. What remains is TWO bounded
+changes in code we own:
 
-20.114 - THE UPSTREAM CAUSE: the client searches for a session ONCE at
-setup:matchmaking and takes the answer as final. We answer it with the OTHER
-CLIENT's Steam-identity blob (or with nothing, if it searched first - the relay is
-order-dependent by construction), pointing it at a Steam networking road our shim
-stubs and that has never run. So no association forms, no client dials 30976, no
-peer reaches ESTABLISHED, and the release at the bottom is inevitable.
-The protobuf nesting was never the gap - our encoder already matches the handbook's
-documented shape exactly. The gap is WHICH HOST we name.
+1. **Application-ready gate (handbook 18.5).** We queue membership and parameters at
+   admit. Before the peer is application-ready the transport ACKS reliable records
+   WITHOUT DISPATCHING them, so our retry logic is satisfied while the client never
+   receives them - and it re-joins every ~21.7 s with a fresh join id (13 admits,
+   present in the SOLO boot too). We have no app-ready concept anywhere under
+   server/gameplay/. 18.6's corollary applies: an acknowledgement is not proof of
+   dispatch. DO THIS FIRST - a stable single peer is the control for step 2.
+2. **L8: one session, many peers.** Both clients named the SAME group session, and
+   `claim()` rebinds the single record to whichever endpoint joined last, so they
+   steal it from each other and every snapshot stays members=2 players=1. `Admitted`
+   needs an endpoint LIST, `publish_snapshot` needs host + N peers with N players,
+   and each peer's own entry must carry its own join id and its own address blob
+   echoed byte-exact (group_host.cpp's own comments state both).
 
-THE FIX IS WRITTEN AND UNUSED: `build_search_descriptor`
-(matchmaking_route.cpp:185) builds a descriptor naming THIS SERVER's gameplay
-endpoint. Grep returns exactly one hit - its definition. Serving it is the first
-change in this project aimed at the top of the chain instead of the bottom.
-
-REMAINING, in order:
-1. Serve `build_search_descriptor` for sessionSearch, in place of / ahead of the
-   foreign relay. Small and local.
-2. Then the first boot that can succeed. Verdict line already deployed:
-   `ev=jr fn=add_candidates` naming a FOREIGN xuid.
-3. If the client still does not dial: the handbook's working topology advertised
-   LOOPBACK 127.0.0.1 and ours advertises a LAN address. Untested difference,
-   first suspect.
-4. Deprioritised, now likely symptoms: the `[rdi+0xC]` PRIVATE/PUBLIC writer, and
-   the target chooser at 0x140C0CF30.
+DEPRIORITISED, now likely symptoms rather than causes: the `[rdi+0xC]` PRIVATE/PUBLIC
+writer, the target chooser at 0x140C0CF30, and the empty-but-present matchmaking
+configuration (20.115) - the client reached the Tower's public route without the
+search surviving at all.
 
 RENDER DEATH (parked, render lane): follows CO-PRESENCE, not entry order - the mac
 entered first and died when the rig arrived; 20.110 saw the reverse. Game stays

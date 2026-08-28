@@ -5,55 +5,27 @@ FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.
 
 Updated: 2026-08-27 ~18:3x.
 
-## THE VERDICT (20.113 - read this before anything else)
-THE ACTIVITY CLIENT DOES NOT TRUST BAP MEMBERSHIP. It enumerates the game's OWN
-managed-session member table and tracks only members that reach state 10
-(ESTABLISHED). Any peer not in that table is warned about ("Could not find tracking
-data") and its reservation RELEASED, once, latched (20.112). The walk is reached via
-the session id at +0x1C7C0 and gated on session state 6..9 at +0x1AEF8 - both
-offsets derived independently in 20.109 - and it enforces the same member ladder the
-community handbook documents (skips 3, collects only 10).
-RETIRES A WHOLE CLASS: no type-12 wire shape, trailing field, bitmask, reason byte
-or roster push can substitute for session membership. Twenty boots aimed one layer
-too high.
-THE ONLY GAP LEFT: no client has ever dialed the gameplay endpoint (zero datagrams
-on 30976, ever). Road C - the SERVER as group-session host, both clients its members
-- is therefore not the cheapest road but the ONLY one. Our group host already models
-the ready->established ladder; A (peer-native Steam rendezvous) and B (in-process
-injection) both dead-end at the same ladder.
-*** 20.114 FOUND THE TOP OF THE CHAIN. *** The client searches for a session ONCE
-and takes the answer as final. We answer with the OTHER CLIENT's Steam-identity
-blob - a road our shim stubs and that has never run - or with nothing at all if it
-searched first. The protobuf nesting was never the gap (our encoder already matches
-the handbook's documented shape); WHICH HOST WE NAME is. `build_search_descriptor`,
-which builds a descriptor naming THIS SERVER's gameplay endpoint, is DEAD CODE -
-grep returns only its definition.
-DONE (p2(75), DEPLOYED): `sessionSearch` now answers with a descriptor naming THIS
-SERVER's gameplay endpoint, behind `server.gameplay.search_self_host` (default true,
-flip false + restart to restore the relay, no rebuild). First change in this project
-aimed at the top of the chain instead of the bottom.
-p2(76) RAN (20.117) AND THE PREDICTION HELD: `stage=region result=forced native=0
-answer=1 slice_set=24`. The site IS reached - refuting 20.82 and the two findings
-that cited it - and the game's own answer IS "not public". THE REGION WENT PUBLIC
-FOR THE FIRST TIME, and the client named its wait: "Region 'PUB24.24' is PUBLIC but
-not yet connected; the slice-set-switch task is not possible yet."
-THE FORCE WAS TOO BROAD: the first transition through that point is ORBIT, so orbit
-was forced public, never completed, and the boot stalled before allocating any
-activity host (black loading loop, game alive). Scoped now by
-`client.region_public_slice_set` (int, -1 = blanket switch).
-NOTE the wait is PASSIVE: while holding, the client initiated no search, no
-matchmaking, no datagram. Whatever sets "connected" is UPSTREAM of the search. Do
-not assume it is the activity-host bind without reading it.
-p2(77) HARVESTED THE MAP this project never had - three region decisions per boot,
-every native answer 0 (the game considers NO region public in this build):
-  slice_set 24 orbit PRV24.24 | 48 initial_slice_set PRV48.48 | 56 normal_z_leg
-  PRV56.56 = THE TOWER. The PRV/PUB name prefix tracks the flag.
-NEXT GATE: BOOT_BRIEF_p2-78.md (GATE PASS) - force slice set 56 ONLY, settings-only,
-no rebuild or redeploy. 56 is the well-aimed shot where orbit was not: our server
-already advertises region 56 and the client already holds a live AH connection
-there, which is two of the three things handbook 15.2 says the public route needs.
-Whether that AH connection satisfies "connected" is the assumption under test.
-Chain, link by link, with marks: FRONT_public-host-chain.md.
+## THE VERDICT (20.118 - read this before anything else)
+*** THE DOOR IS OPEN. *** p2(78) forced the TOWER's region public (slice set 56,
+settings-only) and the client dialed the gameplay endpoint for the FIRST time in
+this project: 64 datagrams, DTLS, establish, group join, membership built, player
+added, `join result=completed`. Client side: `reserve` fired for a SECOND MACHINE at
+member state 10 = ESTABLISHED (the state 20.113 proved the game requires), peers
+valid went 0x1 -> 0x3, the activity client took the PUBLIC TARGET role, and the
+tracking-data warning + peer-reservation release that ended every peer's life
+(20.112) did not fire once. L6 and L7 are VERIFIED-BY-EXECUTION.
+
+TWO BOUNDED DEFECTS REMAIN, both in code we own, and the order matters:
+1. APPLICATION-READY GATE (handbook 18.5). We queue membership/parameters at admit.
+   Before the peer is application-ready the transport ACKS reliable records without
+   DISPATCHING them, so our retries are satisfied while the client never gets them -
+   it re-joins every ~21.7 s with a fresh join id (13 admits; present in the SOLO
+   boot, so it is not a two-client problem). We have NO app-ready concept anywhere
+   under server/gameplay/. DO THIS FIRST: a stable single peer is the control.
+2. L8 - ONE SESSION, MANY PEERS. Both clients named the SAME group session, and
+   `claim()` rebinds its single record to whichever endpoint joined last, so they
+   steal it from each other and every snapshot stays members=2 players=1.
+   `kSnapshotMemberCount = 2` is where it starts.
 
 ## WHERE WE ARE
 Both clients reach the Tower and run the retail chain; each hosts its own private
@@ -61,20 +33,19 @@ session and neither ever appears on the other's roster. p2(74) verified WHY on b
 roles: each client aims every activity-host join at its OWN session (session id ==
 account handle, bit for bit), so the public half is never bound (20.111).
 
-## DEPLOYED (2026-08-27 18:45) - p2(77) slice-set harvest, see BOOT_BRIEF_p2-77.md
-  client DLLs  `ee8998551caf95f1` BOTH machines: p2(76) + `region_public_slice_set`
-               (int, -1 = use the blanket switch) so the public force can name ONE
-               transition instead of all of them. Settings on both machines are the
-               PRE-p2(76) values: `region_public` false, slice set -1.
-  server exe   `d372d4ea562bf349`: behaviour unchanged from p2(75) (self-host search
-               answer). Routes and claims are IN-MEMORY:
-               RE_scripts/reset_lobby_claims.sh BETWEEN runs.
-  settings     mac `region_public_slice_set: 56` for p2(78) (Tower only). Binaries
-               UNCHANGED from p2(77) - that boot is a settings-only change.
-  fork commit  p2(77) = 146a2a3; next number p2(78).
-## ROLLBACK: p2(76) client `54c04cbfba204488` = mac .bak_p2d7_20260827_184534, rig
-  .bak_p2d7_20260827_184556. This build's DEFAULTS are the old behaviour, so there
-  is nothing to roll back behaviourally. DO NOT BOOT p2(71).
+## DEPLOYED (2026-08-27 19:0x) - p2(78), see BOOT_BRIEF_p2-78.md and 20.118
+  client DLLs  `ee8998551caf95f1` BOTH machines (unchanged since p2(77)).
+  server exe   `d372d4ea562bf349` (unchanged since p2(77)).
+  settings     BOTH machines `region_public_slice_set: 56` - THE TOWER. Orbit (24)
+               and the initial slice set (48) are untouched and must stay so; p2(76)
+               forced all three and stalled on orbit, which has no host to connect
+               to. `region_public` false, `region_private` false, both machines.
+  server knobs `server.gameplay.search_self_host: true` (p2(75)).
+               Routes and claims IN-MEMORY: reset_lobby_claims.sh BETWEEN runs.
+  fork commit  p2(77) = 146a2a3; p2(78) was settings-only. Next number p2(79).
+## ROLLBACK: behaviour-only, no rebuild - `region_public_slice_set: -1` on both
+  machines and relaunch. Binary rollback: p2(76) `54c04cbfba204488`
+  (mac .bak_p2d7_20260827_184534, rig .bak_p2d7_20260827_184556). DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
