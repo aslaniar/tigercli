@@ -40,8 +40,9 @@ Inputs (repeatable):
                                side inside becomes its own source LABEL:side
 
 Options:
-  --reference LABEL            pivot timeline label (default: first client
-                               source; falls back to first source)
+  --reference LABEL            pivot timeline label (default: the SERVER when
+                               present, else first client; 2026-08-27 change -
+                               see the grammar-drift note near typed_tapes)
   --out PREFIX                 write PREFIX.tsv, PREFIX.jsonl, PREFIX.drift.json
                                (default: print summary only)
   --tolerance-ms N             fixture verification tolerance (default 500)
@@ -72,6 +73,11 @@ import boot_record as br  # line grammar + wire-anchor regexes, VERBATIM
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SCRATCH = os.path.join(ROOT, "RE_output", "scratch", "timeline_fixtures")
+
+# 2026-08-27: measured envelope delta len(server)=size(client)+28 on the
+# p2-58 capture (234=206+28, 601=573+28). Era-specific; override via
+# --size-delta if the envelope changes again.
+SIZE_DELTA = 28
 
 # peer-family tape extraction (same line shapes as TAPE_CLIENT; used when BOTH
 # ends of a candidate pair are clients)
@@ -175,19 +181,90 @@ def typed_pushes(entries):
     return br._typed_events(entries, br.TAPE_SERVER, br.LEN_RE)
 
 
+def _typed_events_opt(entries, line_re, size_re):
+    """(t, type_or_None, size) for lines matching line_re; type OPTIONAL.
+    2026-08-27 grammar drift: p2-5x-era client tape lines no longer carry
+    type= (0 of 143 svc=9 rows on the p2-58 capture). Pairing degrades to the
+    len-size relation instead of dying silently."""
+    out = []
+    for t, text in entries:
+        if not line_re.search(text):
+            continue
+        m = br.TYPE_RE.search(text)
+        n = size_re.search(text)
+        out.append((t, int(m.group(1)) if m else None,
+                    int(n.group(1)) if n else None))
+    return out
+
+
 def typed_tapes(entries):
-    """Client-side svc=9 tape rows: (t, type, size)."""
-    return br._typed_events(entries, br.TAPE_CLIENT, br.SIZE_RE)
+    """Client-side svc=9 tape rows: (t, type, size); type optional since
+    2026-08-27 (None when the line omits it)."""
+    return _typed_events_opt(entries, br.TAPE_CLIENT, br.SIZE_RE)
+
+
+def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
+                     min_pairs=5, min_distinct_sizes=5):
+    """
+    New-era pairing (client lines lack type=; server outnumbers client ~12:1
+    because it logs pushes for every session/client). Monotone subsequence
+    match: each client tape row (in time order) pairs the NEXT server push
+    (in time order) whose len == size + size_delta, accepting a candidate only
+    if its time delta clusters with the running median. Guards against silent
+    wrong locks: the matched set must cover >= min_distinct_sizes DISTINCT
+    sizes (a periodic-keepalive mislock matches mostly one size) and the final
+    spread must be tight. Returns (deltas, med, spread, robust) or None.
+    NOT a port of the old positional path; used only when type pairing fails.
+    """
+    if not pushes or not tapes:
+        return None
+    deltas = []
+    used_sizes = set()
+    j = 0
+    n_p = len(pushes)
+    running = None
+    for t_c, _ty, s in tapes:
+        if s is None:
+            continue
+        target = s + size_delta
+        while j < n_p and pushes[j][0] < t_c:
+            j += 1
+        k = j
+        while k < n_p:
+            t_s, _ty2, ln = pushes[k]
+            if ln != target:
+                k += 1
+                continue
+            d = t_s - t_c
+            if running is None or abs(d - running) <= slack_ms:
+                deltas.append(d)
+                used_sizes.add(s)
+                running = sorted(deltas)[len(deltas) // 2]
+                j = k + 1
+            break
+    if len(deltas) < min_pairs or len(used_sizes) < min_distinct_sizes:
+        return None
+    deltas.sort()
+    med = deltas[len(deltas) // 2]
+    if deltas[-1] - deltas[0] > 10 * slack_ms:
+        return None
+    robust = deltas[(9 * len(deltas)) // 10] - deltas[len(deltas) // 10]
+    return deltas, med, deltas[-1] - deltas[0], robust
 
 
 def align_newest_first(seq_a, seq_b, max_k=16, min_pairs=3):
     """
     Align two typed sequences newest-first (capture windows rarely start
-    together), scanning tail shifts k in 0..max_k; keep alignments where EVERY
-    pair agrees on type; score by robust spread (p10..p90), then smaller k,
-    then more pairs. Returns (k, n_pairs, deltas_sorted, med, spread, robust)
-    or None. Deltas are t_a - t_b per pair. Port of boot_record.tape_anchor's
-    selection logic, generalized to any (type-checked) sequence pair.
+    together), scanning tail shifts k in 0..max_k. Rows are (t, ty, n) triples.
+    Pair rule per pair:
+      - both types present  -> types must be equal (strict, unchanged);
+      - any type missing    -> size relation: |a_n - b_n - med_delta| <= 1,
+        where med_delta = median (a_n - b_n) over this k's candidate pairs
+        (2026-08-27: 28 measured stable on the p2-58 capture);
+      - either n missing    -> alignment fails at this k (honest null).
+    Scored by robust spread (p10..p90), then smaller k, then more pairs.
+    Returns (k, n_pairs, med, spread, robust, type_mode) or None, where
+    type_mode is "type" or "size-only".
     """
     n_a, n_b = len(seq_a), len(seq_b)
     if n_a == 0 or n_b == 0:
@@ -196,27 +273,42 @@ def align_newest_first(seq_a, seq_b, max_k=16, min_pairs=3):
     span = min(n_a, n_b)
     for k in range(0, min(max_k + 1, span)):
         pairs = []
+        deltas = []
         ok = True
         for i in range(span - k):
-            a_t, a_ty = seq_a[-(i + 1)][0], seq_a[-(i + 1)][1]
-            b_t, b_ty = seq_b[-(i + 1 + k)][0], seq_b[-(i + 1 + k)][1]
-            if a_ty != b_ty:
+            a = seq_a[-(i + 1)]
+            b = seq_b[-(i + 1 + k)]
+            a_ty, b_ty, a_n, b_n = a[1], b[1], a[2], b[2]
+            if a_n is None or b_n is None:
                 ok = False
                 break
-            pairs.append(a_t - b_t)
+            deltas.append(a_n - b_n)
+            if a_ty is not None and b_ty is not None and a_ty != b_ty:
+                ok = False
+                break
+            pairs.append(a[0] - b[0])
         if not ok or len(pairs) < min_pairs:
             continue
+        deltas.sort()
+        med_d = deltas[len(deltas) // 2]
+        if any(abs(d - med_d) > 1 for d in deltas):
+            continue  # size relation must be consistent, not roughly so
         pairs.sort()
         med = pairs[len(pairs) // 2]
         spread = pairs[-1] - pairs[0]
         robust = pairs[(9 * len(pairs)) // 10] - pairs[len(pairs) // 10]
-        cand = (robust, k, -len(pairs), med, spread, pairs)
+        type_mode = ("type" if all(a[1] is not None and b[1] is not None
+                                   for a, b in zip(
+                                       [seq_a[-(i + 1)] for i in range(span - k)],
+                                       [seq_b[-(i + 1 + k)] for i in range(span - k)]))
+                     else "size-only")
+        cand = (robust, k, -len(pairs), med, spread, pairs, type_mode)
         if best is None or cand[:3] < best[:3]:
             best = cand
     if best is None:
         return None
-    robust, k, neg_n, med, spread, pairs = best
-    return k, -neg_n, med, spread, robust
+    robust, k, neg_n, med, spread, pairs, type_mode = best
+    return k, -neg_n, med, spread, robust, type_mode
 
 
 def size_check(pushes_by_type, tapes_by_type):
@@ -246,12 +338,15 @@ def solve_offset(src, ref):
     """
     Estimate src's clock offset vs ref using WIRE anchors only.
     Returns (offset_ms_or_None, drift_dict). Cross-side pairs use the verified
-    push<->tape family; client<->client uses the peer tape family.
+    push<->tape family (type-equality when client lines carry type=, else the
+    len=size+delta relation, delta derived per alignment); client<->client uses
+    the peer tape family (weak-marked when both sides are typeless).
     """
     drift = {"source": src.ident(), "side": src.side, "n_events": len(src.entries),
              "family": None, "anchor_pairs": 0, "offset_ms": None,
              "spread_ms": None, "robust_spread_ms": None,
-             "len_size_checks": None, "status": "native_null"}
+             "len_size_checks": None, "type_check": None,
+             "status": "native_null"}
     a_rows, b_rows, family, extra = None, None, None, {}
     if src.side != ref.side:
         push_side, tape_side = (src, ref) if src.side == "server" else (ref, src)
@@ -259,37 +354,59 @@ def solve_offset(src, ref):
         tapes = typed_tapes(tape_side.entries)
         if not pushes or not tapes:
             return None, drift
-        chk = size_check(_group_by_type(pushes), _group_by_type(tapes))
-        extra["len_size_checks"] = "%d checked / %d off-by!=28" % (chk[0], chk[1])
         family = "wire_tape_push"
-        # orient deltas as (non-ref minus ref)
+        # orient rows as (non-ref minus ref); triples (t, ty, n)
         if src.side == "server":
-            a_rows, b_rows = [(t, ty) for t, ty, _ in pushes], \
-                             [(t, ty) for t, ty, _ in tapes]
+            a_rows, b_rows = list(pushes), list(tapes)
         else:
-            a_rows, b_rows = [(t, ty) for t, ty, _ in tapes], \
-                             [(t, ty) for t, ty, _ in pushes]
+            a_rows, b_rows = list(tapes), list(pushes)
+        typeless = any(r[1] is None for r in tapes)
+        extra["type_check"] = "size-only" if typeless else "type"
     elif src.side == "client" and ref.side == "client":
         ta = typed_tapes(src.entries)
         tb = typed_tapes(ref.entries)
         if not ta or not tb:
             return None, drift
         family = "wire_tape_peer"
-        a_rows = [(t, ty) for t, ty, _ in ta]
-        b_rows = [(t, ty) for t, ty, _ in tb]
+        a_rows, b_rows = list(ta), list(tb)
+        if all(r[1] is None for r in ta) and all(r[1] is None for r in tb):
+            extra["type_check"] = "size-only-WEAK"
+        else:
+            extra["type_check"] = "type"
     else:
         return None, drift  # no verified family for this combination
     got = align_newest_first(a_rows, b_rows)
-    if got is None:
+    offset = None
+    if got is not None:
+        k, n, med, spread, robust, type_mode = got
+        drift.update({"family": family, "anchor_k_tail_skip": k,
+                      "anchor_pairs": n, "offset_ms": med,
+                      "spread_ms": spread, "robust_spread_ms": robust})
+        offset = med
+    elif family == "wire_tape_push":
+        # new-era grammar: typeless client rows, ~12:1 server/client volume ->
+        # positional pairing cannot apply; use the monotone size-window match.
+        sw = pair_size_window(list(pushes), list(tapes),
+                              size_delta=SIZE_DELTA)
+        if sw is not None:
+            deltas, med, spread, robust = sw
+            drift.update({"family": "wire_tape_push_sizewin",
+                          "anchor_pairs": len(deltas), "offset_ms": med,
+                          "spread_ms": spread, "robust_spread_ms": robust,
+                          "distinct_sizes": len(set(s for _, _, s in tapes
+                                                    if s is not None))})
+            offset = med
+    if offset is None:
         drift["family"] = family
         drift.update(extra)
         return None, drift
-    k, n, med, spread, robust = got
-    drift.update({"family": family, "anchor_k_tail_skip": k, "anchor_pairs": n,
-                  "offset_ms": med, "spread_ms": spread,
-                  "robust_spread_ms": robust, "status": "anchored"})
-    drift.update(extra)
-    return med, drift
+    if drift.get("type_check") == "size-only-WEAK":
+        drift["status"] = "anchored-weak"
+    else:
+        drift["status"] = "anchored"
+    drift["type_check"] = extra.get("type_check") or (
+        "size-window" if drift["family"] == "wire_tape_push_sizewin" else None)
+    return offset, drift
 
 
 # ---------------------------------------------------------------------------
@@ -313,10 +430,18 @@ def merge(sources, tolerance_ms=500, verbose=True, ref_ident=None):
             raise SystemExit("ERROR: reference not found: %s (have %s)"
                              % (ref_ident, labels))
     else:
+        # 2026-08-27: prefer the SERVER as pivot when present. Every client
+        # then anchors cross-side (push<->tape); with typeless client lines a
+        # client<->client pivot would rely on weak size-only peer pairing.
         for s in sources:
-            if s.side == "client":
+            if s.side == "server":
                 ref = s
                 break
+        if ref is None:
+            for s in sources:
+                if s.side == "client":
+                    ref = s
+                    break
         if ref is None:
             ref = sources[0]
     drifts = [{"source": ref.ident(), "side": ref.side, "n_events": len(ref.entries),
@@ -410,7 +535,7 @@ None (synthetic logs, no renderer).
 """
 
 
-def make_fixtures(out_dir, seed=20260823):
+def make_fixtures(out_dir, seed=20260823, notype=False):
     """
     Generate fake server log + two fake client logs with KNOWN planted skews
     (server +5300 ms, client2 -2000 ms relative to client1) and ~12 shared
@@ -470,16 +595,17 @@ def make_fixtures(out_dir, seed=20260823):
         add("srv", t_true,
             "ev=activity stage=push result=ok type=%d soid=0x9EAA300100200001 "
             "body=%d len=%d" % (ty, size - 45, size + 28), kind="wire", eid=eid)
+        ty_txt = "" if notype else " type=%d" % ty
         add("cli1", t_true + 12,  # small wire latency, inside jitter budget
             "ev=handle_message stage=push tape=1 dir=down svc=9 "
             "service=activity_message session=1 size=%d result=ok accepted=1 "
-            "elapsed=0 type=%d msg=fxt_%s" % (size, ty, eid),
+            "elapsed=0%s msg=fxt_%s" % (size, ty_txt, eid),
             kind="wire", eid=eid + ".c1")
         if 2 <= i < last:  # joins late; capture also ends one push early
             add("cli2", t_true + 18,
                 "ev=handle_message stage=push tape=1 dir=down svc=9 "
                 "service=activity_message session=1 size=%d result=ok accepted=1 "
-                "elapsed=0 type=%d msg=fxt_%s" % (size, ty, eid),
+                "elapsed=0%s msg=fxt_%s" % (size, ty_txt, eid),
                 kind="wire", eid=eid + ".c2")
 
     # --- same-name core decoys AFTER the wires (order stress) ---------------
@@ -518,7 +644,8 @@ def make_fixtures(out_dir, seed=20260823):
 # fixture verification
 # ---------------------------------------------------------------------------
 
-def verify_fixture(out_dir, tol_order=500, tol_off=100, verbose=True):
+def verify_fixture(out_dir, tol_order=500, tol_off=100, verbose=True,
+                   ref_ident=None):
     """
     Merge the fixture logs in-process and ASSERT against ground truth:
       1. recovered offsets within tol_off of planted skews;
@@ -543,7 +670,7 @@ def verify_fixture(out_dir, tol_order=500, tol_off=100, verbose=True):
         parse_log_file("client", "cli1", paths["cli1"]),
         parse_log_file("client", "cli2", paths["cli2"]),
     ]
-    m = merge(sources, verbose=False)
+    m = merge(sources, verbose=False, ref_ident=ref_ident)
     drift = {d["source"]: d for d in m["drift"]}  # keys are ident(): label/side
 
     # ---- 1. offsets --------------------------------------------------------
@@ -657,7 +784,7 @@ def selftest():
 
     # ---- A. in-process fixture verification --------------------------------
     print("== A. merge fixture logs, assert vs ground truth ==")
-    n, summary = verify_fixture(scratch)
+    n, summary = verify_fixture(scratch, ref_ident="cli1")
     fails.extend(summary["failures"])
 
     # ---- B. record-store integration (real boot_record output consumed) ----
@@ -678,11 +805,13 @@ def selftest():
         dm = {d["source"]: d for d in m["drift"]}
         got_srv = dm.get("recA/server", {}).get("offset_ms")
         got_c2 = dm.get("cli2x/client", {}).get("offset_ms")
-        check("record-sourced server offset ~= +5300",
-              got_srv is not None and abs(got_srv - 5300) <= 100,
+        check("record-sourced server is the pivot (offset 0)",
+              got_srv is not None and got_srv == 0 and
+              dm.get("recA/server", {}).get("status") == "reference",
               "got=%s" % got_srv)
-        check("mixed record+log client2 offset ~= -2000",
-              got_c2 is not None and abs(got_c2 + 2000) <= 100,
+        # server pivot: cli2 offset = skew(cli2) - skew(srv) = -7300-ish
+        check("mixed record+log client2 offset ~= -7300",
+              got_c2 is not None and abs(got_c2 + 7300) <= 100,
               "got=%s" % got_c2)
     else:
         check("recorder produced a record dir", False, tail.strip())
@@ -706,9 +835,13 @@ def selftest():
                  parse_log_file("client", "cli2", stripped["cli2"])]
     ms = merge(s_sources, verbose=False)
     ds = {d["source"]: d for d in ms["drift"]}
-    check("no anchors -> honest native_null (no guessed offset)",
-          all(ds[k]["status"] == "native_null" and ds[k]["offset_ms"] is None
-              for k in ("srv/server", "cli2/client")),
+    # 2026-08-27: with the server pivot, srv/server is the REFERENCE (offset 0
+    # by definition, not a guess); the honesty property is that cli2 - which
+    # cannot anchor - stays native_null with NO guessed offset.
+    check("no anchors -> pivot=reference, cli2=native_null (no guessed offset)",
+          ds["srv/server"]["status"] == "reference" and
+          ds["cli2/client"]["status"] == "native_null" and
+          ds["cli2/client"]["offset_ms"] is None,
           str({k: (ds[k]["status"], ds[k]["offset_ms"])
                for k in ("srv/server", "cli2/client")}))
 
@@ -717,7 +850,7 @@ def selftest():
     sources = [parse_log_file("server", "srv", paths["srv"]),
                parse_log_file("client", "cli1", paths["cli1"]),
                parse_log_file("client", "cli2", paths["cli2"])]
-    m = merge(sources, verbose=False)
+    m = merge(sources, verbose=False, ref_ident="cli1")
     tsv, jsonl, driftj = write_outputs(
         m, os.path.join(scratch, "merged_timeline"))
     n_tsv = sum(1 for _ in open(tsv)) - 1
@@ -730,6 +863,44 @@ def selftest():
     check("drift.json carries 3 sources + reference",
           len(dj["sources"]) == 3 and dj["reference"] == "cli1/client",
           dj["reference"])
+
+    # ---- E. 2026-08-27: typeless client lines + server pivot ---------------
+    # p2-5x-era client tape lines omit type=; pairing must degrade to the
+    # len=size+delta relation and the pivot defaults to the server, so every
+    # client anchors cross-side (no weak client<->client size-only pairing).
+    tol_off = 100
+    print("== E. typeless-client fixtures (server pivot) ==")
+    scratch_nt = scratch + "_notype"
+    paths_nt, gpath_nt = make_fixtures(scratch_nt, notype=True)
+    with open(gpath_nt) as fh:
+        gt_nt = json.load(fh)
+    skews = gt_nt["skews_ms"]
+    sources_nt = [
+        parse_log_file("server", "srv", paths_nt["srv"]),
+        parse_log_file("client", "cli1", paths_nt["cli1"]),
+        parse_log_file("client", "cli2", paths_nt["cli2"]),
+    ]
+    m_nt = merge(sources_nt, verbose=False)  # default pivot = server now
+    d_nt = {d["source"]: d for d in m_nt["drift"]}
+    check("server is the reference pivot",
+          m_nt["reference"] == "srv/server", m_nt["reference"])
+    check("cli1 offset ~= skew(cli1)-skew(srv)",
+          d_nt["cli1/client"]["offset_ms"] is not None and
+          abs(d_nt["cli1/client"]["offset_ms"] -
+              (skews["cli1"] - skews["srv"])) <= tol_off,
+          "got=%s want=%+d" % (d_nt["cli1/client"]["offset_ms"],
+                               skews["cli1"] - skews["srv"]))
+    check("cli2 offset ~= skew(cli2)-skew(srv)",
+          d_nt["cli2/client"]["offset_ms"] is not None and
+          abs(d_nt["cli2/client"]["offset_ms"] -
+              (skews["cli2"] - skews["srv"])) <= tol_off,
+          "got=%s want=%+d" % (d_nt["cli2/client"]["offset_ms"],
+                               skews["cli2"] - skews["srv"]))
+    check("cross-side pairing flagged size-only (not weak)",
+          d_nt["cli1/client"].get("type_check") == "size-only" and
+          d_nt["cli1/client"]["status"] == "anchored",
+          "%s/%s" % (d_nt["cli1/client"].get("type_check"),
+                     d_nt["cli1/client"]["status"]))
 
     print("-" * 72)
     if fails:
@@ -755,12 +926,17 @@ def main():
     ap.add_argument("--record", action="append", default=[],
                     metavar="[LABEL=]DIR")
     ap.add_argument("--reference", default=None)
+    ap.add_argument("--size-delta", type=int, default=28,
+                    help="len(server)-size(client) envelope delta "
+                         "(measured 28 on p2-58; override if grammar drifts)")
     ap.add_argument("--out", default=None, help="output file prefix")
     ap.add_argument("--tolerance-ms", type=int, default=500)
     ap.add_argument("--make-fixtures", metavar="DIR")
     ap.add_argument("--verify-fixtures", metavar="DIR")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
+    global SIZE_DELTA
+    SIZE_DELTA = args.size_delta
 
     if args.make_fixtures:
         paths, gpath = make_fixtures(args.make_fixtures)
