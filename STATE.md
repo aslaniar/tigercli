@@ -5,47 +5,38 @@ FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.
 
 Updated: 2026-08-27 ~18:3x.
 
-## THE VERDICT (20.118 - read this before anything else)
-*** THE DOOR IS OPEN. *** p2(78) forced the TOWER's region public (slice set 56,
-settings-only) and the client dialed the gameplay endpoint for the FIRST time in
-this project: 64 datagrams, DTLS, establish, group join, membership built, player
-added, `join result=completed`. Client side: `reserve` fired for a SECOND MACHINE at
-member state 10 = ESTABLISHED (the state 20.113 proved the game requires), peers
-valid went 0x1 -> 0x3, the activity client took the PUBLIC TARGET role, and the
-tracking-data warning + peer-reservation release that ended every peer's life
-(20.112) did not fire once. L6 and L7 are VERIFIED-BY-EXECUTION.
+## THE VERDICT (20.113-20.122; full story in HANDOFF_2026-08-27_ROAD-C.md)
+THE CLIENT DOES NOT TRUST BAP MEMBERSHIP. It walks its OWN managed-session member
+table and tracks only members at state 10 (ESTABLISHED); anything else is warned
+about and released (20.112/20.113). That retires the whole wire-shaping class - see
+DEAD ENDS. The only route to state 10 is the game's peer layer, and IT NOW WORKS:
+`stage=receive` went 0 -> 37..64, DTLS/establish/group join/membership/player-added/
+`join result=completed` all run, `reserve` fires for a SECOND MACHINE at memb=10,
+`peers valid` 0x1 -> 0x3, the activity client took the PUBLIC TARGET role, and the
+tracking-data warning and peer-reservation release no longer fire at all (20.118).
+Three changes did it: serve OUR endpoint as the search answer (p2(75), 20.114);
+force the TOWER's region public at the native decision point (p2(78), slice set 56);
+gate publication on application-ready (p2(79), 20.119 - handbook 20.4 independently
+confirms that order).
 
-TWO BOUNDED DEFECTS REMAIN, both in code we own, and the order matters:
-1. APPLICATION-READY GATE - BUILT AND PROVEN (p2(79), 20.119). The join now runs the
-   whole ladder in order, the peer's parameter request is answered, and
-   `join result=completed` fires. Admits fell 13 -> 4. KEEP.
-1b. THE ~22.8 s REBUILD IS NOT AN IDLE TIMEOUT. 20.119 said "complete silence" and
-   p2(80) added a keepalive on it; BOTH ARE RETRACTED (20.120). The silence was a
-   grep that omitted `stage=packet`, which was arriving every ~250 ms throughout.
-   The keepalive fired ZERO times and the cycle is unchanged - it is a lifetime the
-   peer enforces regardless of traffic. DO NOT ADD MORE TRANSPORT TRAFFIC.
-   THE REAL LEAD: every cycle our own log reads `parameters result=ambiguous
-   walked=0x00000000 stopped=21 tail=8039` for `public-session-reservations`, and
-   handbook p43 registry index 21 IS `publicSessionReservations`. The client then
-   logs "Updating public bubble reservation peer request ... to '0' SLOTS" and
-   recycles ~22.8 s later. PARAMETER 21 IS NOT A QUICK BUILD: our ANSWER for it is
-   already a deliberate clear root bit ("no value, keep your own") because its BODY
-   LAYOUT IS UNRECOVERED - which is also why the read walk is ambiguous. Inventing a
-   body is the policy-31 fatal-decode class (handbook 16.5).
-   CAPTURED (p2(81), 20.121): the request body for 21 is
-   `0804 00..00` - essentially EMPTY. The client is ASKING us for the reservation
-   count, not telling us one, and our answer says "no value, keep your own".
-   NEXT (static, no boot): recover the ANSWER body layout for registry 21 from the
-   client's decoder. Do NOT guess it - handbook 16.5 makes a wrong nesting a
-   policy-31 fatal decode, and p2(80) already cost a boot to a guess.
-   ALSO (20.121): a public region with NO SEARCH is a HARD STALL - one boot forced
-   the region, never searched, never dialed, and froze on spawn-in. The search is
-   state-dependent; `reset_lobby_claims.sh` before a run is a PRECONDITION, not
-   hygiene.
-2. L8 - ONE SESSION, MANY PEERS. Both clients named the SAME group session, and
+TWO THINGS REMAIN.
+1. PARAMETER 21 `publicSessionReservations`. Every ~22.8 s the peer rebuilds and
+   redoes a completed join. Our answer for 21 is a clear root bit ("no value, keep
+   your own") because the body layout is unrecovered; the client then sets its public
+   bubble reservation to 0 SLOTS and recycles. Its request body is EMPTY (20.121) -
+   it is ASKING us for the value.
+   NEXT (static, no boot, ANCHORED by 20.122): registry builder fn 0x1417A9820
+   (caller 0x14178CD4D), found from `public-session-reservations` @ 0x141CA8648. It
+   writes index/name/class markers only - 21, 23, 24 carry a marker (+0x24 = 2) the
+   others lack. THE GRAMMAR IS NOT THERE: every record shares one object at
+   [rbx+0xB958] stored at rec+0x18, and that is where a codec or vtable lives. Read
+   it, then encode the body. DO NOT GUESS - handbook 16.5 makes a wrong nesting a
+   policy-31 fatal decode and p2(80) already cost a boot to a guess (20.120).
+2. L8 - ONE SESSION, MANY PEERS. Both clients name the SAME group session, and
    `claim()` rebinds its single record to whichever endpoint joined last, so they
    steal it from each other and every snapshot stays members=2 players=1.
-   `kSnapshotMemberCount = 2` is where it starts.
+   `kSnapshotMemberCount = 2` is where it starts; the three constraints are already
+   in group_host.cpp's own comments.
 
 ## WHERE WE ARE
 Both clients reach the Tower and run the retail chain; each hosts its own private
@@ -139,6 +130,7 @@ RETIRED BY 20.113 (the whole class, not one lead): every attempt to make a peer
 ## PARKED: rx-decode (20.92) | reason hunts (20.86) | blind sweeps (20.49-51) |
    posse fabrication (20.87) | type-54 bubble (20.96).
 ## READ FIRST (any session taking over)
+  0. HANDOFF_2026-08-27_ROAD-C.md - the newest handoff; it carries road C end to end.
   1. AGENTS.md (router) + its conditional triggers; boot work ALSO loads LESSONS.md
      PRE-BOOT CHECKLIST and runs gate_boot.py on the brief.
   2. FINDINGS 20.107 FIRST (the layer map + what we have never touched), then

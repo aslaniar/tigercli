@@ -1,4 +1,6 @@
-STATUS: live (2026-08-27 ~12:5x, Claude -> next session). STATE.md outranks this file
+STATUS: superseded-by HANDOFF_2026-08-27_ROAD-C.md (2026-08-27 ~21:0x). Its scope
+shift still holds; everything after section 2 is overtaken by 20.113-20.122.
+Originally: live (2026-08-27 ~12:5x, Claude -> next session). STATE.md outranks this file
 when both are current. Read STATE "SCOPE" first; it is the whole point of this handoff.
 
 # HANDOFF: the scope moved up a layer, and we now have an instrument
