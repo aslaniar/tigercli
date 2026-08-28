@@ -16,12 +16,14 @@ tracking-data warning + peer-reservation release that ended every peer's life
 (20.112) did not fire once. L6 and L7 are VERIFIED-BY-EXECUTION.
 
 TWO BOUNDED DEFECTS REMAIN, both in code we own, and the order matters:
-1. APPLICATION-READY GATE (handbook 18.5). We queue membership/parameters at admit.
-   Before the peer is application-ready the transport ACKS reliable records without
-   DISPATCHING them, so our retries are satisfied while the client never gets them -
-   it re-joins every ~21.7 s with a fresh join id (13 admits; present in the SOLO
-   boot, so it is not a two-client problem). We have NO app-ready concept anywhere
-   under server/gameplay/. DO THIS FIRST: a stable single peer is the control.
+1. APPLICATION-READY GATE - BUILT, p2(79), AWAITING ITS BOOT. Membership snapshots
+   and the activity-host parameter are now held until the peer sends one established
+   (non out-of-band) packet; a refusal leaves the publish owed and the existing
+   250 ms `service()` timer retries it. Verified NOT a no-op: the join request
+   arrives OUT OF BAND, so at admit time the peer has sent no established packet.
+   Its honest risk is pre-named as OUTCOME 2 of the brief - a deadlock if the peer
+   is itself waiting on the membership we hold, fixed by widening the boundary to
+   the first acknowledgement rather than abandoning the gate.
 2. L8 - ONE SESSION, MANY PEERS. Both clients named the SAME group session, and
    `claim()` rebinds its single record to whichever endpoint joined last, so they
    steal it from each other and every snapshot stays members=2 players=1.
@@ -33,19 +35,22 @@ session and neither ever appears on the other's roster. p2(74) verified WHY on b
 roles: each client aims every activity-host join at its OWN session (session id ==
 account handle, bit for bit), so the public half is never bound (20.111).
 
-## DEPLOYED (2026-08-27 19:0x) - p2(78), see BOOT_BRIEF_p2-78.md and 20.118
-  client DLLs  `ee8998551caf95f1` BOTH machines (unchanged since p2(77)).
-  server exe   `d372d4ea562bf349` (unchanged since p2(77)).
-  settings     BOTH machines `region_public_slice_set: 56` - THE TOWER. Orbit (24)
-               and the initial slice set (48) are untouched and must stay so; p2(76)
-               forced all three and stalled on orbit, which has no host to connect
-               to. `region_public` false, `region_private` false, both machines.
+## DEPLOYED (2026-08-27 19:15) - p2(79) application-ready gate, see BOOT_BRIEF_p2-79.md
+  client DLLs  `c6fc5da1f093ff52` BOTH machines (3 literals asserted post-copy).
+  server exe   `aa665c071ef68aa6`: membership + activity-host publishes gated on the
+               application-ready boundary, logged `stage=publish result=held|released`.
+  settings     BOTH machines `region_public_slice_set: 56` (the Tower). Orbit (24)
+               and the initial slice set (48) untouched - p2(76) forced all three
+               and stalled on orbit. `region_public` false, `region_private` false.
   server knobs `server.gameplay.search_self_host: true` (p2(75)).
                Routes and claims IN-MEMORY: reset_lobby_claims.sh BETWEEN runs.
-  fork commit  p2(77) = 146a2a3; p2(78) was settings-only. Next number p2(79).
-## ROLLBACK: behaviour-only, no rebuild - `region_public_slice_set: -1` on both
-  machines and relaunch. Binary rollback: p2(76) `54c04cbfba204488`
-  (mac .bak_p2d7_20260827_184534, rig .bak_p2d7_20260827_184556). DO NOT BOOT p2(71).
+  fork commit  p2(79) = de4386d; next number p2(80).
+  NOTE         the rig's frozen p2(78) client was terminated (taskkill) to release
+               the DLL for deploy; its log is archived at
+               RE_output/boots/p2-78_rig_sunrise.log.
+## ROLLBACK: p2(78) client `ee8998551caf95f1` = mac .bak_p2d7_20260827_191518, rig
+  .bak_p2d7_20260827_191549; server p2(78) `d372d4ea562bf349`. Behaviour-only, no
+  rebuild: `region_public_slice_set: -1` both machines. DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
