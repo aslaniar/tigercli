@@ -40,6 +40,16 @@ failure mode from this front. DO NOT re-learn them.
    Before naming anything an open RE question, grep the local corpus (dumps/,
    claims/, community/) for it. U1 said fetch the reference; it now also says
    read the references you have. Strengthens U1, replaces nothing.
+   **COROLLARY 2 (20.120, and it cost a wasted build).** AN EXPLICIT STAGE LIST IS A
+   FILTER, AND A FILTER'S ABSENCES ARE ITS OWN. A grep naming
+   `stage=(join|membership|publish|player|link|connect|parameters|view)` was read as
+   "21.5 s of complete silence" and a keepalive was designed on it; the omitted
+   `stage=packet` was arriving every 250 ms throughout. CENSUS FIRST
+   (`grep -o "ev=X stage=[a-z_]*" | sort | uniq -c`), THEN filter - the census had
+   already been run that same session and would have shown it. Also: match the event
+   prefix, not just the stage (`stage=keepalive` collided with a pre-existing
+   `ev=activity` line and briefly read as 20 hits of a thing that never fired).
+   Strengthens L13, replaces nothing.
 2. **INSTRUMENT BEFORE INTERVENTION.** When a behavior is unexplained, the next
    move = the discriminator instrument (the kind hook), never another fix
    guess. Design the instrument the moment the question is named; NO fix rides

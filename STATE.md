@@ -16,16 +16,20 @@ tracking-data warning + peer-reservation release that ended every peer's life
 (20.112) did not fire once. L6 and L7 are VERIFIED-BY-EXECUTION.
 
 TWO BOUNDED DEFECTS REMAIN, both in code we own, and the order matters:
-1. APPLICATION-READY GATE - BUILT AND PROVEN (p2(79), 20.119). Held ~1.0 s then
-   released; the join now runs the WHOLE ladder in order, with the peer's parameter
-   request ANSWERED and `join result=completed`. Admits fell 13 -> 4.
-   THE ~21.5 s CYCLE SURVIVED IT, so handbook 18.5 is EXONERATED as the cycle's
-   cause. The real cause, read from our own code: `peer_transport::service` sends
-   only when it owes an ack or a resend, so after a settled join this host sends
-   NOTHING, the peer answers nothing, and the link idles out - the peer then
-   rebuilds (`rebuilt=1`) and redoes a completed join. Zero pings all boot, both
-   directions. FIXED in p2(80): a 1 s keepalive on idle CONNECTED links, awaiting
-   its boot (BOOT_BRIEF_p2-80.md, GATE PASS).
+1. APPLICATION-READY GATE - BUILT AND PROVEN (p2(79), 20.119). The join now runs the
+   whole ladder in order, the peer's parameter request is answered, and
+   `join result=completed` fires. Admits fell 13 -> 4. KEEP.
+1b. THE ~22.8 s REBUILD IS NOT AN IDLE TIMEOUT. 20.119 said "complete silence" and
+   p2(80) added a keepalive on it; BOTH ARE RETRACTED (20.120). The silence was a
+   grep that omitted `stage=packet`, which was arriving every ~250 ms throughout.
+   The keepalive fired ZERO times and the cycle is unchanged - it is a lifetime the
+   peer enforces regardless of traffic. DO NOT ADD MORE TRANSPORT TRAFFIC.
+   THE REAL LEAD: every cycle our own log reads `parameters result=ambiguous
+   walked=0x00000000 stopped=21 tail=8039` for `public-session-reservations`, and
+   handbook p43 registry index 21 IS `publicSessionReservations`. The client then
+   logs "Updating public bubble reservation peer request ... to '0' SLOTS" and
+   recycles ~22.8 s later. NEXT: implement registry parameter 21 with a real slot
+   count (bubble policy values at handbook 16.4: max players 9, posse 3, matchmade 6).
 2. L8 - ONE SESSION, MANY PEERS. Both clients named the SAME group session, and
    `claim()` rebinds its single record to whichever endpoint joined last, so they
    steal it from each other and every snapshot stays members=2 players=1.
