@@ -32,19 +32,21 @@ DONE (p2(75), DEPLOYED): `sessionSearch` now answers with a descriptor naming TH
 SERVER's gameplay endpoint, behind `server.gameplay.search_self_host` (default true,
 flip false + restart to restore the relay, no rebuild). First change in this project
 aimed at the top of the chain instead of the bottom.
-p2(75) PHASE 1 RAN (20.115): the contract HELD - first non-empty search answer this
-project has produced for a first searcher, naming our own endpoint, routable=1. And
-still zero datagrams on 30976, because the client CANCELS ITS OWN SEARCH 31 ms after
-starting it and exits matchmaking as HOST. It never evaluated our endpoint, which
-exonerates the topology suspect.
-CAUSE (handbook 16.6, ordering verified, causal link inferred): our svc-43
-configuration answer is EMPTY BUT PRESENT (2 bytes). Zero timing thresholds drive an
-immediate advertisement change, the generation changes, the active search dies.
-NEXT: encode a real configuration. The VALUES are documented (16.4: lane policy
-service-config 1, search-only 60 s, desperation 60 s, one provider-policy entry;
-bubble policy max players 9, posse 3, matchmade 6, service-config 1); the FIELD
-LAYOUT is not, and a wrong nesting is a policy-31 fatal decode (16.5). Phase 2
-paired run deliberately deferred until the configuration is real.
+p2(75) PHASE 1 (20.115): the search answer HELD - first non-empty answer to a first
+searcher, naming our own endpoint, routable=1 - and the client still cancelled its
+own search 31 ms later and exited matchmaking as HOST. It never evaluated our
+endpoint, which exonerates the topology suspect.
+20.116 RETRACTS A READING WE CARRIED THREE TIMES: `region_private.cpp` returned early
+on a false native answer BEFORE reporting, so "zero decision lines" was read as "the
+site is never reached" (20.82, repeated by 20.111 and 20.115). The site IS reached
+and THE GAME'S OWN ANSWER IS ALREADY NOT PUBLIC. Instrument fixed; both branches now
+report `native=` and `answer=` separately.
+NEXT GATE: BOOT_BRIEF_p2-76.md (GATE PASS) - `client.region_public` forces that input
+PUBLIC at the transition-starter call, which the handbook 15.3 records as the change
+that started the citizen and search path ("change the input at the exact native
+decision point"). Pre-named for the next boot, from handbook 15.2: if the client
+reports `public_activity_host_mismatch`, the advertisement host identifier and the
+`activityHost` group parameter disagree - a pair this project has never checked.
 Chain, link by link, with marks: FRONT_public-host-chain.md.
 
 ## WHERE WE ARE
@@ -53,19 +55,18 @@ session and neither ever appears on the other's roster. p2(74) verified WHY on b
 roles: each client aims every activity-host join at its OWN session (session id ==
 account handle, bit for bit), so the public half is never bound (20.111).
 
-## DEPLOYED (2026-08-27 18:04) - p2(75) self-host search answer, see BOOT_BRIEF_p2-75.md
-  client DLLs  `d703d6472914f3dc` BOTH machines: p2(74) + the shared matchmaking
-               change (client behaviour unchanged - consume_http answers only
-               /SignOn). Three literals asserted post-copy.
-  server exe   `ab26ade01c671839`: serves `build_search_descriptor` for
-               sessionSearch, logged `stage=descriptor where=serve_self`. Knob
-               `server.gameplay.search_self_host` (default true) is in the deployed
-               settings.json. Routes and the claim table are IN-MEMORY:
-               RE_scripts/reset_lobby_claims.sh BETWEEN runs.
-  fork commit  p2(75) = fd7e556; next number p2(76).
-## ROLLBACK: p2(74) client `bf791db513362b41` = mac .bak_p2d7_20260827_180419, rig
-  .bak_p2d7_20260827_180425; server p2(74) `8870459b31b87cc2`. Behaviour-only, no
-  rebuild: `search_self_host: false` + restart. DO NOT BOOT p2(71) (ABI bug).
+## DEPLOYED (2026-08-27 18:19) - p2(76) public region, see BOOT_BRIEF_p2-76.md
+  client DLLs  `54c04cbfba204488` BOTH machines: p2(75) + `client.region_public`
+               (forces the starter's public-flag input true at that ONE call site)
+               + the region-decision instrument fix. `region_public: true` read back
+               from BOTH settings files.
+  server exe   `e9b452316976c66c`: unchanged behaviour from p2(75) (self-host search
+               answer, `stage=descriptor where=serve_self`). Routes and the claim
+               table are IN-MEMORY: RE_scripts/reset_lobby_claims.sh BETWEEN runs.
+  fork commit  p2(76) = ab1baad; next number p2(77).
+## ROLLBACK: p2(75) client `d703d6472914f3dc` = mac .bak_p2d7_20260827_181854, rig
+  .bak_p2d7_20260827_181901; server p2(75) `ab26ade01c671839`. Behaviour-only, no
+  rebuild: `region_public: false` both clients, relaunch. DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
