@@ -44,6 +44,8 @@ RE_output/INDEX_findings.md / INDEX_claims.md are generated, never hand-edited.
 - Writing/editing project docs -> DOC GOVERNANCE below.
 - About to write ANY new script for a lane -> TOOLS.md first; generalize an
   existing tool rather than fork it.
+- Digging through logs -> logq.py over a logindex.py index (loggrep.sh for
+  one-line peeks). Any raw sed/grep CHAIN beyond that = conversion debt.
 - Platform/tooling specifics (Windows rig, Ghidra invocation, shell layers) ->
   ENVIRONMENTS.md.
 

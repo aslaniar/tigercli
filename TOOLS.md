@@ -16,6 +16,9 @@ against" rule.
 |---|---|---|
 | RE_scripts/db_hygiene.sh | opencode DB report/vacuum guard | refuses while a session is live; dry-run default |
 | RE_scripts/build_index.py --root X | regenerate indexes for any checkout | entry count == grep '^## ' totals |
+| RE_scripts/logindex.py | index ANY sunrise.log-shaped logs -> SQLite (ev/stage/kv per line) | --selftest; event count == parsed-line count |
+| RE_scripts/logq.py | query a logindex: --ev/--stage/--grep/--source/--range/--tail; --aligned = cross-machine unified clock via merge_timeline drift | exit 1 = clean no-hits (a result, not silence) |
+| RE_scripts/loggrep.sh | zero-infra locate (full-width, live-file warn, file:line cites) | warns when target modified <60s |
 | RE_scripts/bootstrap_check.sh | session-start instrument: budgets, STATUS lines, index liveness | always prints BOOTSTRAP OK last |
 | RE_scripts/gate_boot.py <brief> | mechanical pre-boot checklist gate | --literals fails loud on missing literal in deployed binary |
 | RE_scripts/incident.py | incident digest: DB events + logs + procs + hashes | prints LIVENESS counts; exit 1 if root-bound sections all empty |
@@ -38,7 +41,7 @@ against" rule.
 |---|---|
 | RE_scripts/minidump_parse.py | name faulting module from a Windows minidump |
 | RE_scripts/diff_minidumps.py / diff_captured_tails.py | before/after artifact diffs |
-| RE_scripts/merge_logs.py / merge_timeline.py | unified timeline across client+server logs |
+| RE_scripts/merge_logs.py / merge_timeline.py | unified timeline across client+server logs; N-source (2026-08-27: typeless-client grammar fix, server-pivot default, size-window pairing w/ distinct-size guard) | --selftest: 20 checks incl. typeless-fixture phase |
 | RE_scripts/live_console.py / retail_view.py | Layer-1 triage windows on live log streams |
 | RE_scripts/rig_dll_helper.py | remote-thread memory reads on the rig client |
 
