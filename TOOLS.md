@@ -52,6 +52,7 @@ against" rule.
 | RE_scripts/boot_record.py / boot_diff.py | boot artifact capture + cross-boot diff |
 | logged_empty.h (steam/interfaces/tables) | THE CENSUS INSTRUMENT: per-slot logging stub + argument registers, over a table sized PAST the interface. Any boot then returns the real ABI and its argument shapes for free. See LESSONS 18 |
 | retail_log_enqueue_observer.cpp | CALLER CAPTURE: _ReturnAddress in the retail log funnel, reported as a module-relative RVA. Turns any log line into a code address (LESSONS 18c) |
+| RE_scripts/pdata_bounds.py | resolves any address (RVA or static VA) to its OWNING FUNCTION from .pdata RUNTIME_FUNCTION entries - the exact bounds source in a stripped image. The other half of caller capture: an RVA means nothing until it is resolved (LESSONS 18c) |
 | RE_scripts/boot_verdict.sh | reads BOTH client logs + the server's and prints the lobby-lane verdict; compares Adding-player xuids MECHANICALLY (own vs peer) because the bare line fires every boot and proves nothing (20.101) |
 | RE_scripts/reset_lobby_claims.sh | clears the IN-MEMORY lobby-claim table (restarts the server) and re-verifies listeners/nat; run between ANY two runs from p2(67) on, or a stale pairing silently invalidates the test |
 | RE_scripts/obf_fold.py | constant-folding helper for obfuscated code (self-test passed) |
