@@ -103,25 +103,28 @@ false on the mac so the two machines are comparable. Settings-only, no rebuild.
 SETTLED: L4 is the client's own choice, on both roles. Six deciding functions are
 named by RVA and .pdata bounds; the chooser is fn 0x140C0CF30 (6938 B).
 
-OPENED, re-ranked after the 20.112 static pass:
-1. **WHY IS THERE NO TRACKING DATA FOR THE PEER?** The failing lookup lives high in
-   fn 0x140C17E40 (2225 B), above the log-line construction. 20.112 proved that one
-   lookup decides whether a peer survives its first membership update: miss -> gate
-   0x1404F7710 false -> peer-reservation release -> released-already latch set. This
-   is now the single highest-value read on the front and it costs no boot.
-2. **The `same_region` peer-citizen drop** - ANSWERED as deliberate (20.112), and
-   road C answers the question it parked ("whose endpoint belongs in a shared
-   bubble": the server's). First place road C pays for itself in code we own.
-3. **The writer of `[rdi+0xC]`** (PRIVATE/PUBLIC, `<= 0x1FF`). Not started. Note the
-   fragment correction: the composition function is 0x1417E22F0, not 0x1417E2366.
-4. fn 0x140C0CF30, the target chooser (6938 B). Not started, still best done last.
+CLOSED BY 20.113 - THE PIPELINE IS COMPLETE, TOP TO BOTTOM. The activity client
+does not trust BAP membership. It enumerates the game's OWN managed-session member
+table (bitmask at container+0x30, stride 0x120, reached from the session object via
+its id at +0x1C7C0, gated on session state 6..9 at +0x1AEF8) and keeps only members
+whose state field at +0x1758 reads 10 = ESTABLISHED. Those become tracking-table
+entries; everything else is warned about and released (20.112).
 
-CLOSED by 20.112: whether the release function branches on the failed lookup. It
-does not decide at all - the decision is two instructions above its call site, in
-fn 0x140C17E40. And the advertisement is NOT missing data: it already carries the
-server's endpoint, the machine id, AND the joinable session id, all encoded on the
-wire. L4 is a client-choice problem, not a data problem. Do not "fix" the
-advertisement.
+So the requirement for L9 - two guardians visible - is not a wire shape. It is:
+THE PEER MUST REACH MEMBER STATE 10 IN THE CLIENT'S OWN MANAGED SESSION. Road C is
+the only road that gets there, and our group host already models the ladder
+(ready -> established). The gap is unchanged and now provably the ONLY gap: no
+client has ever dialed the gameplay endpoint (L6).
+
+REMAINING, in order:
+1. **L6, and it is now the whole job**: make one client dial 30976 and complete the
+   ladder to established. The chain in 20.113 is the checklist; `ev=jr
+   fn=add_candidates` naming a FOREIGN xuid is the single line that proves it.
+2. Read how far our group host actually drives the ladder for a real peer before
+   spending that boot (static, fork-side).
+3. The writer of `[rdi+0xC]` (PRIVATE/PUBLIC) - now likely a SYMPTOM of 1, not a
+   cause. Deprioritised.
+4. fn 0x140C0CF30, the target chooser - same, deprioritised behind 1 and 2.
 
 RENDER DEATH (parked, render lane): follows CO-PRESENCE, not entry order - the mac
 entered first and died when the rig arrived; 20.110 saw the reverse. Game stays

@@ -3,48 +3,34 @@
 STATUS: live (2026-08-27 ~10:2x; prior text = git history.
 FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.)
 
-Updated: 2026-08-27 ~16:2x. p2(71)/p2(72) freeze bugs found and fixed; p2(73)
-observation boot COMPLETE (20.110): the self-pipeline is verified live on both
-machines and both roles, and the join request never fires because there is no
-client-to-client connect layer.
-DECISION TAKEN - ROAD C. Not A (peer-native Steam rendezvous: the client asked
-get_certificate once, got 0, and has never called send_rendezvous) and not B
-(in-process injection: the roster is a reconcile loop, so an entry with no live
-peer link is removed on the next tick and nothing replicates behind it). Road C
-makes the SERVER the group-session host and both clients its members. Its whole
-server half is already built - UDP endpoint, association, DTLS, peer transport,
-group host, and a membership publisher that names host + peer + player - and has
-NEVER received one datagram. Chain, link by link, with marks:
-FRONT_public-host-chain.md.
-p2(74) RAN AND PASSED (20.111): L4 is verified-by-execution on BOTH roles - each
-client aims every activity-host join at its OWN session (session id == account
-handle, bit for bit), so the public half is never bound. Six deciding functions are
-named by .pdata bounds; `PRIVATE` vs `PUBLIC` is a `<= 0x1FF` compare on [rdi+0xC];
-both clients release the other's peer reservation on one type-12 membership push;
-the regions DO converge on 56 and our `same_region` branch then drops the peer
-citizen. STATIC PASS DONE (20.112): the peer-reservation release is decided two
-instructions above its call site (fn 0x140C17E40), gated by a peer-machine-id table
-lookup whose +9 byte is a RELEASED-ALREADY LATCH - which corrects what 20.105's
-"self-healing warning" was taken to MEAN (its own claim stands; boots #10-#13 were
-read against the wrong consequence). NEXT, still static: the failing tracking-data
-lookup high in fn 0x140C17E40 - it decides whether a peer survives its first
-membership update. Then FRONT_public-host-chain.md questions 3 and 4.
+Updated: 2026-08-27 ~18:3x.
+
+## THE VERDICT (20.113 - read this before anything else)
+THE ACTIVITY CLIENT DOES NOT TRUST BAP MEMBERSHIP. It enumerates the game's OWN
+managed-session member table and tracks only members that reach state 10
+(ESTABLISHED). Any peer not in that table is warned about ("Could not find tracking
+data") and its reservation RELEASED, once, latched (20.112). The walk is reached via
+the session id at +0x1C7C0 and gated on session state 6..9 at +0x1AEF8 - both
+offsets derived independently in 20.109 - and it enforces the same member ladder the
+community handbook documents (skips 3, collects only 10).
+RETIRES A WHOLE CLASS: no type-12 wire shape, trailing field, bitmask, reason byte
+or roster push can substitute for session membership. Twenty boots aimed one layer
+too high.
+THE ONLY GAP LEFT: no client has ever dialed the gameplay endpoint (zero datagrams
+on 30976, ever). Road C - the SERVER as group-session host, both clients its members
+- is therefore not the cheapest road but the ONLY one. Our group host already models
+the ready->established ladder; A (peer-native Steam rendezvous) and B (in-process
+injection) both dead-end at the same ladder.
+NEXT: static, fork-side - how far does our group host drive the ladder for a real
+peer? Then the first boot that matters: a client dialing 30976. The verdict line is
+already deployed - `ev=jr fn=add_candidates` naming a FOREIGN xuid.
+Chain, link by link, with marks: FRONT_public-host-chain.md.
 
 ## WHERE WE ARE
-Both clients reach the Tower, run the retail chain, and see each other as `peer 1`.
-Neither ever appears on the other's PLAYER roster. Thirteen boots have been spent at
-the wrong altitude - see SCOPE, which supersedes every prior framing of this problem
-including 20.82's ("tracking data" is a self-healing warning, not the release: 20.105).
-
-## SCOPE (2026-08-27; L3 static map -> 20.108/20.109; road C taken 16:2x)
-THE STEAM LAYER IS COSMETIC TO THIS GOAL. The managed-session player pipeline makes
-NO Steam call (20.106/20.107). Do not add friends/matchmaking bindings for this goal.
-THE ROSTER IS A RECONCILE LOOP fed by add-candidates, sourced from host-side
-reserve -> admit -> adoption into session+0xC8, driven by connection-layer type-0x0A
-through a global candidate table on the single network-pump thread. Every address,
-stride, and edge: 20.108 (pipeline) and 20.109 (seam) - do not re-copy them here.
-20.110 verified that pipeline live for SELF on both machines; the join plane never
-flows. Road C and its chain: FRONT_public-host-chain.md.
+Both clients reach the Tower and run the retail chain; each hosts its own private
+session and neither ever appears on the other's roster. p2(74) verified WHY on both
+roles: each client aims every activity-host join at its OWN session (session id ==
+account handle, bit for bit), so the public half is never bound (20.111).
 
 ## DEPLOYED (2026-08-27 16:13) - p2(74) road-C observation, see BOOT_BRIEF_p2-74.md
   client DLLs  `bf791db513362b41` BOTH machines: p2(73) + six new caller-capture
@@ -89,8 +75,10 @@ CLOSED BY EXECUTION: friends rich-presence cross-introduction as the JOIN ROUTE 
   unreliable (20.83/84) | naming route `reason_name` (20.85/86) | `client.region_private`
   as privacy cause (20.82; hygiene CLOSED 08-27: both machines false) | ws 701/702
   as fireteam lead (20.82) | steam_player_group - derived from the roster (20.104).
-STANDING: member row shape by blind sweep (20.49-51, 20.61) | trailing-field values,
-  untestable until a peer is actually admitted.
+RETIRED BY 20.113 (the whole class, not one lead): every attempt to make a peer
+  appear by SHAPING a BAP body - member row sweeps (20.49-51, 20.61), trailing-field
+  values, bitmasks, reason bytes, roster pushes. The client reads its session member
+  table, not our declarations. Do not reopen any of these.
 
 ## OPERATIONAL FACTS
   - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
