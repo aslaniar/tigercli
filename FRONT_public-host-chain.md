@@ -15,7 +15,7 @@ has never been switched on. See STATE "ROADS" and 20.110 for the A/B costs.
 | L1 | Server binds the gameplay UDP endpoint | verified-by-execution | `ev=gameplay stage=endpoint result=ok mode=embedded port=30976` t=137; advertised 192.168.1.164 (settings server.gameplay) |
 | L2 | Server allocates an activity-host session per (group, region) | verified-by-execution | `stage=activityhost result=allocated session=0x9EAA3001002000NN group=... generation=N held=N` x5 |
 | L3 | Server writes the citizen advertisement (128-B join descriptor: address/port/machineId) into the type-12 region block, for BOTH sessions | verified-by-execution | `stage=peer_advert result=built own_region=48 peer_region=56 own_citizen=1 peer_citizen=1`; delivery gap closed at 20.74.4 |
-| L4 | **Client sends an svc-8 activity JOIN naming the ADVERTISED host session** | **UNKNOWN - FIRST FAILING LINK** | `ev=activity stage=bind result=public_target` has NEVER appeared in ANY server log (0 occurrences). Every join the client sends names its OWN allocated session: client logs `AH->9eaa300100200004`, which is this account's own `activityhost result=allocated` id |
+| L4 | **Client sends an svc-8 activity JOIN naming the ADVERTISED host session** | **verified-by-execution (p2(74), 20.111) - FIRST FAILING LINK** | p2(74) measured it directly on BOTH machines: `stage=join_target result=own session==handle` bit for bit, zero `result=advertised`, zero `public_target`. The client is not refused - it never asks. Every join the client sends names its OWN allocated session: client logs `AH->9eaa300100200004`, which is this account's own `activityhost result=allocated` id |
 | L5 | Server binds that link as the public half | verified-by-reading, blocked by L4 | `activity_message_route.cpp:230-246` `namesAdvertisedHost` -> `plan.bindsPublicTarget`; `bap_connection_publication.cpp:79-88` sets role publicTarget and logs `stage=bind result=public_target` |
 | L6 | Client, now public, dials 30976: association -> DTLS -> peer transport connect/establish -> group join | verified-by-reading, never reached | full stack present under `src/server/gameplay/`; ZERO datagrams have ever arrived (event census below) |
 | L7 | Group host publishes the membership snapshot | verified-by-reading, never reached | `group_host.cpp:229 publish_snapshot()` builds host + 1 peer + 1 player, with the member-state ladder and state-replica hash |
@@ -97,3 +97,28 @@ return site is reached, and that site has not been reached in any recent boot (n
 `stage=region result=forced|public` line, budget 8, both machines) - so the flag
 has been inert, not causal (that is 20.82's finding and it still holds). Set to
 false on the mac so the two machines are comparable. Settings-only, no rebuild.
+
+## WHAT p2(74) SETTLED (20.111) - and what it opened
+
+SETTLED: L4 is the client's own choice, on both roles. Six deciding functions are
+named by RVA and .pdata bounds; the chooser is fn 0x140C0CF30 (6938 B).
+
+OPENED, in priority order:
+1. **The writer of `[rdi+0xC]`** (fn 0x1417E2366 @0x1417E2417 compares it against
+   0x1FF to pick "PRIVATE" vs "PUBLIC"). We are always > 511. Find who writes it
+   before trying to influence it - the comparison is the label's source, not
+   proven to be the causal switch.
+2. **Does fn 0x1404F8250 (the peer-reservation release) branch on the same failed
+   tracking-data lookup** that fn 0x140C17E40 warns about 1 ms earlier? Both fire
+   on one type-12 membership push. Sibling effects or cause and effect - a
+   disassembly answers it with no boot.
+3. **The `same_region` branch drops the peer citizen** (`peer_advert
+   result=same_region ... peer_citizen=0`). The clients DO converge on region 56.
+   Server-side read, cheap, and it was invisible until two machines were in one
+   region in an instrumented run.
+4. fn 0x140C0CF30, the target chooser itself - biggest and best done last, once
+   1-3 have narrowed what to look for in 6938 bytes.
+
+RENDER DEATH (parked, render lane): follows CO-PRESENCE, not entry order - the mac
+entered first and died when the rig arrived; 20.110 saw the reverse. Game stays
+alive and logging; no client-side trace exists.

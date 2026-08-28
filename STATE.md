@@ -16,9 +16,14 @@ server half is already built - UDP endpoint, association, DTLS, peer transport,
 group host, and a membership publisher that names host + peer + player - and has
 NEVER received one datagram. Chain, link by link, with marks:
 FRONT_public-host-chain.md.
-NEXT GATE: BOOT_BRIEF_p2-74.md (GATE PASS), link L4 - why the client aims every
-activity-host join at its OWN session and never at the one this server
-advertised. Observation only; six caller-capture targets + one server line.
+p2(74) RAN AND PASSED (20.111): L4 is verified-by-execution on BOTH roles - each
+client aims every activity-host join at its OWN session (session id == account
+handle, bit for bit), so the public half is never bound. Six deciding functions are
+named by .pdata bounds; `PRIVATE` vs `PUBLIC` is a `<= 0x1FF` compare on [rdi+0xC];
+both clients release the other's peer reservation on one type-12 membership push;
+the regions DO converge on 56 and our `same_region` branch then drops the peer
+citizen. NEXT: static, no boot - the four questions in FRONT_public-host-chain.md
+"WHAT p2(74) SETTLED", in the order given there.
 
 ## WHERE WE ARE
 Both clients reach the Tower, run the retail chain, and see each other as `peer 1`.
