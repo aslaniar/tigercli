@@ -74,6 +74,15 @@ def scan(lo, hi, exe=EXE):
         elif len(prev) >= 2 and prev[-2] == 0xFF and prev[-1] == 0x15:
             form = "call [m]"
             start = off - 2
+        elif len(prev) >= 1 and prev[-1] == 0xE8:
+            # Direct CALL rel32. Same displacement encoding, and it is what turns a
+            # function address into its CALLER census (the 20.106 method). Without it
+            # a lane has to fork this scanner to find call edges.
+            form = "call rel32"
+            start = off - 1
+        elif len(prev) >= 1 and prev[-1] == 0xE9:
+            form = "jmp rel32"
+            start = off - 1
         if form == "unknown":
             continue
         hits.append((text_base + start, target, form))

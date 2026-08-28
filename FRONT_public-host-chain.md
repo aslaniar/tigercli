@@ -103,21 +103,25 @@ false on the mac so the two machines are comparable. Settings-only, no rebuild.
 SETTLED: L4 is the client's own choice, on both roles. Six deciding functions are
 named by RVA and .pdata bounds; the chooser is fn 0x140C0CF30 (6938 B).
 
-OPENED, in priority order:
-1. **The writer of `[rdi+0xC]`** (fn 0x1417E2366 @0x1417E2417 compares it against
-   0x1FF to pick "PRIVATE" vs "PUBLIC"). We are always > 511. Find who writes it
-   before trying to influence it - the comparison is the label's source, not
-   proven to be the causal switch.
-2. **Does fn 0x1404F8250 (the peer-reservation release) branch on the same failed
-   tracking-data lookup** that fn 0x140C17E40 warns about 1 ms earlier? Both fire
-   on one type-12 membership push. Sibling effects or cause and effect - a
-   disassembly answers it with no boot.
-3. **The `same_region` branch drops the peer citizen** (`peer_advert
-   result=same_region ... peer_citizen=0`). The clients DO converge on region 56.
-   Server-side read, cheap, and it was invisible until two machines were in one
-   region in an instrumented run.
-4. fn 0x140C0CF30, the target chooser itself - biggest and best done last, once
-   1-3 have narrowed what to look for in 6938 bytes.
+OPENED, re-ranked after the 20.112 static pass:
+1. **WHY IS THERE NO TRACKING DATA FOR THE PEER?** The failing lookup lives high in
+   fn 0x140C17E40 (2225 B), above the log-line construction. 20.112 proved that one
+   lookup decides whether a peer survives its first membership update: miss -> gate
+   0x1404F7710 false -> peer-reservation release -> released-already latch set. This
+   is now the single highest-value read on the front and it costs no boot.
+2. **The `same_region` peer-citizen drop** - ANSWERED as deliberate (20.112), and
+   road C answers the question it parked ("whose endpoint belongs in a shared
+   bubble": the server's). First place road C pays for itself in code we own.
+3. **The writer of `[rdi+0xC]`** (PRIVATE/PUBLIC, `<= 0x1FF`). Not started. Note the
+   fragment correction: the composition function is 0x1417E22F0, not 0x1417E2366.
+4. fn 0x140C0CF30, the target chooser (6938 B). Not started, still best done last.
+
+CLOSED by 20.112: whether the release function branches on the failed lookup. It
+does not decide at all - the decision is two instructions above its call site, in
+fn 0x140C17E40. And the advertisement is NOT missing data: it already carries the
+server's endpoint, the machine id, AND the joinable session id, all encoded on the
+wire. L4 is a client-choice problem, not a data problem. Do not "fix" the
+advertisement.
 
 RENDER DEATH (parked, render lane): follows CO-PRESENCE, not entry order - the mac
 entered first and died when the rig arrived; 20.110 saw the reverse. Game stays

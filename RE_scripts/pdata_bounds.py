@@ -56,11 +56,36 @@ def main(argv):
         if index < 0:
             print(f"0x{rva:X}  NO ENTRY (below the first)")
             continue
-        begin, end, _unwind = table[index]
+        begin, end, unwind = table[index]
         inside = begin <= rva < end
-        print(f"0x{rva:X}  fn 0x{BASE + begin:X}..0x{BASE + end:X} "
-              f"size={end - begin} offset_in_fn=0x{rva - begin:X} "
-              f"{'' if inside else '** OUTSIDE - address is in a gap **'}")
+        chain = ""
+        # UNW_FLAG_CHAININFO: this entry is a FRAGMENT, and its parent RUNTIME_FUNCTION
+        # is appended after the unwind codes. Without following it, a fragment's begin
+        # address is mistaken for a function start - which is how a caller-capture RVA
+        # gets attributed to the wrong function.
+        hops = 0
+        cur = (begin, end, unwind)
+        while hops < 8:
+            info = pe.read(BASE + cur[2], 4)
+            flags = (info[0] >> 3) & 0x1F
+            if not flags & 0x4:
+                break
+            count = info[2]
+            codes = count + (count & 1)  # padded to an even count of 2-byte slots
+            parent = pe.read(BASE + cur[2] + 4 + codes * 2, 12)
+            pb = int.from_bytes(parent[0:4], "little")
+            pe_ = int.from_bytes(parent[4:8], "little")
+            pu = int.from_bytes(parent[8:12], "little")
+            if pb == 0 or pb == cur[0]:
+                break
+            cur = (pb, pe_, pu)
+            hops += 1
+        if hops:
+            chain = (f"  [FRAGMENT: primary fn 0x{BASE + cur[0]:X}..0x{BASE + cur[1]:X} "
+                     f"size={cur[1] - cur[0]} after {hops} chain hop(s)]")
+        print(f"0x{rva:X}  entry 0x{BASE + begin:X}..0x{BASE + end:X} "
+              f"size={end - begin} offset=0x{rva - begin:X} "
+              f"{'' if inside else '** OUTSIDE - address is in a gap **'}{chain}")
     return 0
 
 

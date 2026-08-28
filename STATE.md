@@ -22,8 +22,13 @@ handle, bit for bit), so the public half is never bound. Six deciding functions 
 named by .pdata bounds; `PRIVATE` vs `PUBLIC` is a `<= 0x1FF` compare on [rdi+0xC];
 both clients release the other's peer reservation on one type-12 membership push;
 the regions DO converge on 56 and our `same_region` branch then drops the peer
-citizen. NEXT: static, no boot - the four questions in FRONT_public-host-chain.md
-"WHAT p2(74) SETTLED", in the order given there.
+citizen. STATIC PASS DONE (20.112): the peer-reservation release is decided two
+instructions above its call site (fn 0x140C17E40), gated by a peer-machine-id table
+lookup whose +9 byte is a RELEASED-ALREADY LATCH - which corrects what 20.105's
+"self-healing warning" was taken to MEAN (its own claim stands; boots #10-#13 were
+read against the wrong consequence). NEXT, still static: the failing tracking-data
+lookup high in fn 0x140C17E40 - it decides whether a peer survives its first
+membership update. Then FRONT_public-host-chain.md questions 3 and 4.
 
 ## WHERE WE ARE
 Both clients reach the Tower, run the retail chain, and see each other as `peer 1`.
