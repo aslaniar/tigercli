@@ -28,10 +28,14 @@ searched first. The protobuf nesting was never the gap (our encoder already matc
 the handbook's documented shape); WHICH HOST WE NAME is. `build_search_descriptor`,
 which builds a descriptor naming THIS SERVER's gameplay endpoint, is DEAD CODE -
 grep returns only its definition.
-NEXT: serve it for sessionSearch, then the first boot that can succeed. Verdict line
-already deployed: `ev=jr fn=add_candidates` naming a FOREIGN xuid. If the client
-still does not dial, first suspect is topology: the handbook's working setup
-advertised LOOPBACK 127.0.0.1; we advertise a LAN address.
+DONE (p2(75), DEPLOYED): `sessionSearch` now answers with a descriptor naming THIS
+SERVER's gameplay endpoint, behind `server.gameplay.search_self_host` (default true,
+flip false + restart to restore the relay, no rebuild). First change in this project
+aimed at the top of the chain instead of the bottom.
+NEXT GATE: BOOT_BRIEF_p2-75.md (GATE PASS). The line that decides it is
+`ev=gameplay stage=receive` on the server - a client's first datagram to 30976,
+which has never happened. If it stays absent, first suspect is topology: the
+handbook's working setup advertised LOOPBACK 127.0.0.1; we advertise a LAN address.
 Chain, link by link, with marks: FRONT_public-host-chain.md.
 
 ## WHERE WE ARE
@@ -40,21 +44,19 @@ session and neither ever appears on the other's roster. p2(74) verified WHY on b
 roles: each client aims every activity-host join at its OWN session (session id ==
 account handle, bit for bit), so the public half is never bound (20.111).
 
-## DEPLOYED (2026-08-27 16:13) - p2(74) road-C observation, see BOOT_BRIEF_p2-74.md
-  client DLLs  `bf791db513362b41` BOTH machines: p2(73) + six new caller-capture
-               targets (peer-reservation release, initiate_search, matchmaking
-               gatherer advertising, activity_host_changed, waiting to connect to
-               AH, join request to AH). Six literals asserted post-copy.
-  server exe   `8870459b31b87cc2`: p2(73) + `ev=activity stage=join_target`, which
-               names own|advertised|unknown per activity-host join. Routes and the
-               claim table are IN-MEMORY: RE_scripts/reset_lobby_claims.sh BETWEEN
-               runs.
-  settings     mac `client.region_private` true -> false (rig never had the key).
-               Divergent since 20.82, measured inert there; declared in the brief.
-  fork commit  p2(74) = 38581f2; next number p2(75).
-## ROLLBACK: p2(73) `3e7f6ea1b60671a6` = mac .bak_p2d7_20260827_161348, rig
-  .bak_p2d7_20260827_161355; server p2(73) `896b37eec11fe30d`. DO NOT BOOT p2(71)
-  (ABI bug). Older good: p2(61) `4d4aef769e5a16c4`.
+## DEPLOYED (2026-08-27 18:04) - p2(75) self-host search answer, see BOOT_BRIEF_p2-75.md
+  client DLLs  `d703d6472914f3dc` BOTH machines: p2(74) + the shared matchmaking
+               change (client behaviour unchanged - consume_http answers only
+               /SignOn). Three literals asserted post-copy.
+  server exe   `ab26ade01c671839`: serves `build_search_descriptor` for
+               sessionSearch, logged `stage=descriptor where=serve_self`. Knob
+               `server.gameplay.search_self_host` (default true) is in the deployed
+               settings.json. Routes and the claim table are IN-MEMORY:
+               RE_scripts/reset_lobby_claims.sh BETWEEN runs.
+  fork commit  p2(75) = fd7e556; next number p2(76).
+## ROLLBACK: p2(74) client `bf791db513362b41` = mac .bak_p2d7_20260827_180419, rig
+  .bak_p2d7_20260827_180425; server p2(74) `8870459b31b87cc2`. Behaviour-only, no
+  rebuild: `search_self_host: false` + restart. DO NOT BOOT p2(71) (ABI bug).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
