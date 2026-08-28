@@ -28,8 +28,12 @@ TWO BOUNDED DEFECTS REMAIN, both in code we own, and the order matters:
    walked=0x00000000 stopped=21 tail=8039` for `public-session-reservations`, and
    handbook p43 registry index 21 IS `publicSessionReservations`. The client then
    logs "Updating public bubble reservation peer request ... to '0' SLOTS" and
-   recycles ~22.8 s later. NEXT: implement registry parameter 21 with a real slot
-   count (bubble policy values at handbook 16.4: max players 9, posse 3, matchmade 6).
+   recycles ~22.8 s later. PARAMETER 21 IS NOT A QUICK BUILD: our ANSWER for it is
+   already a deliberate clear root bit ("no value, keep your own") because its BODY
+   LAYOUT IS UNRECOVERED - which is also why the read walk is ambiguous. Inventing a
+   body is the policy-31 fatal-decode class (handbook 16.5).
+   NEXT: p2(81) captures the peer's OWN request bytes (`result=body_capture`) so the
+   layout can be decoded offline. BOOT_BRIEF_p2-81.md, GATE PASS, observation only.
 2. L8 - ONE SESSION, MANY PEERS. Both clients named the SAME group session, and
    `claim()` rebinds its single record to whichever endpoint joined last, so they
    steal it from each other and every snapshot stays members=2 players=1.
@@ -41,18 +45,17 @@ session and neither ever appears on the other's roster. p2(74) verified WHY on b
 roles: each client aims every activity-host join at its OWN session (session id ==
 account handle, bit for bit), so the public half is never bound (20.111).
 
-## DEPLOYED (2026-08-27 19:22) - p2(80) keepalive, see BOOT_BRIEF_p2-80.md
-  client DLLs  `a604e2eed3995b3e` BOTH machines (2 literals asserted post-copy).
-  server exe   `4d966c3d8808d1c2`: p2(79)'s application-ready gate + a 1 s keepalive
-               on idle CONNECTED links (`stage=keepalive result=sent`, debug).
-  settings     BOTH machines `region_public_slice_set: 56` (the Tower). Orbit (24)
-               and the initial slice set (48) untouched. `region_public` false,
-               `region_private` false. Server `search_self_host: true`.
-               Routes and claims IN-MEMORY: reset_lobby_claims.sh BETWEEN runs.
-  fork commit  p2(80) = ae7a70c; next number p2(81).
-## ROLLBACK: p2(79) client `c6fc5da1f093ff52` = mac .bak_p2d7_20260827_192208, rig
-  .bak_p2d7_20260827_192215; server p2(79) `aa665c071ef68aa6`. Behaviour-only:
-  `region_public_slice_set: -1` both machines. DO NOT BOOT p2(71).
+## DEPLOYED (2026-08-27 20:3x) - p2(81) parameter-body capture, see BOOT_BRIEF_p2-81.md
+  client DLLs  `3fa02bb785a1cacc` BOTH machines. server exe `72177ecd4083e6b0`.
+  Behaviour identical to p2(80) plus one log line on a copied reader.
+  settings     BOTH machines `region_public_slice_set: 56` (the Tower); orbit (24)
+               and initial slice set (48) untouched. Server `search_self_host: true`.
+               Claims IN-MEMORY: reset_lobby_claims.sh BETWEEN runs.
+  fork commit  p2(81); next number p2(82).
+  NOTE         p2(80)'s keepalive is a PROVEN NO-OP (20.120) - it fired zero times.
+               It is left in place, inert; do not cite it as a fix.
+## ROLLBACK: p2(80) server `4d966c3d8808d1c2`, client `a604e2eed3995b3e`.
+  DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
