@@ -32,8 +32,16 @@ TWO BOUNDED DEFECTS REMAIN, both in code we own, and the order matters:
    already a deliberate clear root bit ("no value, keep your own") because its BODY
    LAYOUT IS UNRECOVERED - which is also why the read walk is ambiguous. Inventing a
    body is the policy-31 fatal-decode class (handbook 16.5).
-   NEXT: p2(81) captures the peer's OWN request bytes (`result=body_capture`) so the
-   layout can be decoded offline. BOOT_BRIEF_p2-81.md, GATE PASS, observation only.
+   CAPTURED (p2(81), 20.121): the request body for 21 is
+   `0804 00..00` - essentially EMPTY. The client is ASKING us for the reservation
+   count, not telling us one, and our answer says "no value, keep your own".
+   NEXT (static, no boot): recover the ANSWER body layout for registry 21 from the
+   client's decoder. Do NOT guess it - handbook 16.5 makes a wrong nesting a
+   policy-31 fatal decode, and p2(80) already cost a boot to a guess.
+   ALSO (20.121): a public region with NO SEARCH is a HARD STALL - one boot forced
+   the region, never searched, never dialed, and froze on spawn-in. The search is
+   state-dependent; `reset_lobby_claims.sh` before a run is a PRECONDITION, not
+   hygiene.
 2. L8 - ONE SESSION, MANY PEERS. Both clients named the SAME group session, and
    `claim()` rebinds its single record to whichever endpoint joined last, so they
    steal it from each other and every snapshot stays members=2 players=1.
