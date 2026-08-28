@@ -44,9 +44,15 @@ activity host (black loading loop, game alive). Scoped now by
 NOTE the wait is PASSIVE: while holding, the client initiated no search, no
 matchmaking, no datagram. Whatever sets "connected" is UPSTREAM of the search. Do
 not assume it is the activity-host bind without reading it.
-NEXT GATE: BOOT_BRIEF_p2-77.md (GATE PASS) - a no-behaviour-change harvest boot to
-read the slice-set index of every transition on the way to the Tower, because the
-fixed instrument now reports every decision and no boot has ever had that map.
+p2(77) HARVESTED THE MAP this project never had - three region decisions per boot,
+every native answer 0 (the game considers NO region public in this build):
+  slice_set 24 orbit PRV24.24 | 48 initial_slice_set PRV48.48 | 56 normal_z_leg
+  PRV56.56 = THE TOWER. The PRV/PUB name prefix tracks the flag.
+NEXT GATE: BOOT_BRIEF_p2-78.md (GATE PASS) - force slice set 56 ONLY, settings-only,
+no rebuild or redeploy. 56 is the well-aimed shot where orbit was not: our server
+already advertises region 56 and the client already holds a live AH connection
+there, which is two of the three things handbook 15.2 says the public route needs.
+Whether that AH connection satisfies "connected" is the assumption under test.
 Chain, link by link, with marks: FRONT_public-host-chain.md.
 
 ## WHERE WE ARE
@@ -63,6 +69,8 @@ account handle, bit for bit), so the public half is never bound (20.111).
   server exe   `d372d4ea562bf349`: behaviour unchanged from p2(75) (self-host search
                answer). Routes and claims are IN-MEMORY:
                RE_scripts/reset_lobby_claims.sh BETWEEN runs.
+  settings     mac `region_public_slice_set: 56` for p2(78) (Tower only). Binaries
+               UNCHANGED from p2(77) - that boot is a settings-only change.
   fork commit  p2(77) = 146a2a3; next number p2(78).
 ## ROLLBACK: p2(76) client `54c04cbfba204488` = mac .bak_p2d7_20260827_184534, rig
   .bak_p2d7_20260827_184556. This build's DEFAULTS are the old behaviour, so there
