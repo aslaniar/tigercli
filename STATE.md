@@ -16,14 +16,16 @@ tracking-data warning + peer-reservation release that ended every peer's life
 (20.112) did not fire once. L6 and L7 are VERIFIED-BY-EXECUTION.
 
 TWO BOUNDED DEFECTS REMAIN, both in code we own, and the order matters:
-1. APPLICATION-READY GATE - BUILT, p2(79), AWAITING ITS BOOT. Membership snapshots
-   and the activity-host parameter are now held until the peer sends one established
-   (non out-of-band) packet; a refusal leaves the publish owed and the existing
-   250 ms `service()` timer retries it. Verified NOT a no-op: the join request
-   arrives OUT OF BAND, so at admit time the peer has sent no established packet.
-   Its honest risk is pre-named as OUTCOME 2 of the brief - a deadlock if the peer
-   is itself waiting on the membership we hold, fixed by widening the boundary to
-   the first acknowledgement rather than abandoning the gate.
+1. APPLICATION-READY GATE - BUILT AND PROVEN (p2(79), 20.119). Held ~1.0 s then
+   released; the join now runs the WHOLE ladder in order, with the peer's parameter
+   request ANSWERED and `join result=completed`. Admits fell 13 -> 4.
+   THE ~21.5 s CYCLE SURVIVED IT, so handbook 18.5 is EXONERATED as the cycle's
+   cause. The real cause, read from our own code: `peer_transport::service` sends
+   only when it owes an ack or a resend, so after a settled join this host sends
+   NOTHING, the peer answers nothing, and the link idles out - the peer then
+   rebuilds (`rebuilt=1`) and redoes a completed join. Zero pings all boot, both
+   directions. FIXED in p2(80): a 1 s keepalive on idle CONNECTED links, awaiting
+   its boot (BOOT_BRIEF_p2-80.md, GATE PASS).
 2. L8 - ONE SESSION, MANY PEERS. Both clients named the SAME group session, and
    `claim()` rebinds its single record to whichever endpoint joined last, so they
    steal it from each other and every snapshot stays members=2 players=1.
@@ -35,22 +37,18 @@ session and neither ever appears on the other's roster. p2(74) verified WHY on b
 roles: each client aims every activity-host join at its OWN session (session id ==
 account handle, bit for bit), so the public half is never bound (20.111).
 
-## DEPLOYED (2026-08-27 19:15) - p2(79) application-ready gate, see BOOT_BRIEF_p2-79.md
-  client DLLs  `c6fc5da1f093ff52` BOTH machines (3 literals asserted post-copy).
-  server exe   `aa665c071ef68aa6`: membership + activity-host publishes gated on the
-               application-ready boundary, logged `stage=publish result=held|released`.
+## DEPLOYED (2026-08-27 19:22) - p2(80) keepalive, see BOOT_BRIEF_p2-80.md
+  client DLLs  `a604e2eed3995b3e` BOTH machines (2 literals asserted post-copy).
+  server exe   `4d966c3d8808d1c2`: p2(79)'s application-ready gate + a 1 s keepalive
+               on idle CONNECTED links (`stage=keepalive result=sent`, debug).
   settings     BOTH machines `region_public_slice_set: 56` (the Tower). Orbit (24)
-               and the initial slice set (48) untouched - p2(76) forced all three
-               and stalled on orbit. `region_public` false, `region_private` false.
-  server knobs `server.gameplay.search_self_host: true` (p2(75)).
+               and the initial slice set (48) untouched. `region_public` false,
+               `region_private` false. Server `search_self_host: true`.
                Routes and claims IN-MEMORY: reset_lobby_claims.sh BETWEEN runs.
-  fork commit  p2(79) = de4386d; next number p2(80).
-  NOTE         the rig's frozen p2(78) client was terminated (taskkill) to release
-               the DLL for deploy; its log is archived at
-               RE_output/boots/p2-78_rig_sunrise.log.
-## ROLLBACK: p2(78) client `ee8998551caf95f1` = mac .bak_p2d7_20260827_191518, rig
-  .bak_p2d7_20260827_191549; server p2(78) `d372d4ea562bf349`. Behaviour-only, no
-  rebuild: `region_public_slice_set: -1` both machines. DO NOT BOOT p2(71).
+  fork commit  p2(80) = ae7a70c; next number p2(81).
+## ROLLBACK: p2(79) client `c6fc5da1f093ff52` = mac .bak_p2d7_20260827_192208, rig
+  .bak_p2d7_20260827_192215; server p2(79) `aa665c071ef68aa6`. Behaviour-only:
+  `region_public_slice_set: -1` both machines. DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
