@@ -32,10 +32,19 @@ DONE (p2(75), DEPLOYED): `sessionSearch` now answers with a descriptor naming TH
 SERVER's gameplay endpoint, behind `server.gameplay.search_self_host` (default true,
 flip false + restart to restore the relay, no rebuild). First change in this project
 aimed at the top of the chain instead of the bottom.
-NEXT GATE: BOOT_BRIEF_p2-75.md (GATE PASS). The line that decides it is
-`ev=gameplay stage=receive` on the server - a client's first datagram to 30976,
-which has never happened. If it stays absent, first suspect is topology: the
-handbook's working setup advertised LOOPBACK 127.0.0.1; we advertise a LAN address.
+p2(75) PHASE 1 RAN (20.115): the contract HELD - first non-empty search answer this
+project has produced for a first searcher, naming our own endpoint, routable=1. And
+still zero datagrams on 30976, because the client CANCELS ITS OWN SEARCH 31 ms after
+starting it and exits matchmaking as HOST. It never evaluated our endpoint, which
+exonerates the topology suspect.
+CAUSE (handbook 16.6, ordering verified, causal link inferred): our svc-43
+configuration answer is EMPTY BUT PRESENT (2 bytes). Zero timing thresholds drive an
+immediate advertisement change, the generation changes, the active search dies.
+NEXT: encode a real configuration. The VALUES are documented (16.4: lane policy
+service-config 1, search-only 60 s, desperation 60 s, one provider-policy entry;
+bubble policy max players 9, posse 3, matchmade 6, service-config 1); the FIELD
+LAYOUT is not, and a wrong nesting is a policy-31 fatal decode (16.5). Phase 2
+paired run deliberately deferred until the configuration is real.
 Chain, link by link, with marks: FRONT_public-host-chain.md.
 
 ## WHERE WE ARE
