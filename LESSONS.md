@@ -32,6 +32,14 @@ failure mode from this front. DO NOT re-learn them.
    partial fetch). Read the reference's COMMENTS like documentation and quote
    them in claims - the fix's key ("or the Client completes against the old
    store") was sitting in an upstream comment the whole time.
+   **COROLLARY (20.114, and it cost three days).** The oracle you ALREADY HOLD
+   counts, and it is the one you will forget to open. "The only remaining unknown
+   is one protobuf shape" was carried as the honest next front for three days
+   while the answer sat in `RE_output/dumps/bungie_bullshit_guide.txt` - a
+   document THIS project extracted, digested, and listed in its own doc map.
+   Before naming anything an open RE question, grep the local corpus (dumps/,
+   claims/, community/) for it. U1 said fetch the reference; it now also says
+   read the references you have. Strengthens U1, replaces nothing.
 2. **INSTRUMENT BEFORE INTERVENTION.** When a behavior is unexplained, the next
    move = the discriminator instrument (the kind hook), never another fix
    guess. Design the instrument the moment the question is named; NO fix rides

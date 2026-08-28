@@ -103,28 +103,37 @@ false on the mac so the two machines are comparable. Settings-only, no rebuild.
 SETTLED: L4 is the client's own choice, on both roles. Six deciding functions are
 named by RVA and .pdata bounds; the chooser is fn 0x140C0CF30 (6938 B).
 
-CLOSED BY 20.113 - THE PIPELINE IS COMPLETE, TOP TO BOTTOM. The activity client
-does not trust BAP membership. It enumerates the game's OWN managed-session member
-table (bitmask at container+0x30, stride 0x120, reached from the session object via
-its id at +0x1C7C0, gated on session state 6..9 at +0x1AEF8) and keeps only members
-whose state field at +0x1758 reads 10 = ESTABLISHED. Those become tracking-table
-entries; everything else is warned about and released (20.112).
+CLOSED BY 20.113 + 20.114 - THE CHAIN IS COMPLETE FROM THE SEARCH ANSWER DOWN.
 
-So the requirement for L9 - two guardians visible - is not a wire shape. It is:
-THE PEER MUST REACH MEMBER STATE 10 IN THE CLIENT'S OWN MANAGED SESSION. Road C is
-the only road that gets there, and our group host already models the ladder
-(ready -> established). The gap is unchanged and now provably the ONLY gap: no
-client has ever dialed the gameplay endpoint (L6).
+20.113: the activity client does not trust BAP membership. It walks the game's OWN
+managed-session member table (reached via the session id at +0x1C7C0, gated on
+session state 6..9 at +0x1AEF8) and keeps only members whose state reads 10 =
+ESTABLISHED. Everything else is warned about and released (20.112).
+
+20.114 - THE UPSTREAM CAUSE: the client searches for a session ONCE at
+setup:matchmaking and takes the answer as final. We answer it with the OTHER
+CLIENT's Steam-identity blob (or with nothing, if it searched first - the relay is
+order-dependent by construction), pointing it at a Steam networking road our shim
+stubs and that has never run. So no association forms, no client dials 30976, no
+peer reaches ESTABLISHED, and the release at the bottom is inevitable.
+The protobuf nesting was never the gap - our encoder already matches the handbook's
+documented shape exactly. The gap is WHICH HOST we name.
+
+THE FIX IS WRITTEN AND UNUSED: `build_search_descriptor`
+(matchmaking_route.cpp:185) builds a descriptor naming THIS SERVER's gameplay
+endpoint. Grep returns exactly one hit - its definition. Serving it is the first
+change in this project aimed at the top of the chain instead of the bottom.
 
 REMAINING, in order:
-1. **L6, and it is now the whole job**: make one client dial 30976 and complete the
-   ladder to established. The chain in 20.113 is the checklist; `ev=jr
-   fn=add_candidates` naming a FOREIGN xuid is the single line that proves it.
-2. Read how far our group host actually drives the ladder for a real peer before
-   spending that boot (static, fork-side).
-3. The writer of `[rdi+0xC]` (PRIVATE/PUBLIC) - now likely a SYMPTOM of 1, not a
-   cause. Deprioritised.
-4. fn 0x140C0CF30, the target chooser - same, deprioritised behind 1 and 2.
+1. Serve `build_search_descriptor` for sessionSearch, in place of / ahead of the
+   foreign relay. Small and local.
+2. Then the first boot that can succeed. Verdict line already deployed:
+   `ev=jr fn=add_candidates` naming a FOREIGN xuid.
+3. If the client still does not dial: the handbook's working topology advertised
+   LOOPBACK 127.0.0.1 and ours advertises a LAN address. Untested difference,
+   first suspect.
+4. Deprioritised, now likely symptoms: the `[rdi+0xC]` PRIVATE/PUBLIC writer, and
+   the target chooser at 0x140C0CF30.
 
 RENDER DEATH (parked, render lane): follows CO-PRESENCE, not entry order - the mac
 entered first and died when the rig arrived; 20.110 saw the reverse. Game stays

@@ -21,9 +21,17 @@ on 30976, ever). Road C - the SERVER as group-session host, both clients its mem
 - is therefore not the cheapest road but the ONLY one. Our group host already models
 the ready->established ladder; A (peer-native Steam rendezvous) and B (in-process
 injection) both dead-end at the same ladder.
-NEXT: static, fork-side - how far does our group host drive the ladder for a real
-peer? Then the first boot that matters: a client dialing 30976. The verdict line is
-already deployed - `ev=jr fn=add_candidates` naming a FOREIGN xuid.
+*** 20.114 FOUND THE TOP OF THE CHAIN. *** The client searches for a session ONCE
+and takes the answer as final. We answer with the OTHER CLIENT's Steam-identity
+blob - a road our shim stubs and that has never run - or with nothing at all if it
+searched first. The protobuf nesting was never the gap (our encoder already matches
+the handbook's documented shape); WHICH HOST WE NAME is. `build_search_descriptor`,
+which builds a descriptor naming THIS SERVER's gameplay endpoint, is DEAD CODE -
+grep returns only its definition.
+NEXT: serve it for sessionSearch, then the first boot that can succeed. Verdict line
+already deployed: `ev=jr fn=add_candidates` naming a FOREIGN xuid. If the client
+still does not dial, first suspect is topology: the handbook's working setup
+advertised LOOPBACK 127.0.0.1; we advertise a LAN address.
 Chain, link by link, with marks: FRONT_public-host-chain.md.
 
 ## WHERE WE ARE
