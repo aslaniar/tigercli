@@ -32,21 +32,21 @@ DONE (p2(75), DEPLOYED): `sessionSearch` now answers with a descriptor naming TH
 SERVER's gameplay endpoint, behind `server.gameplay.search_self_host` (default true,
 flip false + restart to restore the relay, no rebuild). First change in this project
 aimed at the top of the chain instead of the bottom.
-p2(75) PHASE 1 (20.115): the search answer HELD - first non-empty answer to a first
-searcher, naming our own endpoint, routable=1 - and the client still cancelled its
-own search 31 ms later and exited matchmaking as HOST. It never evaluated our
-endpoint, which exonerates the topology suspect.
-20.116 RETRACTS A READING WE CARRIED THREE TIMES: `region_private.cpp` returned early
-on a false native answer BEFORE reporting, so "zero decision lines" was read as "the
-site is never reached" (20.82, repeated by 20.111 and 20.115). The site IS reached
-and THE GAME'S OWN ANSWER IS ALREADY NOT PUBLIC. Instrument fixed; both branches now
-report `native=` and `answer=` separately.
-NEXT GATE: BOOT_BRIEF_p2-76.md (GATE PASS) - `client.region_public` forces that input
-PUBLIC at the transition-starter call, which the handbook 15.3 records as the change
-that started the citizen and search path ("change the input at the exact native
-decision point"). Pre-named for the next boot, from handbook 15.2: if the client
-reports `public_activity_host_mismatch`, the advertisement host identifier and the
-`activityHost` group parameter disagree - a pair this project has never checked.
+p2(76) RAN (20.117) AND THE PREDICTION HELD: `stage=region result=forced native=0
+answer=1 slice_set=24`. The site IS reached - refuting 20.82 and the two findings
+that cited it - and the game's own answer IS "not public". THE REGION WENT PUBLIC
+FOR THE FIRST TIME, and the client named its wait: "Region 'PUB24.24' is PUBLIC but
+not yet connected; the slice-set-switch task is not possible yet."
+THE FORCE WAS TOO BROAD: the first transition through that point is ORBIT, so orbit
+was forced public, never completed, and the boot stalled before allocating any
+activity host (black loading loop, game alive). Scoped now by
+`client.region_public_slice_set` (int, -1 = blanket switch).
+NOTE the wait is PASSIVE: while holding, the client initiated no search, no
+matchmaking, no datagram. Whatever sets "connected" is UPSTREAM of the search. Do
+not assume it is the activity-host bind without reading it.
+NEXT GATE: BOOT_BRIEF_p2-77.md (GATE PASS) - a no-behaviour-change harvest boot to
+read the slice-set index of every transition on the way to the Tower, because the
+fixed instrument now reports every decision and no boot has ever had that map.
 Chain, link by link, with marks: FRONT_public-host-chain.md.
 
 ## WHERE WE ARE
@@ -55,18 +55,18 @@ session and neither ever appears on the other's roster. p2(74) verified WHY on b
 roles: each client aims every activity-host join at its OWN session (session id ==
 account handle, bit for bit), so the public half is never bound (20.111).
 
-## DEPLOYED (2026-08-27 18:19) - p2(76) public region, see BOOT_BRIEF_p2-76.md
-  client DLLs  `54c04cbfba204488` BOTH machines: p2(75) + `client.region_public`
-               (forces the starter's public-flag input true at that ONE call site)
-               + the region-decision instrument fix. `region_public: true` read back
-               from BOTH settings files.
-  server exe   `e9b452316976c66c`: unchanged behaviour from p2(75) (self-host search
-               answer, `stage=descriptor where=serve_self`). Routes and the claim
-               table are IN-MEMORY: RE_scripts/reset_lobby_claims.sh BETWEEN runs.
-  fork commit  p2(76) = ab1baad; next number p2(77).
-## ROLLBACK: p2(75) client `d703d6472914f3dc` = mac .bak_p2d7_20260827_181854, rig
-  .bak_p2d7_20260827_181901; server p2(75) `ab26ade01c671839`. Behaviour-only, no
-  rebuild: `region_public: false` both clients, relaunch. DO NOT BOOT p2(71).
+## DEPLOYED (2026-08-27 18:45) - p2(77) slice-set harvest, see BOOT_BRIEF_p2-77.md
+  client DLLs  `ee8998551caf95f1` BOTH machines: p2(76) + `region_public_slice_set`
+               (int, -1 = use the blanket switch) so the public force can name ONE
+               transition instead of all of them. Settings on both machines are the
+               PRE-p2(76) values: `region_public` false, slice set -1.
+  server exe   `d372d4ea562bf349`: behaviour unchanged from p2(75) (self-host search
+               answer). Routes and claims are IN-MEMORY:
+               RE_scripts/reset_lobby_claims.sh BETWEEN runs.
+  fork commit  p2(77) = 146a2a3; next number p2(78).
+## ROLLBACK: p2(76) client `54c04cbfba204488` = mac .bak_p2d7_20260827_184534, rig
+  .bak_p2d7_20260827_184556. This build's DEFAULTS are the old behaviour, so there
+  is nothing to roll back behaviourally. DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
