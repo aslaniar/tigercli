@@ -3,7 +3,24 @@
 STATUS: live (2026-08-27 ~10:2x; prior text = git history.
 FINDINGS holds the dated entry stack; this file holds verdict + deployed + next.)
 
-Updated: 2026-08-27 ~18:3x.
+Updated: 2026-08-28 ~14:0x. *** CO-LOCATION ACHIEVED (FINDINGS 20.140). *** Both
+clients sit in ONE public Tower instance: identical session-description
+D9AED900:EBB92CF2, region PUB56.56, AH 9EAA3001:00200003, both 'public AH instance
+ready'; each names the OTHER's xuid (every prior run read PEER=0); peer channel
+reached connected4 and HELD (0 owner-loss, vs 63 teardowns in p2(88)); 0 errors and
+1 rebind on BOTH machines. Deployed p2(89)+capacity: `2997d2810f11b1ab`.
+THREE DEFECTS CLOSED TONIGHT, in order: the server never answered the client's SECOND
+BAP link (GAHN starvation - one root cause behind all three restart errors, 20.137);
+the source for that link must be per-ACCOUNT, keyed on the BAP account slot, since the
+two links do NOT share a member key (same identity blob, windows [0..7] vs [5..12],
+20.138); and kBapConnectionCount was 4 while a client needs 3 links, a ceiling only
+survivable while the third link kept dying (20.139).
+REMAINING: **L9 RENDER, UNBUILT** - nothing replicates another player's character
+records (family-0/family-3), so the shared Tower reads empty. Co-location and render
+are now cleanly separated for the first time; every earlier render observation was
+confounded by the clients being in different instances.
+NEXT: a paired dwell with BOTH clients rendering (the mac was black-screened for the
+whole 20.140 run, so the render verdict rests on the rig's view alone), then L9.
 
 ## THE VERDICT (20.113-20.122; full story in HANDOFF_2026-08-27_ROAD-C.md)
 THE CLIENT DOES NOT TRUST BAP MEMBERSHIP. It walks its OWN managed-session member
@@ -20,39 +37,46 @@ gate publication on application-ready (p2(79), 20.119 - handbook 20.4 independen
 confirms that order).
 
 TWO THINGS REMAIN.
-1. PARAMETER 21 `publicSessionReservations`. Every ~22.8 s the peer rebuilds and
-   redoes a completed join. Our answer for 21 is a clear root bit ("no value, keep
-   your own") because the body layout is unrecovered; the client then sets its public
-   bubble reservation to 0 SLOTS and recycles. Its request body is EMPTY (20.121) -
-   it is ASKING us for the value.
-   NEXT (static, no boot, ANCHORED by 20.122): registry builder fn 0x1417A9820
-   (caller 0x14178CD4D), found from `public-session-reservations` @ 0x141CA8648. It
-   writes index/name/class markers only - 21, 23, 24 carry a marker (+0x24 = 2) the
-   others lack. THE GRAMMAR IS NOT THERE: every record shares one object at
-   [rbx+0xB958] stored at rec+0x18, and that is where a codec or vtable lives. Read
-   it, then encode the body. DO NOT GUESS - handbook 16.5 makes a wrong nesting a
-   policy-31 fatal decode and p2(80) already cost a boot to a guess (20.120).
-2. L8 - ONE SESSION, MANY PEERS. Both clients name the SAME group session, and
-   `claim()` rebinds its single record to whichever endpoint joined last, so they
-   steal it from each other and every snapshot stays members=2 players=1.
-   `kSnapshotMemberCount = 2` is where it starts; the three constraints are already
-   in group_host.cpp's own comments.
+1. THE ROW DROP - RESOLVED 2026-08-28 (FINDINGS 20.129, p2(86) 4b2bff83c05f4bb9).
+   The joinId stand-in in the machineId field WAS the drop's mechanism. With the
+   real ids (decoded from the join request's identity table, 20.128) published
+   behind `publish_join_machine_ids: true`, BOTH clients hold all three members
+   at _established with both players (`peers valid: 0x7, players valid: 0x2/0x3`
+   steady on both). Remaining before two visible guardians: instance
+   co-location + the parked co-presence render class (L9).
+2. PARAM 21 STAYS CLEAR-ROOT (verify verdict UNSETTLED: 9-byte grammar found, framing
+   bit gated on the VMP-suspected envelope parser; writer unchanged - claims/
+   param21-body-grammar.md + param21-msg38-parser.md).
+FIXED TONIGHT (2026-08-28, FINDINGS 20.121-20.127 + addenda): the resolver answered
+   EVERY lookup with the server's address (the rig joined believing it WAS the host -
+   20.127); the jr reserve detour wedged network_send on the rig deterministically
+   (join_roster_observer now FALSE on both machines - T1 falsified the ABI exoneration).
+   Both defects fixed/bypassed by settings or DLL p2(84); netprobe ships in the DLL.
 
-## WHERE WE ARE
-Both clients reach the Tower and run the retail chain; each hosts its own private
-session and neither ever appears on the other's roster. p2(74) verified WHY on both
-roles: each client aims every activity-host join at its OWN session (session id ==
-account handle, bit for bit), so the public half is never bound (20.111).
+## WHERE WE ARE (rewritten 08-28; the old p2(74)-era text is superseded by 20.131/132)
+Both clients reach the Tower, share ONE group session (members=3 players=2, peers
+valid 0x7 both sides) and ONE activity host (00200003, both EST-Y). What is still
+missing is one message: the server never speaks to 00200003, so the public activity
+client is deaf and the public bubble reserves 0 peer slots (20.132).
 
-## DEPLOYED (2026-08-27 20:3x) - p2(81) parameter-body capture, see BOOT_BRIEF_p2-81.md
-  client DLLs  `3fa02bb785a1cacc` BOTH machines. server exe `72177ecd4083e6b0`.
-  Behaviour identical to p2(80) plus one log line on a copied reader.
-  settings     BOTH machines `region_public_slice_set: 56` (the Tower); orbit (24)
-               and initial slice set (48) untouched. Server `search_self_host: true`.
-               Claims IN-MEMORY: reset_lobby_claims.sh BETWEEN runs.
-  fork commit  p2(81); next number p2(82).
-  NOTE         p2(80)'s keepalive is a PROVEN NO-OP (20.120) - it fired zero times.
-               It is left in place, inert; do not cite it as a fix.
+## DEPLOYED (2026-08-28 ~14:0x) - p2(89) + BAP capacity; CO-LOCATION ACHIEVED
+  server exe   p2(89) `2997d2810f11b1ab` (d721435): serves the client's SECOND BAP link
+                (`OUT GAH`) from that ACCOUNT's private session, and kBapConnectionCount
+                4 -> 12 so two clients can each hold their three links. BOOT 2026-08-28
+                ~14:0x: both clients in ONE public Tower instance, each naming the other's
+                xuid, peer channel held, 0 errors / 1 rebind on BOTH (FINDINGS 20.140).
+                settings.json gameplay: activity_host_region_bound TRUE,
+                publish_join_machine_ids TRUE, activity_public_row_membership_bodies
+                65535 (backup .bak_p2d89_preboot_20260828). Prior: p2(87)
+                `966c66bc00d96a6b` (6122885) killed the activity-host churn (20.131).
+  client DLLs  `4831be3cb85db735` BOTH machines (p2(84), unchanged). settings BOTH:
+                join_roster_observer FALSE, slice_set 56.
+  fork commit  p2(89) = d721435 (the whole 2026-08-28 lane; p2(88)'s intermediate
+                states were deployed and booted but not committed separately - their
+                defects were fixed before the p2(89) deploy). Next number p2(90).
+  ROLLBACK: server p2(86) `4b2bff83c05f4bb9` (.bak_p2d6_20260828_095725 pair) or
+            switch false; server p2(82) `fb8aaf0` (.bak_p2d6_20260828_010113).
+            DO NOT BOOT p2(71).
 ## ROLLBACK: p2(80) server `4d966c3d8808d1c2`, client `a604e2eed3995b3e`.
   DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
@@ -117,6 +141,10 @@ RETIRED BY 20.113 (the whole class, not one lead): every attempt to make a peer
   - Logs: server RE_output/s1_accept/Sunrise/logs/sunrise.log; clients
     <game>/Sunrise/logs/sunrise.log. `bash RE_scripts/boot_verdict.sh` reads both
     machines + server and rules mechanically.
+  - Log DIGGING (2026-08-27): index with `logindex.py --out <name> server=<path>
+    mac=<path> rig=<path>`, query with `logq.py <db> --ev/--stage/--grep
+    [--aligned]` (full-width, file:line-cited). Raw grep -a/sed = one-line
+    peeks only; a frozen capture dir can be indexed as-is.
   - Rig: ssh master ~/.ssh/cm-rig to rasla@192.168.1.136 (password only to REOPEN);
     ICMP is firewalled so `ping` is NOT an aliveness test - the socket is. Sleep
     disabled on AC. Game dir C:\Users\rasla\...\destiny-preservation\dcv build\bin\x64\.

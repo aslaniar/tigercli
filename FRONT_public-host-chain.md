@@ -8,6 +8,57 @@ publishes one membership snapshot naming both. Chosen over A (peer-native Steam
 rendezvous) and B (in-process injection) because the server half is ~80% built and
 has never been switched on. See STATE "ROADS" and 20.110 for the A/B costs.
 
+## *** CHAIN CLOSED THROUGH CO-LOCATION, 2026-08-28 ~14:0x (FINDINGS 20.140) ***
+
+L1-L8b and co-location are ALL verified-by-execution. Both clients hold one public
+Tower instance (same session-description, region and AH; both 'public AH instance
+ready'), each names the other's xuid, the peer channel holds, and both machines run
+0 errors / 1 rebind. This front's original question - what must be true for two
+clients to share one host - is ANSWERED.
+
+**L9 RENDER is now the sole open link and the front of the project.** It is UNBUILT,
+not broken: nothing replicates another player's character records (family-0/family-3),
+so the shared Tower renders empty. Everything below this line is the historical record
+of how the chain was closed; read it for mechanism, not for what is open.
+
+## STATE OF THE CHAIN, 2026-08-28 ~12:xx (read this before the table below)
+
+L1-L8 are CLOSED verified-by-execution: one group session (members=3, players=2,
+peers valid 0x7 both sides) and one shared activity host (00200003, both clients
+EST-Y). The table's L8 cell is stale - the row drop it describes was fixed at
+20.129 and co-location landed at 20.131.
+
+**L8b - CLOSED 2026-08-28 by p2(88), verified-by-execution (20.133).** The shared
+activity host is addressed and acknowledged: `wire_snapshot session=...00200003`,
+`membership_ack` on that session, public AC `MEM-0 -> MEM-9`, `'ctng' -> 'cntd' due
+to 'public AH instance ready'`, `error_connecting_to_bap` 67 -> 0 solo. It was NOT
+the last link: see L8c.
+
+**L8c (NEW, the open front): the public bubble reservation must ask for a NON-ZERO
+peer slot count.** verified-by-execution as the defect (20.134): with BOTH machines
+in the Tower, `Updating public bubble reservation peer request ... to '0' slots`
+fired 34/34, so the peer channel still `lost all owners` (18x) and died. Membership
+is necessary, not sufficient. Read the PAH tabulated-region data in the group
+membership body - `Region ... PAH tabulated data now includes us` has never once
+named a peer. Scope it statically before any build.
+
+The original L8b defect text, kept because the chain marks below still cite it
+(20.132):
+`stage=wire_snapshot` names sessions 00200001 and 00200004 only - never 00200003,
+which is the session both public activity clients joined. Consequence chain, each
+step measured on the p2(87) capture: public AC `MEM-0` (0 `Acknowledged membership`
+lines vs 91 on the private AC) -> `Updating public bubble reservation ... to '0'
+slots` 125/125 -> the peer channel `lost all owners who want the channel to stay
+open` -> `failed to connect` -> `error_connecting_to_bap` 67x.
+The peer channel itself is NOT a link in this chain: it associates, secures, and
+reaches `connected4`. 20.131's DTLS reading is retracted in 20.132.
+The publisher exists (`activity_keepalive_push.cpp:149`, switch
+`activity_public_membership` ON in the deployed settings); the gate in front of it,
+`activityRole == publicTarget`, is unreachable because `bindsPublicTarget` requires
+`parsed.sessionId != request.accountHandle` and a client always addresses the AH it
+joins. `stage=bind result=public_target`: 0 lines, every boot. Lane = re-key that
+predicate off the region-bound host row.
+
 ## THE CHAIN, LINK BY LINK (L16 marks on every link)
 
 | # | Link | Mark | Evidence |
@@ -15,11 +66,11 @@ has never been switched on. See STATE "ROADS" and 20.110 for the A/B costs.
 | L1 | Server binds the gameplay UDP endpoint | verified-by-execution | `ev=gameplay stage=endpoint result=ok mode=embedded port=30976` t=137; advertised 192.168.1.164 (settings server.gameplay) |
 | L2 | Server allocates an activity-host session per (group, region) | verified-by-execution | `stage=activityhost result=allocated session=0x9EAA3001002000NN group=... generation=N held=N` x5 |
 | L3 | Server writes the citizen advertisement (128-B join descriptor: address/port/machineId) into the type-12 region block, for BOTH sessions | verified-by-execution | `stage=peer_advert result=built own_region=48 peer_region=56 own_citizen=1 peer_citizen=1`; delivery gap closed at 20.74.4 |
-| L4 | **Client sends an svc-8 activity JOIN naming the ADVERTISED host session** | **verified-by-execution (p2(74), 20.111) - FIRST FAILING LINK** | p2(74) measured it directly on BOTH machines: `stage=join_target result=own session==handle` bit for bit, zero `result=advertised`, zero `public_target`. The client is not refused - it never asks. Every join the client sends names its OWN allocated session: client logs `AH->9eaa300100200004`, which is this account's own `activityhost result=allocated` id |
+| L4 | **Client sends an svc-8 activity JOIN naming the ADVERTISED host session** | **verified-by-execution (p2(78)) - CLOSED** | p2(74) measured it directly on BOTH machines: `stage=join_target result=own session==handle` bit for bit, zero `result=advertised`, zero `public_target`. The client is not refused - it never asks. Every join the client sends names its OWN allocated session: client logs `AH->9eaa300100200004`, which is this account's own `activityhost result=allocated` id |
 | L5 | Server binds that link as the public half | verified-by-reading, blocked by L4 | `activity_message_route.cpp:230-246` `namesAdvertisedHost` -> `plan.bindsPublicTarget`; `bap_connection_publication.cpp:79-88` sets role publicTarget and logs `stage=bind result=public_target` |
-| L6 | Client, now public, dials 30976: association -> DTLS -> peer transport connect/establish -> group join | verified-by-reading, never reached | full stack present under `src/server/gameplay/`; ZERO datagrams have ever arrived (event census below) |
-| L7 | Group host publishes the membership snapshot | verified-by-reading, never reached | `group_host.cpp:229 publish_snapshot()` builds host + 1 peer + 1 player, with the member-state ladder and state-replica hash |
-| L8 | Widen the snapshot to host + 2 peers + 2 players | not built | `kSnapshotMemberCount=2`, `kPeerMemberIndex=1`, `kPeerPlayerSlot=0`; records keyed by sessionId, and `claim_owned`/`owned_elsewhere` refuse a second endpoint on one session BY DESIGN |
+| L6 | Client, now public, dials 30976: association -> DTLS -> peer transport connect/establish -> group join | verified-by-execution (p2(78), and 2026-08-28 on BOTH machines after the resolver + jr-observer fixes) | full stack present under `src/server/gameplay/`; ZERO datagrams have ever arrived (event census below) |
+| L7 | Group host publishes the membership snapshot | verified-by-execution (p2(78)+; accepted solo on both machines) | `group_host.cpp:229 publish_snapshot()` builds host + 1 peer + 1 player, with the member-state ladder and state-replica hash |
+| L8 | Widen the snapshot to host + 2 peers + 2 players | **verified-by-execution server-side (2026-08-28): 3-member snapshots published 115/135x, both records held, both players accepted - BUT each client's table keeps HOST + ITSELF (deterministic symmetric row drop, 2/2 runs) -> different spawn instances -> they cannot see each other. The drop is CLIENT-side consumer behavior; prime suspect = machineId stand-in (joinId) vs the real ids in the join request's undecoded address table. NEXT LANE.** | claims/l8-multi-peer.md + FINDINGS 20.127 addenda 1-3 |
 | L9 | Both guardians RENDER for each other | not built, separate lane | nothing replicates another player's character records (family-0/family-3) - FINDINGS_2026-08-22 item 5 |
 
 ## THE EVENT CENSUS THAT NAILS L6 (last boot, both logs, debug on)
@@ -121,12 +172,13 @@ changes in code we own:
    present in the SOLO boot too). We have no app-ready concept anywhere under
    server/gameplay/. 18.6's corollary applies: an acknowledgement is not proof of
    dispatch. DO THIS FIRST - a stable single peer is the control for step 2.
-2. **L8: one session, many peers.** Both clients named the SAME group session, and
-   `claim()` rebinds the single record to whichever endpoint joined last, so they
-   steal it from each other and every snapshot stays members=2 players=1. `Admitted`
-   needs an endpoint LIST, `publish_snapshot` needs host + N peers with N players,
-   and each peer's own entry must carry its own join id and its own address blob
-   echoed byte-exact (group_host.cpp's own comments state both).
+2. **L8: one session, many peers.** DONE IN CODE (20.124), awaiting execution. Both clients
+   named the SAME group session, and the old `claim()` rebound its single record to whichever
+   endpoint joined last, so they stole it from each other and every snapshot stayed members=2
+   players=1. Now: records keyed (session, endpoint), per-recipient complete snapshots with a
+   composition-change refresh (the consumer clears and rebuilds its table from each snapshot),
+   endpoint-disambiguated transport, byte-identity regression vs the proven solo encoder, and
+   measured + static_asserted body bounds. See claims/l8-multi-peer.md.
 
 DEPRIORITISED, now likely symptoms rather than causes: the `[rdi+0xC]` PRIVATE/PUBLIC
 writer, the target chooser at 0x140C0CF30, and the empty-but-present matchmaking
