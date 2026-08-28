@@ -44,6 +44,7 @@ against" rule.
 | RE_scripts/merge_logs.py / merge_timeline.py | unified timeline across client+server logs; N-source (2026-08-27: typeless-client grammar fix, server-pivot default, size-window pairing w/ distinct-size guard) | --selftest: 20 checks incl. typeless-fixture phase |
 | RE_scripts/live_console.py / retail_view.py | Layer-1 triage windows on live log streams |
 | RE_scripts/rig_dll_helper.py | remote-thread memory reads on the rig client |
+| `tcpdump -i en0 -s0 -U -w X 'udp port 3097 or 3074 or 3075 or 30976'` | THE PEER-CHANNEL INSTRUMENT (20.144). Client-to-client traffic never reaches the server and the client log records only counts, so a pcap is the ONLY way to see it. No sudo: this user is in `access_bpf`. FILTER ON BOTH PORTS (`src port 3097 and dst port 3097`) - 3097->3074/30976 are not the peer channel. Steady state is DTLS-encrypted; read it by SIZE and CADENCE, not contents |
 
 ## Deploy / boot pipeline (canonical - do not fork deploys either)
 

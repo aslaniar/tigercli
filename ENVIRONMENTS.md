@@ -110,3 +110,49 @@ Both cost minutes and look like a crash. Neither is one.
 
 RULE: one long-running or ssh-touching action per call, and re-verify state after any
 interrupt rather than assuming the call did nothing.
+
+
+## OPERATIONAL FACTS (moved from STATE.md 2026-08-28, doc-governance diet)
+STATE's enforced shape is verdict + deployed + next gate + reading order; platform,
+deploy, log and cross-machine specifics belong here per the AGENTS.md router.
+  - Fork repo: RE_build/Sunrise-fork-inventory, branch upstream-gameplay-scoped.
+    HISTORY NOTE: TWO COMMITS CLAIM p2(39) (f2d0995 Claude, 9639aa4 opencode).
+    Next number continues upward; do not renumber. Deployed hashes live in
+    DEPLOYED above, not here; build tree matches deployed.
+  - Build: cd RE_build/Sunrise-fork-inventory/build && cmake . && make -j8. BOTH
+    targets take EXPLICIT source lists in Sunrise/CMakeLists.txt, NOT globs - a new
+    .cpp must be added there or it silently fails to link (bit c2764aa and p2(67)).
+  - Deploy server: RE_scripts/deploy_p2d6_gameplay.sh (gates inside; asserts
+    deployed==built; restamps cache - old exe+cache pairs are inseparable). Client:
+    deploy_client_dll.sh <mac|rig> "<literals...>" - hash + literal assert, never skip.
+  - NEVER launch the server or deploy to the rig chained with other work in one shell
+    call: both hang holding a pipe AFTER succeeding, and an interrupt then leaves the
+    server dead or the machines on different builds (ENVIRONMENTS.md "SHELL").
+  - Server START (after deploy): nohup bash mac-port/launch-server-macos.sh (GPTK
+    wine 7.7, SunriseServer prefix). Verify: lsof TCP 8443/30975/8099 + UDP 3074, and
+    a crafted nat probe gets a 16B reply (snippet in HANDOFF_OPENCODE_TO_CLAUDE).
+    8443 TLS is BROKEN (SEC_E_UNSUPPORTED_FUNCTION) - do not route anything new
+    through it. SignOn rides in-process consume_http, which answers ONLY /SignOn;
+    everything else that must reach the server uses the plaintext admin listener
+    8099 (20.99). Presence store is IN-MEMORY: restart wipes stored keys.
+  - CLIENT LAUNCH: user does it via WHISKY GUI (bottle D1FB4A66-...). A CLI launch
+    does NOT wedge - it stops at bootflow:start task ENUM(0), which is the
+    press-to-start gate, because nothing presses a key (20.99 item 5; a good boot
+    shows ENUM(0) completing after ~15.7 s of human input). Nothing is wrong with
+    the binary or the prefix. Autonomous boots would need synthesized input.
+  - Logs: server RE_output/s1_accept/Sunrise/logs/sunrise.log; clients
+    <game>/Sunrise/logs/sunrise.log. `bash RE_scripts/boot_verdict.sh` reads both
+    machines + server and rules mechanically.
+  - Log DIGGING (2026-08-27): index with `logindex.py --out <name> server=<path>
+    mac=<path> rig=<path>`, query with `logq.py <db> --ev/--stage/--grep
+    [--aligned]` (full-width, file:line-cited). Raw grep -a/sed = one-line
+    peeks only; a frozen capture dir can be indexed as-is.
+  - Rig: ssh master ~/.ssh/cm-rig to rasla@192.168.1.136 (password only to REOPEN);
+    ICMP is firewalled so `ping` is NOT an aliveness test - the socket is. Sleep
+    disabled on AC. Game dir C:\Users\rasla\...\destiny-preservation\dcv build\bin\x64\.
+  - Identities: mac steamId ...861 / xuid ...ec5 (DEFAULT, no key in settings.json);
+    rig ...862 / ...ec6 (authored). Member keys are BOOT-SCOPED; never hardcode.
+  - Mac: /usr/bin/python3 for DB/sqlite (miniconda's is broken); plain `python3` for
+    capstone. Static RE: destiny2_unpacked_full.exe, base 0x140000000, .text raw 0x600
+    va 0x1000, .pdata raw 0x20B9A00 for exact function bounds. LOG STRINGS ARE NOT IN
+    THE BINARY - use caller capture (LESSONS 18c), not string xrefs.
