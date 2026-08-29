@@ -1,35 +1,40 @@
 # STATE - living snapshot
 
-STATUS: live (2026-08-28 ~15:3x; prior text = git history. FINDINGS holds the dated
+STATUS: live (2026-08-28 ~21:3x; prior text = git history. FINDINGS holds the dated
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-28 ~14:0x. *** CO-LOCATION ACHIEVED (FINDINGS 20.140). *** Both
-clients sit in ONE public Tower instance: identical session-description
-D9AED900:EBB92CF2, region PUB56.56, AH 9EAA3001:00200003, both 'public AH instance
-ready'; each names the OTHER's xuid (every prior run read PEER=0); peer channel
-reached connected4 and HELD (0 owner-loss, vs 63 teardowns in p2(88)); 0 errors and
-1 rebind on BOTH machines. Deployed p2(89)+capacity: `2997d2810f11b1ab`.
-THREE DEFECTS CLOSED TONIGHT, in order: the server never answered the client's SECOND
-BAP link (GAHN starvation - one root cause behind all three restart errors, 20.137);
-the source for that link must be per-ACCOUNT, keyed on the BAP account slot, since the
-two links do NOT share a member key (same identity blob, windows [0..7] vs [5..12],
-20.138); and kBapConnectionCount was 4 while a client needs 3 links, a ceiling only
-survivable while the third link kept dying (20.139).
-REMAINING: **L9 RENDER, UNBUILT** - nothing replicates another player's character
-records (family-0/family-3), so the shared Tower reads empty. Co-location and render
-are now cleanly separated for the first time; every earlier render observation was
-confounded by the clients being in different instances.
-L9 SCOPED (20.141-20.144): the static half - what the other guardian LOOKS like - is
-absent from every carrier measured. NOT on the peer channel (pcap: ~26 opaque bytes
-per tick at 4 Hz, too small by an order of magnitude); NOT reachable by subscribing to
-the peer's root (no root->account resolution exists anywhere); NOT produced by the
-physics plane (never runs, and "produces no wire output either way" - do NOT flip
-`physicsHostSession`). TARGET CHOSen: the group-session player row has a 264-byte
-identity/profile slot and `write_player_delta` writes `kPlayerProfileAbsent` on EVERY
-row. NEXT ACTION = source those 264 bytes before writing them (do not guess the
-layout): `tcpdump ... tcp port 30975` during a CLIENT-HOSTED session, which needs no
-code. Full plan + operational notes: HANDOFF_2026-08-28_L9-RENDER.md.
+Updated: 2026-08-28 ~21:3x. *** BOTH CLIENTS RUN THE IDENTICAL LADDER AND BOTH STOP ***
+*** AT THE SAME PLACE: THE PUBLIC SLICE-SET TRANSITION NEVER TAKES ITS SWITCH TASK. ***
+*** p2(93) DEPLOYED, AWAITING BOOT. ***
+Both clients reach `activity:in_world`, citizen-join PUB56.56, finish precaching slice-set
+56 - then sit forever with NO slice-set-switch task, each still rendering its own private
+Tower (PRV48). Cause: the host published `region=56 slice=48` on all 494 roster lines; a
+private/orbit transition self-simulates its switch-now phase, the public `normal_z_leg`
+does not and waits for an authority that kept saying 48. This is 20.132's "one missing
+message", located. 20.153 RETRACTS the p2(90) rig-vs-mac asymmetry (the ladders are
+identical; the `peer-properties` reading was a misread of whose steamid is in the line) and
+retires the member flags (20.152's mapping is unproven, both its experiments void).
+NEXT GATE: boot p2(93); read `stage=roster` for `region=56 slice=56`, then the client logs
+for `PUB56.56 ... is being assigned the slice-set-switch task`.
+READ FIRST: FINDINGS 20.153, then BOOT_BRIEF_p2-93.md. The EVENING_GATE-REVIEW handoff is
+SUPERSEDED BY 20.153 (its lead rests on the retracted asymmetry; its deployed-state and
+tooling sections still hold).
+
+## DEPLOYED (2026-08-28 ~21:2x) - p2(93), slice_follows_region ON (the contract under test)
+  server exe   p2(93) `50d1f4cccbad0a56` (fork 9fd3134): the published slice set follows the
+                client's REPORTED region instead of the destination's arrival bubble, behind
+                activity_slice_set_follows_region=TRUE (FINDINGS 20.153). LIVE and required:
+                p2(90) activity_region_survives_churn=TRUE (region seed; 20.147/20.148).
+                activity_member_setup_flags=FALSE (p2(91)/p2(92) in tree, switched off -
+                20.152/20.153). Settings echo verified at launch:
+                `region_bound=1 join_machine_ids=1 public_row_bodies=65535
+                region_survives_churn=1 member_setup_flags=0 slice_follows_region=1`.
+                Settings backup .bak_p2d93_preboot_20260828.
+  client DLLs  `ae4d41f76b5202a5` BOTH machines - UNCHANGED this boot (server-only change).
+  fork commit  p2(93) = 9fd3134. Next number p2(94).
+  ROLLBACK: flip activity_slice_set_follows_region to false (no rebuild). Binary rollback
+                p2(86) `4b2bff83c05f4bb9`; DO NOT BOOT p2(71).
 
 ## THE VERDICT - ROAD C IS CLOSED (2026-08-28)
 The client does not trust BAP membership; it walks its own managed-session member table
@@ -38,30 +43,12 @@ end and CO-LOCATION IS ACHIEVED - see the Updated block above. The full narrativ
 was opened and closed lives in FRONT_public-host-chain.md (the chain, link by link),
 FINDINGS 20.113-20.144, and HANDOFF_2026-08-27_ROAD-C.md (historical).
 
-## WHERE WE ARE (rewritten 08-28; the old p2(74)-era text is superseded by 20.131/132)
-Both clients reach the Tower, share ONE group session (members=3 players=2, peers
-valid 0x7 both sides) and ONE activity host (00200003, both EST-Y). What is still
-missing is one message: the server never speaks to 00200003, so the public activity
-client is deaf and the public bubble reserves 0 peer slots (20.132).
+## WHERE WE ARE
+Co-location holds at the session layer (one group target, peers 0x7 / players 0x3 both
+sides, one activity host 00200003, both EST-Y). 20.132's "the server never speaks to
+00200003" is now NAMED: the missing agreement is the published SLICE SET, not a missing
+link - see 20.153. p2(93) is the test.
 
-## DEPLOYED (2026-08-28 ~14:0x) - p2(89) + BAP capacity; CO-LOCATION ACHIEVED
-  server exe   p2(89) `2997d2810f11b1ab` (d721435): serves the client's SECOND BAP link
-                (`OUT GAH`) from that ACCOUNT's private session, and kBapConnectionCount
-                4 -> 12 so two clients can each hold their three links. BOOT 2026-08-28
-                ~14:0x: both clients in ONE public Tower instance, each naming the other's
-                xuid, peer channel held, 0 errors / 1 rebind on BOTH (FINDINGS 20.140).
-                settings.json gameplay: activity_host_region_bound TRUE,
-                publish_join_machine_ids TRUE, activity_public_row_membership_bodies
-                65535 (backup .bak_p2d89_preboot_20260828). Prior: p2(87)
-                `966c66bc00d96a6b` (6122885) killed the activity-host churn (20.131).
-  client DLLs  `4831be3cb85db735` BOTH machines (p2(84), unchanged). settings BOTH:
-                join_roster_observer FALSE, slice_set 56.
-  fork commit  p2(89) = d721435 (the whole 2026-08-28 lane; p2(88)'s intermediate
-                states were deployed and booted but not committed separately - their
-                defects were fixed before the p2(89) deploy). Next number p2(90).
-  ROLLBACK: server p2(86) `4b2bff83c05f4bb9` (.bak_p2d6_20260828_095725 pair) or
-            switch false; server p2(82) `fb8aaf0` (.bak_p2d6_20260828_010113).
-            DO NOT BOOT p2(71).
 ## HARD RULES (earned 08-26/27)
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST
     (LESSONS 18): a table sized past the interface, per-slot stubs, argument capture.
@@ -98,7 +85,8 @@ RETIRED BY 20.113 (the whole class, not one lead): every attempt to make a peer
 ## PARKED: rx-decode (20.92) | reason hunts (20.86) | blind sweeps (20.49-51) |
    posse fabrication (20.87) | type-54 bubble (20.96).
 ## READ FIRST (any session taking over)
-  0. HANDOFF_2026-08-27_ROAD-C.md - the newest handoff; it carries road C end to end.
+  0. FINDINGS 20.153 (newest; retracts the 08-28 evening lead) + BOOT_BRIEF_p2-93.md.
+     HANDOFF_2026-08-27_ROAD-C.md carries road C end to end (historical).
   1. AGENTS.md (router) + its conditional triggers; boot work ALSO loads LESSONS.md
      PRE-BOOT CHECKLIST and runs gate_boot.py on the brief.
   2. FINDINGS 20.107 FIRST (the layer map + what we have never touched), then
