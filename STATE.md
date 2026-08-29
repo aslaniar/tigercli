@@ -1,35 +1,38 @@
 # STATE - living snapshot
 
-STATUS: live (2026-08-29 ~02:2x; prior text = git history. FINDINGS holds the dated
+STATUS: live (2026-08-29 ~00:5x; prior text = git history. FINDINGS holds the dated
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-29 ~02:2x. *** 20.104 IS CLOSED - THE ROSTER NAMED THE PEER, TWICE. ***
-*** BUT A FORGED PEER BREAKS setup:orbit, SO ADMISSION MUST BECOME REAL. ***
-Slot + member record injected into the client makes the adoption path name the other
-player's xuid (p2(102), reproduced p2(103)) - the question open since 20.104. It also
-makes the client try to USE that peer during activity setup, and a forged peer cannot
-answer: p2(102) froze, p2(103) black-screened with moving frames, both at setup:orbit.
-20.164's "the record was incomplete" is REFUTED by p2(103) (a verbatim copy of a live
-record changed nothing). Two forge attempts, two broken clients - U7 says stop.
-ALSO SETTLED: the server road for admission is closed by measurement (20.157/20.160); the
-public world swap is NOT the managed-session-start gate and its phase branch is CLOSED
-(20.156); the unpacked exe carries our own hook bytes at hooked call sites (20.155).
-NEXT GATE: capture the PEER CHANNEL (udp 3097, both directions, read by size/cadence -
-TOOLS.md). The clients have talked directly since 20.144 and we have never read it for
-this question. No client writes, no risk to either machine.
-READ FIRST: HANDOFF_2026-08-29_ADMISSION.md, then FINDINGS 20.165 -> 20.153.
+Updated: 2026-08-29 ~00:5x. *** 20.104 CLOSED x3 - AND THE STALL NEEDS NO PEER: ***
+*** p2(104) RAN MAC-ONLY (rig never launched) AND STILL NAMED THE PEER AND STALLED ***
+*** AT setup:orbit, SENDING ZERO udp/3097 PACKETS ON ANY INTERFACE (lo0 included - ***
+*** the forged record carries SELF's address, so record-driven sends would ride ***
+*** lo0). "WAITING ON AN ANSWER" IS DEAD IN THIS CONFIGURATION; the wait is ***
+*** client-internal. L11 scope caution: no-pairing config only - the PAIRED ***
+*** capture boot is still the gate and D3 is now its leading branch (20.166). ***
+ALSO SETTLED: server road closed by measurement (20.157/20.160); phase branch CLOSED
+(20.156); provenance trap on the unpacked exe (20.155). Capture-instrument rules
+earned 08-29: never trust the BPF "received by filter" counter (bogus on this mac);
+prove liveness with a self-sent probe; rig traffic rides en0, en13 is internet-only;
+ARP has a suspect STATIC self-referential entry for the rig's IP (20.166c).
+NEXT GATE: the PAIRED capture boot per BOOT_BRIEF_p2-104.md (rig up + mac relaunch,
+captures probe-verified live, then read D1/D2/D3 + stale-id watch).
+READ FIRST: HANDOFF_2026-08-29_ADMISSION.md, then FINDINGS 20.166 -> 20.153.
 
-## DEPLOYED (2026-08-29 ~02:2x) - THE TWO CLIENTS ARE ON DIFFERENT BUILDS, SEE HANDOFF
+## DEPLOYED (2026-08-29 ~00:5x) - BOTH CLIENTS NOW ALIGNED, TRAP CLEARED
   server exe   p2(96) `b9b0f3823f74d1bf`: group-host message-id census (observation) on
                 top of p2(93) slice_follows_region=TRUE and p2(90) region seed. All
                 gameplay switches as p2(93); member_setup_flags stays FALSE.
-  MAC client   `5d7e6bd61e078c24` (p2(98)) - WRITE-FREE, no injection code.
-                settings: admission_inject FALSE (parameters retained and working).
-  RIG client   `ba6013a2d08cbd46` (p2(103)) - injection code present, disarmed by
-                settings default (no admission keys on that machine).
-                ALIGN BEFORE BOOTING - one deploy_client_dll.sh per shell call.
-  fork commit  p2(103) = 3e0cd10. Next number p2(104).
+  MAC client   `ba6013a2d08cbd46` (p2(103) build) - aligned 08-29. admission_inject
+                DISARMED post-boot (false; pre-boot backup settings.json.bak_p2d104_*).
+                RE-VERIFY THE SETTING BEFORE ANY BOOT - the stalled client was still
+                running at disarm and may rewrite settings on exit.
+  RIG client   `ba6013a2d08cbd46` (p2(103) build) - aligned 08-29, disarmed by
+                settings default (no admission keys; verified by ssh read 08-29).
+  fork commit  p2(103) = 3e0cd10. Next number p2(105) (p2(104) = the mac-only boot).
+  captures     TWO PASSIVE CAPTURES LEFT RUNNING for the next paired boot: en0 pid
+                20691 + en13 pid 20545 -> RE_output/captures/p2-104_peer_admission/.
   ROLLBACK: every prior DLL is on disk on both machines as
                 steam_api64.dll.bak_p2d7_<ts>. Server rollback p2(86) `4b2bff83c05f4bb9`;
                 DO NOT BOOT p2(71). Flipping admission_inject disarms with no rebuild.

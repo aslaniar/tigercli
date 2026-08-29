@@ -1,8 +1,10 @@
 # HANDOFF 2026-08-29 - ADMISSION: the roster is solved, the forge is not
 
 STATUS: live (2026-08-29 ~02:2x). Supersedes HANDOFF_2026-08-28_EVENING_GATE-REVIEW.md
-(itself already marked superseded-by 20.153). Read with FINDINGS 20.153-20.165, newest
-first in FINDINGS_2026-08-25.md.
+(itself already marked superseded-by 20.153). Read with FINDINGS 20.153-20.166, newest
+first in FINDINGS_2026-08-25.md. NOTE 20.166 (the p2(104) mac-only boot): the stall
+needs NO peer and the client sends NOTHING on the wire while stalled - the forge-stall
+reading below is refined, the paired capture remains the gate (D3 leading).
 
 ## READ THIS FIRST - THE MACHINES ARE ON DIFFERENT BUILDS
 This is the one thing that will waste your first boot if you miss it.

@@ -23,6 +23,13 @@ INSTRUMENTS: line/block in the brief - the L14 provenance check that instruments
 actually shipped. If the brief declares no INSTRUMENTS and no --literals are
 given, that is a WARNING only (not every boot deploys a new instrument).
 
+LITERAL TARGETS: (optional brief section, closes the 20.157 gap - the global
+check demands every literal in EVERY named binary, which cannot gate a boot
+shipping instruments in two binaries). Lines of the form
+    <file-path>: <literal>, <literal>
+are checked against that ONE file only. Global INSTRUMENTS still apply to all
+--literals targets as before.
+
 Exit codes: 0 = GO, 1 = NO-GO with reasons, 2 = usage/environment error.
 """
 import re
@@ -98,12 +105,36 @@ def main(argv):
             if lit.encode() not in data:
                 problems.append(f"L14 provenance FAIL: literal {lit!r} NOT found "
                                 f"in deployed {tp.name}")
+    # Per-target mapping (20.157: gate_boot --literals could not gate a
+    # two-binary boot because it required every literal in every binary).
+    per_target = []
+    lt = re.search(r"literal targets?\s*:\s*\n((?:[ \t]+.*\n?)+)", text, re.I)
+    if lt:
+        for line in lt.group(1).splitlines():
+            s = line.strip()
+            if not s or ":" not in s:
+                continue
+            tpath, lits = s.split(":", 1)
+            entries = [unquote(x) for x in lits.split(",") if x.strip()]
+            if entries:
+                per_target.append((tpath.strip(), entries))
+    for tpath, lits in per_target:
+        tp = Path(tpath)
+        if not tp.exists():
+            problems.append(f"literal-target file missing: {tpath}")
+            continue
+        data = tp.read_bytes()
+        for lit in set(lits):
+            if lit.encode() not in data:
+                problems.append(f"L14 provenance FAIL: literal {lit!r} NOT found "
+                                f"in {tp.name} (per-target mapping)")
     if problems:
         return fail(problems)
     print("GATE PASS")
     for w in warnings:
         print(f"  warn: {w}")
-    print(f"  brief: {brief_path} ({len(instr) or 'no'} instrument literals checked)")
+    print(f"  brief: {brief_path} ({len(instr) or 'no'} instrument literals checked"
+          f"{', ' + str(sum(len(l) for _, l in per_target)) + ' per-target' if per_target else ''})")
     return 0
 
 
