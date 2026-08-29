@@ -34,6 +34,7 @@ against" rule.
 | RE_scripts/lane_svc43_disasm_range.py a b | LINEAR disassembly of a VA range, no early stop | n/a - use for raw ranges |
 | RE_scripts/needle_scan.py | byte-pattern needle search across loaded image | run twice, stable output |
 | RE_scripts/hash_table_dump.py / hashtable_xref_scan.py | hash->ptr table dump + refs into it (the generalized form is xref_scan.py) | known-entry check |
+| RE_scripts/field_xref.py <hex-disp> | STRUCT-FIELD xref: every .text access to `[reg + disp32]`, classified read/WRITE/RMW. Answers "who touches field +N", which xref_scan (rip-relative to a data RANGE) and needle_scan (minidump u32 values) cannot. Motivated by three hand-rolled greps: member +181/+183 (20.152), peer +0xD0 (ms-start-gate3), transition +0x2c1 (20.154). LIMIT: disp32 forms only - a field written through a shifted base with a disp8 is INVISIBLE, so "0 writes" is never proof of none | `--selftest`: 3 known accesses from the 20.152/20.154 disassembly must be found AND classified correctly, plus a negative displacement that must yield 0 writes (PASS 2026-08-28) |
 
 ## Crash / runtime triage
 
