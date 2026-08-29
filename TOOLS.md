@@ -21,6 +21,7 @@ against" rule.
 | RE_scripts/loggrep.sh | zero-infra locate (full-width, live-file warn, file:line cites) | warns when target modified <60s |
 | RE_scripts/bootstrap_check.sh | session-start instrument: budgets, STATUS lines, index liveness | always prints BOOTSTRAP OK last |
 | RE_scripts/gate_boot.py <brief> | mechanical pre-boot checklist gate | --literals fails loud on missing literal in deployed binary |
+| RE_scripts/verify_hook_rvas.py | resolves EVERY client-hook RVA constant against .pdata and fails if it is not a function START. MANDATORY before any boot shipping a new or changed hook address. Born from p2(112): profile_harvest shipped 0x1A6040 for 0x1417A6040 (dropped digit); the bad value still sat inside the module so the observer's `module_range` check PASSED and the detour attached to an unrelated function - `install result=ok`, zero fires, through a Tower dwell + subclass swap + full character switch. A range check proves an address is IN the image, never that it is the RIGHT one | prints per-RVA verdicts; exit 1 on any FRAGMENT/MID-FUNCTION/UNRESOLVED. Addresses past their nearest .pdata entry are reported NOT-CODE (data constants) and listed for review, not failed |
 | RE_scripts/incident.py | incident digest: DB events + logs + procs + hashes | prints LIVENESS counts; exit 1 if root-bound sections all empty |
 | RE_scripts/q.sh <term...> | one-name recall over indexes + raw archive | falls back to raw grep if index missing |
 

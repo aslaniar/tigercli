@@ -22,7 +22,9 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | ENVIRONMENTS.md | deep env layer | touching deploys/tooling/Ghidra/cross-machine ops |
 | FINDINGS_2026-08-*.md | append-only archive | when cited by STATE/lessons/index |
 | FRONT_public-host-chain.md | live front page | working road C (server as group host) - the chain L1-L9 with marks |
-| HANDOFF_2026-08-29_ADMISSION.md | newest handoff | ALWAYS when taking over. 20.104 closed (roster names the peer); a forged peer breaks setup:orbit; NOTE the two clients are on DIFFERENT builds |
+| FRONT_e2e-stack.md | live front page | the 2026-08-29 END-TO-END map: the 8 layers that WORK (all V-X), the appearance gap in both directions, and 10 outliers with marks |
+| HANDOFF_2026-08-29_PROFILE-WRITER.md | newest handoff | ALWAYS when taking over. The profile-block writer contract, what not to redo, and the live instrument limits |
+| HANDOFF_2026-08-29_ADMISSION.md | HISTORICAL (20.170) | the admission-forge lane, now CLOSED - its premise was false. Read only for that history |
 | HANDOFF_2026-08-28_L9-RENDER.md | superseded by ADMISSION | historical: the L9 render front |
 | HANDOFF_2026-08-27_ROAD-C.md | superseded by L9-RENDER | historical: how road C was opened and closed |
 | HANDOFF_2026-08-27_LAYER-SHIFT.md | superseded by ROAD-C | historical context for the scope shift |

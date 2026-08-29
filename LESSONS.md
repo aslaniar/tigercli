@@ -172,6 +172,20 @@ failure mode from this front. DO NOT re-learn them.
     generalised, and it was re-learned the expensive way after already being
     written down once.
 
+18. **COROLLARY d (2026-08-29, 20.173 R1, and it cost a boot). AN ADDRESS IS NOT
+    VERIFIED UNTIL .pdata SAYS SO.** `profile_harvest` shipped RVA 0x1A6040 for
+    0x1417A6040 (real: 0x17A6040 - a dropped digit). The wrong value still sat inside
+    the module, so the hook's own `module_range` guard PASSED and the detour attached
+    to an unrelated function: `install result=ok`, then zero fires through a Tower
+    dwell, a subclass swap and a full character switch - three readings taken against
+    an anchor that was never on the path. A range check proves an address is IN the
+    image; it never proves it is the RIGHT one.
+    CONVERTED TO A GATE, so this prose is a pointer and not a rule to remember:
+    `RE_scripts/verify_hook_rvas.py` resolves EVERY client-hook RVA against .pdata and
+    exits 1 on FRAGMENT / MID-FUNCTION / UNRESOLVED. Run it before any boot shipping a
+    new or changed hook address. Strengthens 18c (an RVA means nothing until resolved),
+    replaces nothing.
+
 18. **INSTRUMENT THE SPACE, NOT THE HYPOTHESIS.**
     A boot that tests a guess returns one bit. A boot that observes a whole
     surface returns a map, and maps make the next three boots unnecessary.
