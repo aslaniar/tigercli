@@ -4,28 +4,27 @@ STATUS: live (2026-08-29 ~00:5x; prior text = git history. FINDINGS holds the da
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-29 ~11:2x. *** D3 FIRED ON A LIVE CHANNEL - THE WIRE IS DONE FOR ***
-*** THIS QUESTION. *** Paired boot p2(105): peer channel up (mac:30976 <-> rig:3097,
-DTLS both ways, 34B @ 4.35 Hz symmetric baseline), mac stalls at setup:orbit with a
-believed peer AND a live channel - and sends NOTHING beyond its ticks (261/261
-symmetric per minute, zero new types, ~5 min). With 20.166 (solo), the wait at
-setup:orbit is CLIENT-INTERNAL in both configurations. "Forged peer cannot answer"
-is RETIRED - nothing is asked. NEXT: instrument the record's OTHER READERS (who reads
-member index 1 between roster t+75041 and setup:orbit; caller capture / field_xref;
-the admission_inject flip is the free present/absent A/B). No more content guessing,
-no more wire reads for this question. ALSO: rig-first solo stalls at the KNOWN z-leg
-wall AFTER in_world - different stall from the mac's; do not conflate the black
-screens. Port-symmetry correction in TOOLS.md (mac peer port MOVES: 30976 this boot).
-READ FIRST: FINDINGS 20.167 -> 20.153; HANDOFF_2026-08-29_ADMISSION.md for the chain.
+Updated: 2026-08-29 ~12:0x. *** THE WEDGE MECHANISM IS CAUGHT: NAT TRAVERSAL DIALING ***
+*** THE IDENTITY STRING AS IP ADDRESSES. *** p2(106): the four static record-reader
+candidates NEVER RAN (miss-sample proof; ADMIT ran once, for self, pre-inject). But
+~3 s before setup:orbit wedges, the client runs bdNATTravClient and sends SIX "INTRO
+REQ"s to endpoints that are ASCII windows over the injected identity string
+"steamid:..." at stride exactly 6 (sockaddr-shaped) - even its own "Public Addr" is
+ASCII. The client-internal wait is a NAT-retry loop against garbage endpoints: the
+record is adopted and then fed to a connection path that needs the peer's REAL
+transport endpoint. Fix is NOT more forging - it is naming who builds the endpoint
+array and what a real entry contains. NEXT (pre-named in 20.168): caller capture on
+the retail funnel for "sent INTRO REQ" (free, existing instrument) + one-shot endpoint
+array dump at the dial site + field_xref on the array base. READ: FINDINGS 20.168 ->
+20.153; HANDOFF_2026-08-29_ADMISSION.md for the chain.
 
-## DEPLOYED (2026-08-29 ~11:2x)
+## DEPLOYED (2026-08-29 ~12:0x)
   server exe   p2(96) `b9b0f3823f74d1bf`: unchanged. Claims reset. NAT probe valid.
-  MAC client   `ba6013a2d08cbd46` (p2(103) build) - admission_inject DISARMED post-boot
-                (false). Parameters retained; flipping re-arms with no rebuild.
-  RIG client   `ba6013a2d08cbd46` - unchanged, disarmed by settings default.
-  fork commit  p2(103) = 3e0cd10. Next number p2(106).
-  captures     p2(105) capture complete: RE_output/captures/p2-104_peer_admission/
-                peer_en0_20260829_005234.pcap (223 KB, THE paired-boot artifact).
+  MAC client   `7df1d0e9aff01861` (fork p2(106): admission hooks + reader census).
+                admission_inject DISARMED post-boot (false); flip to re-arm.
+  RIG client   `7df1d0e9aff01861` - same build, disarmed by settings default.
+  fork commit  p2(106). Next number p2(107).
+  artifacts    p2(105) pcap + p2(106) mac log in RE_output/captures/p2-104_peer_admission/.
   ROLLBACK: every prior DLL is on disk on both machines as
                 steam_api64.dll.bak_p2d7_<ts>. Server rollback p2(86) `4b2bff83c05f4bb9`;
                 DO NOT BOOT p2(71). Flipping admission_inject disarms with no rebuild.
