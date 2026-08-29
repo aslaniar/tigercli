@@ -45,6 +45,8 @@ against" rule.
 | RE_scripts/live_console.py / retail_view.py | Layer-1 triage windows on live log streams |
 | RE_scripts/rig_dll_helper.py | remote-thread memory reads on the rig client |
 | `tcpdump -i en0 -s0 -U -w X 'udp port 3097 or 3074 or 3075 or 30976'` | THE PEER-CHANNEL INSTRUMENT (20.144). Client-to-client traffic never reaches the server and the client log records only counts, so a pcap is the ONLY way to see it. No sudo: this user is in `access_bpf`. FILTER ON BOTH PORTS (`src port 3097 and dst port 3097`) - 3097->3074/30976 are not the peer channel. Steady state is DTLS-encrypted; read it by SIZE and CADENCE, not contents |
+| RE_scripts/capture_bap30975.sh <seconds> | THE BAP-WIRE INSTRUMENT (20.145). Captures tcp/30975 on BOTH en0 (rig client<->server) and lo0 (mac client<->server, loopback) into RE_output/captures/bap30975_<ts>/. No sudo. For a CLIENT-HOSTED fireteam, have the MAC client host (a rig-hosted session's client<->client stream never crosses the mac). Bodies may be session-sealed; framing/sizes still readable, and the fork's bap_listener framing is the decode reference |
+| RE_scripts/bapdecode.py | pcap -> BAP-frame -> type-12 membership decode (tshark reassembly, svc25/26 key recovery, AES-GCM, region walk). Generalized from the GAH-REGION-DECODE lane's scratch decoders. Interpreter: miniconda python3 (needs `cryptography`) | --selftest (12 checks: planted-session positives + HMAC/tag/size negatives that must fail); --verify against the 224-body ground truth (RE_output/scratch/gah_en0) - 224/224 + full pcap run 2026-08-28 |
 
 ## Deploy / boot pipeline (canonical - do not fork deploys either)
 
