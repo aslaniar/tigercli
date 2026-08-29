@@ -4,24 +4,22 @@ STATUS: live (2026-08-28 ~21:3x; prior text = git history. FINDINGS holds the da
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-28 ~21:3x. *** BOTH CLIENTS RUN THE IDENTICAL LADDER AND BOTH STOP ***
-*** AT THE SAME PLACE: THE PUBLIC SLICE-SET TRANSITION NEVER TAKES ITS SWITCH TASK. ***
-*** p2(93) DEPLOYED, AWAITING BOOT. ***
-Both clients reach `activity:in_world`, citizen-join PUB56.56, finish precaching slice-set
-56 - then sit forever with NO slice-set-switch task, each still rendering its own private
-Tower (PRV48). Cause: the host published `region=56 slice=48` on all 494 roster lines; a
-private/orbit transition self-simulates its switch-now phase, the public `normal_z_leg`
-does not and waits for an authority that kept saying 48. This is 20.132's "one missing
-message", located. 20.153 RETRACTS the p2(90) rig-vs-mac asymmetry (the ladders are
-identical; the `peer-properties` reading was a misread of whose steamid is in the line) and
-retires the member flags (20.152's mapping is unproven, both its experiments void).
-NEXT GATE: boot p2(93); read `stage=roster` for `region=56 slice=56`, then the client logs
-for `PUB56.56 ... is being assigned the slice-set-switch task`.
-READ FIRST: FINDINGS 20.153, then BOOT_BRIEF_p2-93.md. The EVENING_GATE-REVIEW handoff is
-SUPERSEDED BY 20.153 (its lead rests on the retracted asymmetry; its deployed-state and
-tooling sections still hold).
+Updated: 2026-08-28 ~21:5x. *** THE PHASE IS MAPPED. IT IS A COMPUTED RETURN VALUE ***
+*** (fn 0x140E22C70: 4 = switch-now, 0 = not yet), NOT A FIELD WE CAN PUBLISH INTO. ***
+*** A PUBLIC TRANSITION ALWAYS GETS 0. TRACE IN FLIGHT, NO BOOT PENDING. ***
+Both clients still stop at `Finished precaching slice-set 'PUB56.56'` with no switch
+task. p2(94) (caller-capture, logging only) resolved all six transition-manager log
+sites; 20.154 has the map. The deciding read is
+`byte[rdi+0x660][ dword[rdi+0x53c] ] == byte[rdi+0x350]` - a per-member-SLOT byte array
+compared against one reference byte, which is the shape of the region record's 32
+transition-token lanes. 20.153's dismissal of the token is CORRECTED: it checked the
+value (we publish 2, the client is at 2) and never checked which lane the client reads.
+The teleport retirement in 20.153 stands (it is a mirror of a client message-22 report,
+never a host command channel). NEXT GATE: static trace naming [rdi+0x53c], [rdi+0x660]
+and [rdi+0x2bc]; then one targeted fix. No boot until the trace names it.
+READ FIRST: FINDINGS 20.154, then 20.153.
 
-## DEPLOYED (2026-08-28 ~21:2x) - p2(93), slice_follows_region ON (the contract under test)
+## DEPLOYED (2026-08-28 ~21:3x) - server p2(93); client DLL p2(94) (instrument)
   server exe   p2(93) `50d1f4cccbad0a56` (fork 9fd3134): the published slice set follows the
                 client's REPORTED region instead of the destination's arrival bubble, behind
                 activity_slice_set_follows_region=TRUE (FINDINGS 20.153). LIVE and required:
@@ -31,8 +29,10 @@ tooling sections still hold).
                 `region_bound=1 join_machine_ids=1 public_row_bodies=65535
                 region_survives_churn=1 member_setup_flags=0 slice_follows_region=1`.
                 Settings backup .bak_p2d93_preboot_20260828.
-  client DLLs  `ae4d41f76b5202a5` BOTH machines - UNCHANGED this boot (server-only change).
-  fork commit  p2(93) = 9fd3134. Next number p2(94).
+  client DLLs  p2(94) `003baf5ff811ff79` BOTH machines: caller-capture on six
+                transition-manager lines (LOGGING ONLY, no behaviour). Prior baseline
+                `ae4d41f76b5202a5` restores via deploy_client_dll.sh.
+  fork commit  p2(93) = 9fd3134 (server), p2(94) = 61f72d1 (client). Next p2(95).
   ROLLBACK: flip activity_slice_set_follows_region to false (no rebuild). Binary rollback
                 p2(86) `4b2bff83c05f4bb9`; DO NOT BOOT p2(71).
 
