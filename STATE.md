@@ -4,35 +4,28 @@ STATUS: live (2026-08-29 ~00:5x; prior text = git history. FINDINGS holds the da
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-29 ~00:5x. *** 20.104 CLOSED x3 - AND THE STALL NEEDS NO PEER: ***
-*** p2(104) RAN MAC-ONLY (rig never launched) AND STILL NAMED THE PEER AND STALLED ***
-*** AT setup:orbit, SENDING ZERO udp/3097 PACKETS ON ANY INTERFACE (lo0 included - ***
-*** the forged record carries SELF's address, so record-driven sends would ride ***
-*** lo0). "WAITING ON AN ANSWER" IS DEAD IN THIS CONFIGURATION; the wait is ***
-*** client-internal. L11 scope caution: no-pairing config only - the PAIRED ***
-*** capture boot is still the gate and D3 is now its leading branch (20.166). ***
-ALSO SETTLED: server road closed by measurement (20.157/20.160); phase branch CLOSED
-(20.156); provenance trap on the unpacked exe (20.155). Capture-instrument rules
-earned 08-29: never trust the BPF "received by filter" counter (bogus on this mac);
-prove liveness with a self-sent probe; rig traffic rides en0, en13 is internet-only;
-ARP has a suspect STATIC self-referential entry for the rig's IP (20.166c).
-NEXT GATE: the PAIRED capture boot per BOOT_BRIEF_p2-104.md (rig up + mac relaunch,
-captures probe-verified live, then read D1/D2/D3 + stale-id watch).
-READ FIRST: HANDOFF_2026-08-29_ADMISSION.md, then FINDINGS 20.166 -> 20.153.
+Updated: 2026-08-29 ~11:2x. *** D3 FIRED ON A LIVE CHANNEL - THE WIRE IS DONE FOR ***
+*** THIS QUESTION. *** Paired boot p2(105): peer channel up (mac:30976 <-> rig:3097,
+DTLS both ways, 34B @ 4.35 Hz symmetric baseline), mac stalls at setup:orbit with a
+believed peer AND a live channel - and sends NOTHING beyond its ticks (261/261
+symmetric per minute, zero new types, ~5 min). With 20.166 (solo), the wait at
+setup:orbit is CLIENT-INTERNAL in both configurations. "Forged peer cannot answer"
+is RETIRED - nothing is asked. NEXT: instrument the record's OTHER READERS (who reads
+member index 1 between roster t+75041 and setup:orbit; caller capture / field_xref;
+the admission_inject flip is the free present/absent A/B). No more content guessing,
+no more wire reads for this question. ALSO: rig-first solo stalls at the KNOWN z-leg
+wall AFTER in_world - different stall from the mac's; do not conflate the black
+screens. Port-symmetry correction in TOOLS.md (mac peer port MOVES: 30976 this boot).
+READ FIRST: FINDINGS 20.167 -> 20.153; HANDOFF_2026-08-29_ADMISSION.md for the chain.
 
-## DEPLOYED (2026-08-29 ~00:5x) - BOTH CLIENTS NOW ALIGNED, TRAP CLEARED
-  server exe   p2(96) `b9b0f3823f74d1bf`: group-host message-id census (observation) on
-                top of p2(93) slice_follows_region=TRUE and p2(90) region seed. All
-                gameplay switches as p2(93); member_setup_flags stays FALSE.
-  MAC client   `ba6013a2d08cbd46` (p2(103) build) - aligned 08-29. admission_inject
-                DISARMED post-boot (false; pre-boot backup settings.json.bak_p2d104_*).
-                RE-VERIFY THE SETTING BEFORE ANY BOOT - the stalled client was still
-                running at disarm and may rewrite settings on exit.
-  RIG client   `ba6013a2d08cbd46` (p2(103) build) - aligned 08-29, disarmed by
-                settings default (no admission keys; verified by ssh read 08-29).
-  fork commit  p2(103) = 3e0cd10. Next number p2(105) (p2(104) = the mac-only boot).
-  captures     TWO PASSIVE CAPTURES LEFT RUNNING for the next paired boot: en0 pid
-                20691 + en13 pid 20545 -> RE_output/captures/p2-104_peer_admission/.
+## DEPLOYED (2026-08-29 ~11:2x)
+  server exe   p2(96) `b9b0f3823f74d1bf`: unchanged. Claims reset. NAT probe valid.
+  MAC client   `ba6013a2d08cbd46` (p2(103) build) - admission_inject DISARMED post-boot
+                (false). Parameters retained; flipping re-arms with no rebuild.
+  RIG client   `ba6013a2d08cbd46` - unchanged, disarmed by settings default.
+  fork commit  p2(103) = 3e0cd10. Next number p2(106).
+  captures     p2(105) capture complete: RE_output/captures/p2-104_peer_admission/
+                peer_en0_20260829_005234.pcap (223 KB, THE paired-boot artifact).
   ROLLBACK: every prior DLL is on disk on both machines as
                 steam_api64.dll.bak_p2d7_<ts>. Server rollback p2(86) `4b2bff83c05f4bb9`;
                 DO NOT BOOT p2(71). Flipping admission_inject disarms with no rebuild.
