@@ -1,6 +1,7 @@
 # HANDOFF 2026-08-28 EVENING - THE GATE REVIEW (for Claude Code)
 
-STATUS: superseded-by FINDINGS 20.153 (2026-08-28 ~21:3x). The REVIEW WAS DONE and its
+STATUS: superseded-by HANDOFF_2026-08-29_ADMISSION.md and FINDINGS 20.153-20.165.
+ORIGINAL SUPERSESSION NOTE (2026-08-28 ~21:3x) follows. The REVIEW WAS DONE and its
 answer retracts this document's CURRENT LEAD: the peer-properties asymmetry is a misread
 of whose steamid each `peer-properties accepted` line names (every one names that
 machine's OWN peer #0), and the mac's "world never instantiates" is not what the logs

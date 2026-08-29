@@ -1,40 +1,38 @@
 # STATE - living snapshot
 
-STATUS: live (2026-08-28 ~21:3x; prior text = git history. FINDINGS holds the dated
+STATUS: live (2026-08-29 ~02:2x; prior text = git history. FINDINGS holds the dated
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-28 ~21:5x. *** THE PHASE IS MAPPED. IT IS A COMPUTED RETURN VALUE ***
-*** (fn 0x140E22C70: 4 = switch-now, 0 = not yet), NOT A FIELD WE CAN PUBLISH INTO. ***
-*** A PUBLIC TRANSITION ALWAYS GETS 0. TRACE IN FLIGHT, NO BOOT PENDING. ***
-Both clients still stop at `Finished precaching slice-set 'PUB56.56'` with no switch
-task. p2(94) (caller-capture, logging only) resolved all six transition-manager log
-sites; 20.154 has the map. The deciding read is
-`byte[rdi+0x660][ dword[rdi+0x53c] ] == byte[rdi+0x350]` - a per-member-SLOT byte array
-compared against one reference byte, which is the shape of the region record's 32
-transition-token lanes. 20.153's dismissal of the token is CORRECTED: it checked the
-value (we publish 2, the client is at 2) and never checked which lane the client reads.
-The teleport retirement in 20.153 stands (it is a mirror of a client message-22 report,
-never a host command channel). NEXT GATE: static trace naming [rdi+0x53c], [rdi+0x660]
-and [rdi+0x2bc]; then one targeted fix. No boot until the trace names it.
-READ FIRST: FINDINGS 20.154, then 20.153.
+Updated: 2026-08-29 ~02:2x. *** 20.104 IS CLOSED - THE ROSTER NAMED THE PEER, TWICE. ***
+*** BUT A FORGED PEER BREAKS setup:orbit, SO ADMISSION MUST BECOME REAL. ***
+Slot + member record injected into the client makes the adoption path name the other
+player's xuid (p2(102), reproduced p2(103)) - the question open since 20.104. It also
+makes the client try to USE that peer during activity setup, and a forged peer cannot
+answer: p2(102) froze, p2(103) black-screened with moving frames, both at setup:orbit.
+20.164's "the record was incomplete" is REFUTED by p2(103) (a verbatim copy of a live
+record changed nothing). Two forge attempts, two broken clients - U7 says stop.
+ALSO SETTLED: the server road for admission is closed by measurement (20.157/20.160); the
+public world swap is NOT the managed-session-start gate and its phase branch is CLOSED
+(20.156); the unpacked exe carries our own hook bytes at hooked call sites (20.155).
+NEXT GATE: capture the PEER CHANNEL (udp 3097, both directions, read by size/cadence -
+TOOLS.md). The clients have talked directly since 20.144 and we have never read it for
+this question. No client writes, no risk to either machine.
+READ FIRST: HANDOFF_2026-08-29_ADMISSION.md, then FINDINGS 20.165 -> 20.153.
 
-## DEPLOYED (2026-08-28 ~21:3x) - server p2(93); client DLL p2(94) (instrument)
-  server exe   p2(93) `50d1f4cccbad0a56` (fork 9fd3134): the published slice set follows the
-                client's REPORTED region instead of the destination's arrival bubble, behind
-                activity_slice_set_follows_region=TRUE (FINDINGS 20.153). LIVE and required:
-                p2(90) activity_region_survives_churn=TRUE (region seed; 20.147/20.148).
-                activity_member_setup_flags=FALSE (p2(91)/p2(92) in tree, switched off -
-                20.152/20.153). Settings echo verified at launch:
-                `region_bound=1 join_machine_ids=1 public_row_bodies=65535
-                region_survives_churn=1 member_setup_flags=0 slice_follows_region=1`.
-                Settings backup .bak_p2d93_preboot_20260828.
-  client DLLs  p2(94) `003baf5ff811ff79` BOTH machines: caller-capture on six
-                transition-manager lines (LOGGING ONLY, no behaviour). Prior baseline
-                `ae4d41f76b5202a5` restores via deploy_client_dll.sh.
-  fork commit  p2(93) = 9fd3134 (server), p2(94) = 61f72d1 (client). Next p2(95).
-  ROLLBACK: flip activity_slice_set_follows_region to false (no rebuild). Binary rollback
-                p2(86) `4b2bff83c05f4bb9`; DO NOT BOOT p2(71).
+## DEPLOYED (2026-08-29 ~02:2x) - THE TWO CLIENTS ARE ON DIFFERENT BUILDS, SEE HANDOFF
+  server exe   p2(96) `b9b0f3823f74d1bf`: group-host message-id census (observation) on
+                top of p2(93) slice_follows_region=TRUE and p2(90) region seed. All
+                gameplay switches as p2(93); member_setup_flags stays FALSE.
+  MAC client   `5d7e6bd61e078c24` (p2(98)) - WRITE-FREE, no injection code.
+                settings: admission_inject FALSE (parameters retained and working).
+  RIG client   `ba6013a2d08cbd46` (p2(103)) - injection code present, disarmed by
+                settings default (no admission keys on that machine).
+                ALIGN BEFORE BOOTING - one deploy_client_dll.sh per shell call.
+  fork commit  p2(103) = 3e0cd10. Next number p2(104).
+  ROLLBACK: every prior DLL is on disk on both machines as
+                steam_api64.dll.bak_p2d7_<ts>. Server rollback p2(86) `4b2bff83c05f4bb9`;
+                DO NOT BOOT p2(71). Flipping admission_inject disarms with no rebuild.
 
 ## THE VERDICT - ROAD C IS CLOSED (2026-08-28)
 The client does not trust BAP membership; it walks its own managed-session member table
@@ -85,8 +83,9 @@ RETIRED BY 20.113 (the whole class, not one lead): every attempt to make a peer
 ## PARKED: rx-decode (20.92) | reason hunts (20.86) | blind sweeps (20.49-51) |
    posse fabrication (20.87) | type-54 bubble (20.96).
 ## READ FIRST (any session taking over)
-  0. FINDINGS 20.153 (newest; retracts the 08-28 evening lead) + BOOT_BRIEF_p2-93.md.
-     HANDOFF_2026-08-27_ROAD-C.md carries road C end to end (historical).
+  0. HANDOFF_2026-08-29_ADMISSION.md - the newest handoff; it carries the admission
+     chain end to end and warns about the two clients being on different builds.
+     HANDOFF_2026-08-27_ROAD-C.md carries road C (historical).
   1. AGENTS.md (router) + its conditional triggers; boot work ALSO loads LESSONS.md
      PRE-BOOT CHECKLIST and runs gate_boot.py on the brief.
   2. FINDINGS 20.107 FIRST (the layer map + what we have never touched), then

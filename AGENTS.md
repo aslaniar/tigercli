@@ -22,7 +22,8 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | ENVIRONMENTS.md | deep env layer | touching deploys/tooling/Ghidra/cross-machine ops |
 | FINDINGS_2026-08-*.md | append-only archive | when cited by STATE/lessons/index |
 | FRONT_public-host-chain.md | live front page | working road C (server as group host) - the chain L1-L9 with marks |
-| HANDOFF_2026-08-28_L9-RENDER.md | newest handoff | ALWAYS when taking over - road C is CLOSED (co-location achieved); L9 render is the front |
+| HANDOFF_2026-08-29_ADMISSION.md | newest handoff | ALWAYS when taking over. 20.104 closed (roster names the peer); a forged peer breaks setup:orbit; NOTE the two clients are on DIFFERENT builds |
+| HANDOFF_2026-08-28_L9-RENDER.md | superseded by ADMISSION | historical: the L9 render front |
 | HANDOFF_2026-08-27_ROAD-C.md | superseded by L9-RENDER | historical: how road C was opened and closed |
 | HANDOFF_2026-08-27_LAYER-SHIFT.md | superseded by ROAD-C | historical context for the scope shift |
 | RE_output/claims/lane-brief-template.md | lane contract | spawning any lane |
