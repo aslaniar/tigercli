@@ -4,27 +4,25 @@ STATUS: live (2026-08-29 ~00:5x; prior text = git history. FINDINGS holds the da
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-29 ~12:0x. *** THE WEDGE MECHANISM IS CAUGHT: NAT TRAVERSAL DIALING ***
-*** THE IDENTITY STRING AS IP ADDRESSES. *** p2(106): the four static record-reader
-candidates NEVER RAN (miss-sample proof; ADMIT ran once, for self, pre-inject). But
-~3 s before setup:orbit wedges, the client runs bdNATTravClient and sends SIX "INTRO
-REQ"s to endpoints that are ASCII windows over the injected identity string
-"steamid:..." at stride exactly 6 (sockaddr-shaped) - even its own "Public Addr" is
-ASCII. The client-internal wait is a NAT-retry loop against garbage endpoints: the
-record is adopted and then fed to a connection path that needs the peer's REAL
-transport endpoint. Fix is NOT more forging - it is naming who builds the endpoint
-array and what a real entry contains. NEXT (pre-named in 20.168): caller capture on
-the retail funnel for "sent INTRO REQ" (free, existing instrument) + one-shot endpoint
-array dump at the dial site + field_xref on the array base. READ: FINDINGS 20.168 ->
-20.153; HANDOFF_2026-08-29_ADMISSION.md for the chain.
+Updated: 2026-08-29 ~13:0x. *** THE WEDGE IS EXPLAINED: bdNAT DIALS IDENTITY-STRING ***
+*** BYTES BECAUSE THE FORGED PEER HAS NO REAL TRANSPORT ENDPOINT. *** Same boot, both
+logs: the UNARMED rig's bdNAT table holds the mac's REAL endpoint (192.168.1.164:30976,
+learned via the real DTLS establishment) and reaches in_world; the ARMED mac's table is
+stride-6 windows over the identity string ("stea"/"d:76"/"1198"...), 121 INTRO REQs,
+retry loop, wedge. The forge creates the roster entry but not the TRANSPORT identity.
+THE FORK (20.169): (a) overwrite the forged slot's endpoint region with the rig's REAL
+endpoint bytes (192.168.1.136:3097; read a real entry's exact binary form FIRST via
+rig_dll_helper - do not guess the format), or (b) match the forged slot's per-session
+identity to the real establishment so the real path fills the endpoint. Caveat: the
+exact field bdNAT reads is INFERRED (byte windows), not pinned by a write-site capture.
+READ: FINDINGS 20.169 -> 20.153; HANDOFF_2026-08-29_ADMISSION.md for the chain.
 
-## DEPLOYED (2026-08-29 ~12:0x)
+## DEPLOYED (2026-08-29 ~13:0x)
   server exe   p2(96) `b9b0f3823f74d1bf`: unchanged. Claims reset. NAT probe valid.
-  MAC client   `7df1d0e9aff01861` (fork p2(106): admission hooks + reader census).
-                admission_inject DISARMED post-boot (false); flip to re-arm.
-  RIG client   `7df1d0e9aff01861` - same build, disarmed by settings default.
-  fork commit  p2(106). Next number p2(107).
-  artifacts    p2(105) pcap + p2(106) mac log in RE_output/captures/p2-104_peer_admission/.
+  MAC client   `7849e28a58d40539` (fork p2(109)). admission_inject DISARMED post-boot.
+  RIG client   `7849e28a58d40539` - re-aligned, disarmed by settings default.
+  fork commit  p2(109). Next number p2(110).
+  artifacts    mac/rig logs + p2(105) pcap in RE_output/captures/p2-104_peer_admission/.
   ROLLBACK: every prior DLL is on disk on both machines as
                 steam_api64.dll.bak_p2d7_<ts>. Server rollback p2(86) `4b2bff83c05f4bb9`;
                 DO NOT BOOT p2(71). Flipping admission_inject disarms with no rebuild.
