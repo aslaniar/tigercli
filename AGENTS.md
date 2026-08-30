@@ -23,6 +23,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | FINDINGS_2026-08-*.md | append-only archive | when cited by STATE/lessons/index |
 | FRONT_public-host-chain.md | live front page | working road C (server as group host) - the chain L1-L9 with marks |
 | FRONT_e2e-stack.md | live front page | the END-TO-END map: the layers that WORK, and the appearance gap. NOTE: its region-B-as-appearance-candidate line is SUPERSEDED by 20.202 |
+| NIGHT_RUNNER.md | live manual | running the function-map night lanes (reconcile/night_pull/funcq/beacons/femu) |
 | HANDOFF_2026-08-30_CONSUMER-HUNT.md | newest handoff | ALWAYS when taking over. What is CLOSED by measurement, what is proven and usable, and the hunt in order |
 | HANDOFF_2026-08-29_STAGE-TRAY.md | HISTORICAL (retracted 20.191/20.192) | the staging-population lane. Its premise was false - NULL is the apply's normal third argument. Read only for that history |
 | HANDOFF_2026-08-29_PROFILE-WRITER.md | superseded | the profile-block writer contract; its job shipped at 20.178 |
