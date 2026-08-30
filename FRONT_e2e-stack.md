@@ -1,14 +1,21 @@
 # FRONT - END-TO-END STACK ANALYSIS (2026-08-29)
 
-STATUS: live (2026-08-29 ~23:5x; Parts 2/4 updated by 20.174-20.175, then the p2(115)
-wedge hunt 20.178-20.185: the wire writer SHIPPED bit-exact, the body DELIVERS and
-DECODES, and the one remaining blocker is now NAMED - the apply's staging object at
-stage 2 is uninitialized (20.183-20.185); fix = client-side staging population, we own
-the client). Basis: p2(110) - the ZERO-DELTA paired boot, both
-clients unarmed, the healthiest run this project has produced - plus a source read of
-the deployed server tree. Every line below is marked VERIFIED-BY-EXECUTION (log/pcap),
-VERIFIED-BY-READING (source), or INFERRED. Nothing here is asserted off a filtered view;
-where a first reading was wrong, the correction is kept visible.
+STATUS: live, header rewritten 2026-08-30. THE PROFILE PIPELINE IS NOW DONE end to end,
+both directions, two machines (20.194); it carries authored content byte-exact - a name
+(20.195) and account+character identity (20.198) - and a peer's profile persists in a
+per-player array measured from memory (20.201).
+*** THIS PAGE'S APPEARANCE ANALYSIS IS SUPERSEDED BELOW. *** Part 2d called region B "the
+only remaining candidate" for appearance. That is WRONG twice over: region B is a second
+NAME block, and region A - fully decoded on two accounts in 20.202 - contains a name, an
+id, an enum, two -1 sentinels, an empty pair, the account+character SOIDs, a POWER float
+and a constant, with NO gear hash, shader, ornament or material reference anywhere. The
+membership profile block cannot carry appearance at all.
+Every other candidate is closed by measurement too: the client<->client channel carries no
+bulk (20.196), clients never pull a peer's character record even knowing exactly who the
+peer is (20.198 R2), and the server's appearance push is self-only by construction
+(20.198 R3). Appearance reaches a retail client by a mechanism this project has not
+identified. Pickup doc: HANDOFF_2026-08-30_CONSUMER-HUNT.md.
+Parts 1 and 3 below remain accurate. Read Parts 2 and 4 as history.
 
 ## PART 1 - THE CHAIN THAT WORKS (7 layers, all VERIFIED-BY-EXECUTION, both machines)
 
