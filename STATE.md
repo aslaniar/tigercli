@@ -36,8 +36,13 @@ the decoder skip region B's read (desync). The minimal writer sends chunks 1/4/5
 name word and two zero bytes - which forces all four of its exit conditions true without
 depending on the delta buffer's prior contents (nothing is proven to zero it).
 NO HASH IS EVER REQUIRED on the wire path (20.174 R2, corroborated at runtime 20.175 R3).
-NEXT: HANDOFF_2026-08-29_PROFILE-WRITER.md carries the job to opencode.
-READ: that handoff, then FRONT_e2e-stack.md, then FINDINGS 20.177 -> 20.170.
+NEXT: the wedge mechanism is MEASURED (20.178): the client refuses the flag-on body at the
+transport layer, pre-decode (no ack, no ingress; size/fragment-count ruled out). Next gate:
+replay the p2(113) harvested REAL region-A block instead of the minimal 178-bit shape - if
+accepted, diff names the wrong bits; if refused, the refusal is structural and 20.174 R2's
+"no hash required" needs re-examination at the transport layer. Flag publish_player_profile
+is live TRUE; flag OFF restores the p2(110) baseline (settings flip, no rebuild).
+READ: FINDINGS 20.178 first, then HANDOFF_2026-08-29_PROFILE-WRITER.md, then 20.177.
 
 ## DEPLOYED (2026-08-29 ~15:3x, p2(115) - the minimal profile writer deploy)
   server exe   p2(115) `a7a7a1cfd4e26abb` (commit 2e11e4a): write_minimal_profile behind
