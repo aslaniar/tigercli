@@ -19,12 +19,20 @@ machines). The name cipher's WRITER inverse is now verified against the client, 
 self-consistent. Server setting `profile_name` (empty = the old empty-name bytes exactly).
 WHAT IS NOT DONE: the block still carries no IDENTITY and no APPEARANCE - a name is chunk 1
 of nine, and the rest of region A is still zeros.
-THE NEXT FRONT IS A DIFFERENT DATA FAMILY. Appearance is character_record
-(middleware/datagen/character_record/appearance/: art stages, material pairs = shaders and
-ornaments), NOT the session membership block (region A = identity, region B = a second
-name). Serving a PEER's character record is blocked structurally: the snapshot path picks
-its account from the CONNECTION and NO root->account resolution exists tree-wide (20.173).
-That gap is what stands between here and two rendered guardians.
+THE APPEARANCE FRONT MOVED, AND IT IS NOT SERVER ENGINEERING (20.196-20.198):
+ - appearance does NOT cross the client<->client channel: 98.7% of it is 42-byte
+   heartbeats, lifetime max 234 B, no burst at co-location (20.196, from a pcap we
+   already held).
+ - the client does NOT PULL peer character records. Given a peer's well-formed identity
+   in its own SOID band, it still issues zero foreign-root subscriptions (20.198 R2:
+   14 subscribe_in, 0 foreign, across three boots of escalating identity quality).
+ - the server's one appearance PUSH is self-only BY CONSTRUCTION: queuez_banner_push
+   takes state::account_snapshot(after.accountKey) - the connection's own account - and
+   matches a character inside it (20.198 R3).
+=> "add root->account resolution" is DEAD: there is no foreign root to resolve. What
+remains is to AUTHOR a delivery the client never asks for, and nothing establishes the
+client has a consumer for one. THE NEXT QUESTION IS CLIENT-SIDE RE: does any client route
+accept another account's character record? See HANDOFF_2026-08-30_CONSUMER-HUNT.md.
 RETRACTED, MINE (20.191/20.192): the whole staging-population lane - the apply's NULL third
 argument is NORMAL, not an uninitialised slot, and substituting for it SUPPRESSED the
 helper. Detour retained, DISARMED, default false.

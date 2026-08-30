@@ -14,10 +14,15 @@ session touches deployment, tooling invocation, Ghidra runs, or cross-machine op
   reopened; needs the USER's password - FINDINGS_2026-08-24.md:1476). Rig game
   dir: `C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\`.
   Client DLL deploys there via RE_scripts/deploy_client_dll.sh <mac|rig>.
-- **Mac NIC map (measured 2026-08-29, 20.166)**: en0 = Wi-Fi 192.168.1.164 AND
-  the ROUTE TO THE RIG (`route -n get 192.168.1.136` -> en0); en13 = ethernet
-  192.168.1.7 and only the default/internet route. Captures of rig-bound or
-  peer-channel traffic go on en0. WATCH: `arp -a` carries a STATIC "permanent"
+- **Mac NIC map - THE INTERFACE IS NOT A CONSTANT, RESOLVE IT EVERY TIME.**
+  en0 = Wi-Fi 192.168.1.164, en13 = ethernet 192.168.1.7. Which one carries
+  rig-bound traffic depends on WHICH LINK IS ACTIVE: 2026-08-29 it was en0
+  (Wi-Fi, 20.166); 2026-08-30 it is en13 (the user switched to ethernet, 20.196
+  R6). A capture on the stale interface yields an EMPTY pcap that reads as a
+  clean null. `arp -n 192.168.1.136` cannot disambiguate - it lists the rig on
+  BOTH interfaces. Run `route -n get 192.168.1.136` at capture time, and prefer
+  capturing BOTH: the server binds 192.168.1.164 (en0) while client->rig traffic
+  egresses via the route, so one paired session can be split across two NICs. WATCH: `arp -a` carries a STATIC "permanent"
   entry 192.168.1.136 -> en0's own mac (self-referential) next to the correct
   dynamic one - prime suspect if paired DTLS establishment ever fails at L2.
 
