@@ -1,8 +1,10 @@
 # FRONT - END-TO-END STACK ANALYSIS (2026-08-29)
 
-STATUS: live (2026-08-29 ~15:0x; Parts 2/4 updated by 20.174 + 20.175 (boot p2(114)).
-Three of the four next-steps are now ANSWERED, O1 is CLOSED, and the stack has exactly
-ONE remaining blocker: the profile block's WIRE ENCODING.) Basis: p2(110) - the ZERO-DELTA paired boot, both
+STATUS: live (2026-08-29 ~23:5x; Parts 2/4 updated by 20.174-20.175, then the p2(115)
+wedge hunt 20.178-20.185: the wire writer SHIPPED bit-exact, the body DELIVERS and
+DECODES, and the one remaining blocker is now NAMED - the apply's staging object at
+stage 2 is uninitialized (20.183-20.185); fix = client-side staging population, we own
+the client). Basis: p2(110) - the ZERO-DELTA paired boot, both
 clients unarmed, the healthiest run this project has produced - plus a source read of
 the deployed server tree. Every line below is marked VERIFIED-BY-EXECUTION (log/pcap),
 VERIFIED-BY-READING (source), or INFERRED. Nothing here is asserted off a filtered view;
@@ -92,11 +94,25 @@ memory harvesting.
 | O9 | `public_row_gate` = 94% of the entire server log | a firehose that can bury any real signal; it is exactly the condition that hid things today. Rate-limit it | V-X |
 | O10 | rig black screen | USER-CONFIRMED PRE-EXISTING, reproduces SOLO, inventory opens, zero errors. A CONSTANT, not a signal | V-X |
 
-## PART 4 - WHAT I WOULD DO NEXT, IN ORDER (no boot until step 2 is answered)
+## PART 4 - WHAT I WOULD DO NEXT, IN ORDER (updated 20.185: the writer SHIPPED, the
+## wedge is found, and the remaining work is the staging detour + region B)
 
+0. ~~The wire encoding + writer.~~ **DONE 20.178-20.179: shipped bit-exact at p2(115)**
+   (178 bits, not the "150" the 20.177 summary claimed - see the correction in code).
+   The boot proved: the body is delivered, acked, and decoded - counts and row verified
+   in-struct by the decoder_trace instrument (20.182-20.185).
+0b. ~~Why doesn't it apply?~~ **FOUND 20.183-20.185: the apply reads its profile content
+   from a STAGING OBJECT whose pointer (selected by session stage; stage=2 at apply time)
+   is read from slot [+0x1af60] - which no readable code ever writes.** Garbage in, row
+   skipped, no crash, no log. The stage-driver's caller is VMP-virtualized - do not
+   reverse it statically.
 1. **Read region B's layout.** 136 bytes, apply leaf `0x1417af2d0`, one caller inside
    the L9 apply `0x141781800`. Its layout is UNREAD - this is the single largest
    unknown and it is static analysis, no boot, no risk.
+1b. **The staging-population write detour** (HANDOFF_2026-08-29_STAGE-TRAY.md, job
+   item 1-3): lessons review first (first WRITE detour), then populate the staging
+   fields from the decoded struct at apply entry, then ONE mac run = the rung
+   experiment with the mac's own harvested sheet.
 2. ~~Does the present bit help or hurt?~~ **ANSWERED 20.174 R2/R3: the wire apply
    VALIDATES NOTHING.** verify=0 makes 0x1417AF6D3 skip the entire lookup3, and region B
    is an unconditional 136B memcpy. An authored block needs no correct hash. (The
@@ -105,18 +121,18 @@ memory harvesting.
 4. ~~Does a profile block cross the wire?~~ **ANSWERED 20.175 R1/R2: NO, three
    independent ways** - zero wire-path applies on either client, zero svc-9 upstream,
    and every downstream body is ours with the bit hardcoded off. So there is no captured
-   reference and the encoding cannot be copied from the wire.
+   reference and the encoding cannot be copied from the wire. **OVERTURNED 20.178+:
+   the block now CROSSES THE WIRE (the writer ships, the body delivers) - the refusal
+   moved to the client's apply layer (see 0b).**
 5. ~~The wire->delta decoder.~~ **FOUND AND CONFIRMED 20.176: `0x14173BFC0`**
    (`0x14173B920` REFUTED - a memcmp comparator). The player-row encoding is specified
    field by field and independently reproduces CLAIM 5. The profile gate is a single bit
    at entry+0x21. **And the block is NOT raw bytes** - region A is optional sub-chunks
    each prefixed by a 1-bit presence flag, with the 9-bit mask BUILT by the reader. The
    obvious guess would have corrupted the body from the gate bit onward.
-   **The width tables are now READ (20.177).** A minimal 150-bit writer is specified bit
-   for bit with nothing guessed; its one hazard (region A returning false, which desyncs
-   the body) is discharged by construction. NO CODE WAS WRITTEN - see 20.177 RESULT 5 and
-   HANDOFF_2026-08-29_PROFILE-WRITER.md. Remaining after that scaffold lands: the payload
-   encodings of region-A chunks 2/6/7/8/9 and region B's body - all static, all unread.
+   **The width tables are now READ (20.177).** The writer SHIPPED bit-exact (20.178;
+   178 bits, not 150 - the summary was wrong). Remaining after pc=1 lands: the payload
+   encodings of region-A chunks 2/6/7/8/9 (chunk 8 = schema engine) and region B's body.
 6. NEW SEAM (20.175 R4): the client->server BAP direction now decrypts (nonce = base
    with last byte XOR 0x01). The svc-171 36,720-byte body and the svc-10 bulk
    (2475/4812 x24) are the largest UNREAD objects on our wire and have never been

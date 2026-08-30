@@ -1,9 +1,12 @@
 # HANDOFF 2026-08-29 - THE PROFILE WRITER (Claude Code -> opencode)
 
-STATUS: live (2026-08-29 ~15:5x). Supersedes HANDOFF_2026-08-29_ADMISSION.md (which is
-HISTORICAL - its forge premise was false). Read with FINDINGS 20.170-20.177 and
-FRONT_e2e-stack.md. Written at a session limit: the spec is finished, the CODE IS NOT
-WRITTEN. Everything you need to write it is in 20.177 RESULT 5.
+STATUS: SUPERSEDED (2026-08-29 ~23:5x) by FINDINGS 20.178-20.185 and
+HANDOFF_2026-08-29_STAGE-TRAY.md. THIS HANDOFF'S JOB IS DONE: the writer shipped
+bit-exact at p2(115) (commit 2e11e4a) and the boot ran - the flag-on body is delivered,
+acked, and decoded, but the client's apply skips it at the STAGING OBJECT (uninitialized
+pointer, 20.183-20.185) - a layer this handoff could not have named. The traps below
+remain true and were all respected. Read this only for the argument maps and the
+what-not-to-redo list; the live job is in STAGE-TRAY.
 
 ## THE ONE-PARAGRAPH STATE OF THE WORLD
 
