@@ -6,6 +6,9 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 stamp="$(date +%Y%m%d_%H%M%S)"
 dest="$root/RE_output/captures/${stamp}_${1:-boot}"
 mkdir -p "$dest"
+# Every path below is relative to the repo root; a run from any other cwd used to
+# produce a capture folder with no logs in it and no error (the p2(115) shape).
+cd "$root"
 
 cp RE_output/s1_accept/Sunrise/logs/sunrise.log "$dest/server_sunrise.log" 2>/dev/null || true
 cp Game/bin/x64/Sunrise/logs/sunrise.log "$dest/mac_client_sunrise.log" 2>/dev/null || true

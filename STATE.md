@@ -4,41 +4,51 @@ STATUS: live (2026-08-29 ~00:5x; prior text = git history. FINDINGS holds the da
 entry stack; this file holds verdict + deployed + next + reading order. Operational
 / platform / deploy facts moved to ENVIRONMENTS.md in the 08-28 governance diet.)
 
-Updated: 2026-08-29 ~23:5x. *** THE WEDGE IS FOUND: the flag-on membership body is
-delivered, ACKED, and DECODED correctly (counts + player row verified in-struct by the
-dtrace nz-map) - and then silently swallowed by the APPLY, whose third argument (a
-staging pointer) is read from session slot [+0x1af60], which NO readable code ever
-writes (20.182-20.185). OUR BYTES WERE NEVER THE PROBLEM. ***
-The minimal writer SHIPPED and is bit-exact (20.177's "150 bits" summary was wrong:
-the field list sums to 178; corrected in code + 20.179). Committed 2e11e4a behind
-publish_player_profile (live TRUE; OFF restores the p2(110) baseline - settings flip).
-FOUR THEORIES KILLED with evidence: size gate, fragment count, region-A exit, hash
-mismatch. TRANSPORT EXONERATED: delivery + ack proven via sendqueue cleared lines
-(91 events) - 20.178's transport-refusal reading is OVERTURNED by 20.182 R1.
-NAME CIPHER COMPLETE (20.179): plain[i] = key16(i) ^ ((wire*0x7b4f)&0xFFFF),
-key16(i) = rotl32(0xC245B0C4, i mod 31); inverse computable - real names are writable.
-hdr1 (+0x24) = the region-A self-hash lookup3(0xdeadbfd6, 232B) - computable; skipped
-on the wire path (verify=0, instruction-exact 20.181 R2).
-NEXT: (1) lessons review on our FIRST WRITE DETOUR (p2(102)+ internal-write poisonings);
-(2) the staging-population detour - fill [+0x19 gate][+0x1c hdr1][+0x20 mask][+0x28
-regionA][+0x198 tail] from the decoded struct at apply entry; (3) one mac run = the rung
-experiment (mac's own harvested sheet, identity-consistent); (4) the render (unproven,
-co-presence class parked at 20.110/20.111). READ: FINDINGS 20.185, 20.184, 20.183,
-then HANDOFF_2026-08-29_STAGE-TRAY.md (the pickup doc).
+Updated: 2026-08-30. *** THE PROFILE PLUMBING IS DONE - SYMMETRIC, TWO MACHINES,
+VERIFIED BY EXECUTION (20.194). *** Each client runs the profile apply helper on the OTHER
+machine's player row, from the wire, through the unmodified client path (mac index=1 n=17,
+rig index=1 n=24, both with the write detour DISARMED). The server composes 655 two-player
+bodies; both clients decode and apply them.
+THE UNLOCK WAS ONE BUG: region B carries FOUR presence bits and our writer emitted ONE, so
+every field after it read three bits early and the trailing state hash overran the body
+(20.188 -> 20.189). Block is now 181 bits.
+WHAT IS NOT DONE: the block is EMPTY - region A is 232 zero bytes by construction. No name,
+no identity, no appearance crosses yet. The pipe is proven; it carries nothing.
+THE NEXT FRONT IS A DIFFERENT DATA FAMILY. Appearance is character_record
+(middleware/datagen/character_record/appearance/: art stages, material pairs = shaders and
+ornaments), NOT the session membership block (region A = identity, region B = a second
+name). Serving a PEER's character record is blocked structurally: the snapshot path picks
+its account from the CONNECTION and NO root->account resolution exists tree-wide (20.173).
+That gap is what stands between here and two rendered guardians.
+RETRACTED, MINE (20.191/20.192): the whole staging-population lane - the apply's NULL third
+argument is NORMAL, not an uninitialised slot, and substituting for it SUPPRESSED the
+helper. Detour retained, DISARMED, default false.
+FOUR CAP/ROTATION FAILURES cost evidence this session (20.187 R5, 20.190, 20.193 R5). Fix
+shipped: observer budgets keyed per (caller class, row index).
+NEXT: (1) real CONTENT in the block - the name cipher is complete (20.179), then the
+harvested sheet; this is the cheap rung and it proves content travels, not just shape.
+(2) the character_record root->account gap - the real remaining blocker, and it is server
+source work, not RE. (3) whether a peer's appearance rides the client<->client channel
+instead (never decoded) - decide this BEFORE building (2), or the work may be wasted.
+READ: FINDINGS 20.194, 20.193, 20.192, 20.191, 20.190, 20.189, 20.188 - newest first.
 
-## DEPLOYED (2026-08-29 ~23:5x, p2(115) instrumented)
-  server exe   `e41d5a92b07d20ab` (fork 25cae4e build): minimal writer + svc/dtls
-               instrument lines. publish_player_profile live TRUE; retry-cap 2.
-  MAC client DLL `fdb3d90b785ad59f`: profile_harvest + profile_ingress + decoder_trace
-               (decoder 0x173BFC0 + apply 0x1781800 entry traces, stage/counts/row0/
-               nz-map dumps), all settings-gated, decoder_trace TRUE.
-  RIG client DLL `45ef17f93b901db9` (unchanged all night; no trace instruments).
-  fork commit  p2(115). Next number p2(116).
-  artifacts    RE_output/captures/p2-115_flagon_wedge/ (pcap + logs);
-               captures/p2-114_grand_capture/ (p2(114) baseline + tools);
-               sunrise.log.old = the flag-on phase's server log (rotated).
-  ROLLBACK: server flip publish_player_profile=false restores baseline, no rebuild;
-            prior DLLs on disk as steam_api64.dll.bak_p2d7_<ts>; DO NOT BOOT p2(71).
+## DEPLOYED (2026-08-30, p2(117) staged - boot pending)
+  server exe   `649c8da9f0e501fc`: region B written as FOUR presence bits, not one
+               (the p2(116) decode failure, 20.188). Block 178 -> 181 bits. All seven
+               deploy gates passed. publish_player_profile TRUE; retry-cap 2.
+               NOTE: STATE's old `e41d5a92b07d20ab` matched no file on disk under any
+               digest - that record was wrong; this hash is measured.
+  MAC client DLL `f6fee86c573051a7`: decoder_trace with the decoder RETURN value, the
+               post-decode struct dump and row candidates, plus the staging substitution
+               detour DISARMED (client.staging_populate=false). Relink of p2(116)'s
+               3e52bf70aaaa5a3e; no client source change.
+  RIG client DLL `45ef17f93b901db9` (unchanged, no trace instruments).
+  brief        BOOT_BRIEF_p2-117.md (GATE PASS, literals verified in the deployed DLL).
+  artifacts    RE_output/captures/20260829_225512_p2-116/ (the ret=0 capture, all four
+               logs archived); captures/p2-115_flagon_wedge/ (pcaps only - its client
+               log was lost, see 20.187 R5).
+  ROLLBACK: publish_player_profile=false (settings flip, no rebuild); prior exe as
+            *.bak_p2d6_<stamp>; prior DLLs as steam_api64.dll.bak_p2d7_<ts>.
 
 ## THE VERDICT - ROAD C IS CLOSED (2026-08-28). The client walks its own
 managed-session member table, not BAP membership. Narrative: FRONT_public-host-chain.md,

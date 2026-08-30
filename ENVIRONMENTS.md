@@ -162,3 +162,41 @@ deploy, log and cross-machine specifics belong here per the AGENTS.md router.
     capstone. Static RE: destiny2_unpacked_full.exe, base 0x140000000, .text raw 0x600
     va 0x1000, .pdata raw 0x20B9A00 for exact function bounds. LOG STRINGS ARE NOT IN
     THE BINARY - use caller capture (LESSONS 18c), not string xrefs.
+
+## [Mac-current] SERVER DIED AFTER AN INTERRUPTED SCRIPT - THE RECOVERY (2026-08-30)
+
+STATE's hard rule says the long-running / ssh-touching scripts HANG AFTER SUCCEEDING and
+that interrupting one can leave the server dead. `reset_lobby_claims.sh` did exactly that:
+it restarted the server, then hung; the interrupt left NO sunrise-server process and ZERO
+listeners. Recovery, verified 2026-08-30:
+
+    nohup bash mac-port/launch-server-macos.sh > mac-port/launch.log 2>&1 &
+    for _ in $(seq 1 40); do curl -s -m 2 http://192.168.1.164:8099/ladder >/dev/null && break; sleep 0.5; done
+    curl -s -m 3 http://192.168.1.164:8099/ladder          # must return JSON
+    netstat -an | grep -E "\.(30975|30976|3074|3075) "     # must list all four
+
+This is step 6 of deploy_p2d6_gameplay.sh lifted verbatim - use it, do not improvise a
+launch. A healthy restart also leaves `sessions:[]`, which IS the clean lobby-claim table
+reset_lobby_claims.sh exists to produce, so an interrupted reset that you then recover from
+has still achieved the reset. Verify the exe hash after recovery: a relaunch runs whatever
+is on disk, and it must equal the hash the boot brief names.
+
+## [BOTH MACHINES] TRAP 18 - NEVER ROUND-TRIP settings.json THROUGH A JSON SERIALISER
+
+The client's settings parser is FORMAT-SENSITIVE. Rewriting settings.json with any
+serialiser that reformats the whole file - `json.dump`, PowerShell `ConvertTo-Json`,
+`jq` - makes the game fail at launch with Bungie's "problem reading game content".
+Documented as TRAP 18 in FINDINGS_2026-08-15 (a byte-exact restore was the fix); hit
+AGAIN on 2026-08-30 on the rig via `ConvertTo-Json -Depth 40`, which cost a launch during
+a live paired-boot setup. It is recorded here because the operational doc is where anyone
+about to edit a settings file actually looks.
+
+THE PROCEDURE for changing a client setting:
+1. Copy the file to a backup FIRST (`settings.json.bak_<who>_<what>`).
+2. Edit it as TEXT with an exact-match insertion or replacement - not a parse/dump cycle.
+   The on-disk style is 2-space indent, LF endings, no BOM, no trailing newline games.
+3. Diff before writing: the ONLY changed lines must be the ones you intended.
+4. For the rig, edit LOCALLY and scp the file up, then scp it back down and compare
+   hashes. Editing in place over ssh hides formatting damage.
+5. Parse the result once with a JSON reader to confirm validity - reading is safe, it is
+   WRITING through a serialiser that breaks it.
