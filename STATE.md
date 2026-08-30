@@ -12,8 +12,13 @@ bodies; both clients decode and apply them.
 THE UNLOCK WAS ONE BUG: region B carries FOUR presence bits and our writer emitted ONE, so
 every field after it read three bits early and the trailing state hash overran the body
 (20.188 -> 20.189). Block is now 181 bits.
-WHAT IS NOT DONE: the block is EMPTY - region A is 232 zero bytes by construction. No name,
-no identity, no appearance crosses yet. The pipe is proven; it carries nothing.
+CONTENT NOW TRAVELS TOO (20.195): a real name crosses the wire byte-exact, both
+directions, matching a prediction registered BEFORE the boot
+("SUNRISE0"/"SUNRISE1" -> 530055004e005200490053004500300 0c2c4 / ...3100c2c4 on both
+machines). The name cipher's WRITER inverse is now verified against the client, not just
+self-consistent. Server setting `profile_name` (empty = the old empty-name bytes exactly).
+WHAT IS NOT DONE: the block still carries no IDENTITY and no APPEARANCE - a name is chunk 1
+of nine, and the rest of region A is still zeros.
 THE NEXT FRONT IS A DIFFERENT DATA FAMILY. Appearance is character_record
 (middleware/datagen/character_record/appearance/: art stages, material pairs = shaders and
 ornaments), NOT the session membership block (region A = identity, region B = a second
