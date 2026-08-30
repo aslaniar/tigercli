@@ -1,8 +1,13 @@
 # HANDOFF 2026-08-30 - THE APPEARANCE CONSUMER HUNT
 
-STATUS: live (2026-08-30 ~01:2x). THE pickup doc. Supersedes
-HANDOFF_2026-08-29_STAGE-TRAY.md (its lane is retracted - see WHAT IS CLOSED).
-Read with FINDINGS 20.202 -> 20.187, newest first.
+STATUS: live (2026-08-30 evening, updated in place). READ WITH FINDINGS 20.203/20.204,
+which supersede this file's hunt list in three places: (1) the black screen is NAMED -
+membership checksum rejection -> force-disconnect at peer arrival; (2) the manifest
+emitter never fires in fork-hosted flow, so hunt items 1-2 are parked pending a hook
+that actually executes; (3) the live pickup point is 20.204 R3 - capture the replica at
+the APPLY (rcx-0x858 post-apply, decoder_trace disarmed), diff offline, fix the hash
+exactly. The appearance-route closures below all stand; "region B as a candidate" is
+now doubly dead (it is a second name block - character-registry-route.md).
 
 ## THE ONE-PARAGRAPH STATE OF THE WORLD
 

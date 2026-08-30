@@ -4,46 +4,47 @@ STATUS: live (2026-08-30 ~01:2x). Verdict + deployed + next + reading order only
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md; operational
 and platform facts live in ENVIRONMENTS.md.
 
-Updated: 2026-08-30. *** THE MEMBERSHIP PROFILE PIPELINE IS DONE, AND REGION A IS FULLY
-DECODED: IT CONTAINS NO APPEARANCE FIELD. *** The server authors a profile block; both
-clients decode, apply and run the profile helper on each OTHER's player rows (20.194);
-authored content survives byte-exact both directions - a name (20.195) and real
-account+character identity (20.198); a peer's profile PERSISTS in a per-player array
-measured from memory (20.201: row 0 at session+0x3b80, stride 0x1a8). All 232 bytes of
-region A are now decoded on two accounts (20.202): a name, an id, an enum, two -1
-sentinels, an empty pair, the account+character SOIDs, a POWER float (1060.0f at
-entry+0xd0), and a constant. No gear hash, shader, ornament or material reference exists
-in it. The unlock that opened the pipeline was ONE bug: region B carries FOUR presence
-bits and our writer emitted ONE (20.188/20.189).
-NEXT: HANDOFF_2026-08-30_CONSUMER-HUNT.md is the pickup doc. Near-term shippable win:
-region A chunk 8 is the POWER value and we can write region A, so rendering a peer's
-power number does not wait on the appearance question.
+Updated: 2026-08-30 evening. *** THE BLACK SCREEN IS NAMED: the client rejects our
+membership bodies on the session-state checksum, chronically every boot, escalating to
+force-disconnect of the Tower region-56 citizen-join session at peer arrival - that
+disconnect IS the black screen. *** The +8 player-table shift (session_state_client_base,
+live) was necessary but not sufficient: the client's replica differs from our built
+state in CONTENT (live pair: client 0x00B5AD1E vs ours 0x4E3DA953, rev 921). The
+solo-landing loop was STALE SERVER STATE - reset between runs, always. The profile
+pipeline, region-A decode and the peer-channel closes all stand.
+NEXT: p2(130) state_diff deployed on both machines but the hooked verifier (0x141772100)
+never runs in flow - the failing compare is the APPLY's inline hash. Next boot: capture
+the replica at the apply (rcx-0x858, post-apply; decoder_trace disarmed - see 20.204
+R3), byte-diff offline against build_session_state, fix the hash exactly. Then the
+world-population entity front (flag off, observer deployed) answers one-guardian.
+Chunk 8 power stays blocked: the schema dump rides the manifest emitter, which NEVER
+fires in fork-hosted flow (20.203 R4) - needs a new observation point.
 
-## DEPLOYED (2026-08-30, p2(128))
-  server exe     `136e11e15c9acbe9`: region B = 4 presence bits; profile name (chunk 1)
-                 and identity (chunk 7) writers. publish_player_profile TRUE,
-                 profile_name "SUNRISE", profile_identity TRUE, retry-cap 2.
-  MAC client DLL `0e3d78f30d3396a7`  } decoder_trace + profile_harvest + profile_ingress
-  RIG client DLL `0e3d78f30d3396a7`  } with per-(path,index) budgets and the after-write
-                 landmark scan. staging_populate FALSE on both - it MUST stay false
-                 (20.191: substituting suppresses the profile helper).
-  ROLLBACK: clear profile_identity / profile_name (settings flip, no rebuild) returns the
-            block to its earlier shapes; prior binaries as *.bak_p2d6_<ts> (server) and
-            steam_api64.dll.bak_p2d7_<ts> (clients).
+## DEPLOYED (2026-08-30 evening, p2(130))
+  server exe     `35ae2802aa7cdeb7`: session_state_client_base TRUE (hash the client's
+                 layout); profile writers as p2(128); world_population FALSE.
+  clients (mac+rig) `30fe49c6914902f2`: world_trace (emitter+entity+schema, ZERO calls
+                 - see 20.203 R4) + state_diff (checksum verifier capture, ZERO calls
+                 - the failing compare is the apply's hash, 20.204 R2). state_diff and
+                 decoder_trace BOTH own apply-adjacent addresses - the next boot runs
+                 state_diff's apply capture with decoder_trace DISARMED (20.204 R3).
+  ROLLBACK: session_state_client_base / state_diff / world_trace / decoder_trace are
+            all settings flips, no rebuild; prior binaries as *.bak_p2d7_*.
   NOTE: settings.json is FORMAT-SENSITIVE (trap 18) - text-insert edits only, never a
         serialiser round-trip. Procedure in ENVIRONMENTS.md.
 
 ## WHERE WE ARE
 Session / activity / transport / membership: DONE and symmetric. Profile authoring: DONE
-and proven to carry arbitrary content. Appearance: BLOCKED, and every route this project
-can currently see is closed BY MEASUREMENT (20.196-20.202) - see the handoff's WHAT IS
-CLOSED. Appearance reaches a retail client by a mechanism we have not identified.
-OPEN, recorded not chased: chunk 2's 0xC5-band id (the one identity field we do not
-author; do NOT synthesise it - the obvious formula fits the mac and fails on the rig);
-what consumes the 48-byte-record list built by the gather at 0x140D48490; the black
-screen (7 paired runs, no mechanism, idle-time hypothesis FALSIFIED by p2(127)).
+and proven to carry arbitrary content. The BLACK SCREEN is the membership-checksum
+force-disconnect (20.203 R1); its exact content delta is the open question (20.204).
+Appearance/entity: the world-population front is UNBLOCKED (observer deployed, flag
+off - 20.203 R5). Appearance routes closed by measurement: see the handoff's WHAT IS
+CLOSED plus 20.203 (manifest emitter dead in fork-hosted flow).
 
 ## HARD RULES (earned; each cost a boot or a day)
+  - RESET THE SERVER BETWEEN RUNS (reset_lobby_claims.sh). The 2026-08-30 solo landing
+    loop was a 12-hour-old server's accumulated state; every historical landing was on
+    a fresh one. The recovery procedure in ENVIRONMENTS.md works - practice it.
   - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST.
   - EVERY hook RVA goes through `RE_scripts/verify_hook_rvas.py` before a boot. A
     module-range check passes on a WRONG address and the detour never fires (20.173 R1).
@@ -70,7 +71,10 @@ screen (7 paired runs, no mechanism, idle-time hypothesis FALSIFIED by p2(127)).
 CLOSED BY MEASUREMENT 2026-08-30: the client<->client channel as the appearance carrier
   (20.196) | the client-side pull of a peer's character record (20.198 R2) | the
   server-side push / "add root->account resolution" (20.198 R3) | region A as an
-  appearance carrier (20.202).
+  appearance carrier (20.202) | region B as an appearance carrier (it is a second name
+  block - character-registry-route.md) | the character registry as a foreign-record
+  ingest (same file) | the roster-change manifest chain as an appearance route OR as a
+  live observation point in fork-hosted flow (event-subscriber-hunt.md; 20.203 R4).
 RETRACTED 2026-08-30, MINE: the whole staging-population lane (20.191/20.192) - NULL is
   the apply's normal third argument at stage 4 and substituting for it SUPPRESSES the
   helper | "the client discards a peer's profile" (falsified by 20.201 R1, 14/14) | the
@@ -93,12 +97,14 @@ ROAD C CLOSED 2026-08-28: the client walks its own managed-session member table,
   membership (FRONT_public-host-chain.md, 20.113-20.144).
 
 ## PARKED: rx-decode (20.92) | reason hunts (20.86) | blind sweeps (20.49-51) | posse
-   fabrication (20.87) | type-54 bubble (20.96) | client-memory profile harvest (20.173).
+   fabrication (20.87) | type-54 bubble (20.96) | client-memory profile harvest (20.173)
+   | chunk 8 power (blocked on a live schema read - the dump must ride a hook that
+   actually fires; see 20.203 R4).
 
 ## READ FIRST (any session taking over)
-  0. HANDOFF_2026-08-30_CONSUMER-HUNT.md - the pickup doc. Then FINDINGS 20.202 -> 20.187
-     newest first; they supersede the 20.183-20.185 staging narrative, whose DISASSEMBLY
-     stands but whose conclusions do not.
+  0. HANDOFF_2026-08-30_CONSUMER-HUNT.md (background) + FINDINGS 20.203/20.204
+     (tonight: the checksum mechanism, the state_diff instrument, the exact next
+     boot shape in 20.204 R3 - that staged recipe IS the pickup point).
   1. AGENTS.md (router) + its conditional triggers. Boot work ALSO loads LESSONS.md
      PRE-BOOT CHECKLIST and runs `gate_boot.py` on the brief.
   2. FRONT_e2e-stack.md for the layer map; FINDINGS 20.107 for what has never been touched.
