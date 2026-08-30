@@ -76,3 +76,13 @@ against" rule.
 Deliberately NOT registered. Grouped automatically as PROBE FAMILIES by
 build_index.py (INDEX_claims.md bottom); long families = U7 escalation fired
 late. Archive candidates after refcount review.
+
+### state_hash_oracle.py (2026-08-30, PARTIAL - do not fork)
+`RE_scripts/state_hash_oracle.py` - offline Python model of `lookup3::hash_bytes` and
+`build_session_state`, for reproducing or searching a session-state hash without a boot.
+The hash and state-model halves are transcribed from source and are correct by
+construction. NOT YET USABLE END TO END: its self-test against a logged arm A hash fails
+because a real body cannot be rebuilt from logs - `publish_snapshot` echoes each peer's
+own 86-byte NetAddr blob byte-exact and the logs carry join descriptors instead.
+Generalise this file (feed it a server-dumped replica or body) rather than writing a new
+hash script. See RE_output/claims/session-state-profile-image.md OPEN (b).
