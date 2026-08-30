@@ -1,45 +1,48 @@
 # STATE - living snapshot
 
-STATUS: live (2026-08-30 ~01:2x). Verdict + deployed + next + reading order only.
+STATUS: live (2026-08-30 15:1x). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md; operational
 and platform facts live in ENVIRONMENTS.md.
 
-Updated: 2026-08-30 evening. *** THE BLACK SCREEN IS NAMED: the client rejects our
-membership bodies on the session-state checksum, chronically every boot, escalating to
-force-disconnect of the Tower region-56 citizen-join session at peer arrival - that
-disconnect IS the black screen. *** The +8 player-table shift (session_state_client_base,
-live) was necessary but not sufficient: the client's replica differs from our built
-state in CONTENT (live pair: client 0x00B5AD1E vs ours 0x4E3DA953, rev 921). The
-solo-landing loop was STALE SERVER STATE - reset between runs, always. The profile
-pipeline, region-A decode and the peer-channel closes all stand.
-NEXT: p2(130) state_diff deployed on both machines but the hooked verifier (0x141772100)
-never runs in flow - the failing compare is the APPLY's inline hash. Next boot: capture
-the replica at the apply (rcx-0x858, post-apply; decoder_trace disarmed - see 20.204
-R3), byte-diff offline against build_session_state, fix the hash exactly. Then the
-world-population entity front (flag off, observer deployed) answers one-guardian.
-Chunk 8 power stays blocked: the schema dump rides the manifest emitter, which NEVER
-fires in fork-hosted flow (20.203 R4) - needs a new observation point.
+Updated: 2026-08-30 15:1x. *** THE BLACK SCREEN IS SOLVED IN PRINCIPLE AND REPRODUCED
+BOTH WAYS. *** The membership state-hash rejection is TOTAL, not chronic: every failure
+force-disconnects the group session 1:1 (268/268, 722/722, 289/289 across three logs),
+which drives a permanent rejoin loop (23,908 revisions / 2,426 admits in one run at the
+250 ms retry cadence) and collapses the Tower citizen join - that IS the black screen.
+It tracks the PLAYER ROW: 557/557 failures across two independent runs carry players>=1,
+against 21,832 published players=0 updates with zero failures. The player row's only new
+content is the profile block, which build_session_state does not model at all.
+ARM A (p2(131), profile OFF + client_base OFF) came back CLEAN on every measure: 0
+failures, 0 disconnects, revision 9, 2 admits, peers 0x7 / players 0x3 reached, and
+"Citizen join for PUB56.56 succeeded!" - a line absent from 557 baseline failures.
+That also INDICTS p2(129): the historical layout hashed correctly 9/9, so the +8 shift
+(session_state_client_base) was neither necessary nor sufficient. Held FALSE from here.
+NEXT: p2(132) arm C - STAGED AND GATED, one line, profile TRUE against the proven-good
+base. Fails -> the fix is bounded (model the profile bytes in the player entry; we
+author them). Clean -> client_base TRUE was the whole regression and the checksum front
+closes with the profile pipeline live. Then the render question, on a stable session for
+the first time. Chunk 8 power stays blocked: the schema dump rides the manifest emitter,
+which NEVER fires in fork-hosted flow (20.203 R4) - needs a new observation point.
 
 ## DEPLOYED (2026-08-30 evening, p2(130))
-  server exe     `35ae2802aa7cdeb7`: session_state_client_base TRUE (hash the client's
-                 layout); profile writers as p2(128); world_population FALSE.
-  clients (mac+rig) `30fe49c6914902f2`: world_trace (emitter+entity+schema, ZERO calls
-                 - see 20.203 R4) + state_diff (checksum verifier capture, ZERO calls
-                 - the failing compare is the apply's hash, 20.204 R2). state_diff and
-                 decoder_trace BOTH own apply-adjacent addresses - the next boot runs
-                 state_diff's apply capture with decoder_trace DISARMED (20.204 R3).
-  ROLLBACK: session_state_client_base / state_diff / world_trace / decoder_trace are
-            all settings flips, no rebuild; prior binaries as *.bak_p2d7_*.
+  server exe     `35ae2802aa7cdeb7` (unchanged binary; both flags read at runtime).
+                 LIVE SETTINGS: session_state_client_base FALSE (proven good, 20.205 R4),
+                 publish_player_profile TRUE (STAGED for p2(132) arm C, inert until the
+                 next restart), world_population FALSE.
+  clients (mac+rig) `30fe49c6914902f2` (unchanged): decoder_trace / world_trace /
+                 state_diff ALL DISARMED on BOTH machines, verified byte-exact (the rig
+                 edited locally, scp'd up, scp'd back, hashes compared).
+  ROLLBACK: every flag above is a settings flip, no rebuild (backups *.bak_p2d13*_*).
   NOTE: settings.json is FORMAT-SENSITIVE (trap 18) - text-insert edits only, never a
         serialiser round-trip. Procedure in ENVIRONMENTS.md.
 
 ## WHERE WE ARE
-Session / activity / transport / membership: DONE and symmetric. Profile authoring: DONE
-and proven to carry arbitrary content. The BLACK SCREEN is the membership-checksum
-force-disconnect (20.203 R1); its exact content delta is the open question (20.204).
-Appearance/entity: the world-population front is UNBLOCKED (observer deployed, flag
-off - 20.203 R5). Appearance routes closed by measurement: see the handoff's WHAT IS
-CLOSED plus 20.203 (manifest emitter dead in fork-hosted flow).
+Session / activity / transport / membership: DONE, symmetric, and now STABLE under arm A
+(20.205 R3) - a two-player Tower session that does not collapse, for the first time.
+Profile authoring: DONE, but it is the prime suspect for the hash break (20.205 R5).
+Appearance/entity: world-population front UNBLOCKED (observer deployed, flag off).
+Appearance closures 20.196/20.198 stand as disassembly but their NULLs are CONFOUNDED -
+every one was measured on a session force-disconnecting ~1.2x/s. Re-verify when stable.
 
 ## HARD RULES (earned; each cost a boot or a day)
   - RESET THE SERVER BETWEEN RUNS (reset_lobby_claims.sh). The 2026-08-30 solo landing
