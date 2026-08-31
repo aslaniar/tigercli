@@ -53,6 +53,19 @@ Usage:
 INTERPRETER: miniconda python3 (unicorn; capstone for the signature
 precondition). /usr/bin/python3 lacks unicorn - the documented matrix.
 
+USAGE ACCURACY CONTRACT (when to emulate vs boot):
+  EXACT (boot-grade): pure-compute functions - hashes, codecs, bit-unpackers,
+    crypto, framing, enum lookups. Deterministic, identical to a boot.
+  FAITHFUL-TO-DUMP: functions over captured runtime state - exact against
+    the dump's snapshot; check rebase_reads / holes / pages_pulled flags
+    for how much depended on the heuristics.
+  NOT EMULATABLE (fails loud): non-CRT imports, device/D3D/Steam calls,
+    threads/sync/exceptions, VMP residuals, uncaptured state.
+  BOOT REQUIRED: emergent behavior - cross-system state machines, timing,
+    live multi-client interaction, past-snapshot-moment questions.
+  Rule: "what does this code COMPUTE" -> emulate. "does the CLIENT do X in
+  a live session" -> boot. Uncertain -> femu_batch.py classifies first.
+
 Exit codes: 0 pass/hit; 1 failure/abort; 2 usage.
 """
 import argparse

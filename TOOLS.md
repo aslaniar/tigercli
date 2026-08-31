@@ -50,12 +50,37 @@ against" rule.
 | `tcpdump -i en0 -s0 -U -w X 'udp port 3097 or 3074 or 3075 or 30976'` | THE PEER-CHANNEL INSTRUMENT (20.144). Client-to-client traffic never reaches the server and the client log records only counts, so a pcap is the ONLY way to see it. No sudo: this user is in `access_bpf`. Capture ALL FOUR ports and CLASSIFY BY FLOW PAIR - the peer channel's mac-side port is NOT fixed (20.167: mac:30976<->rig:3097 carried all 2386 channel packets; a 3097-and-3097 filter matched ZERO). Steady state is DTLS-encrypted; read it by SIZE and CADENCE, not contents. LIVENESS (earned 20.166, hard): the "received by filter" counter is BOGUS on this mac (counts noise on empty nets) - prove an empty pcap is a real null by sending a probe packet (e.g. python socket to 127.0.0.1:3097) and confirming capture; and check `route -n get 192.168.1.136` for the rig-traffic egress interface FIRST (08-29: en0, not en13) |
 | RE_scripts/capture_bap30975.sh <seconds> | THE BAP-WIRE INSTRUMENT (20.145). Captures tcp/30975 on BOTH en0 (rig client<->server) and lo0 (mac client<->server, loopback) into RE_output/captures/bap30975_<ts>/. No sudo. For a CLIENT-HOSTED fireteam, have the MAC client host (a rig-hosted session's client<->client stream never crosses the mac). Bodies may be session-sealed; framing/sizes still readable, and the fork's bap_listener framing is the decode reference |
 | RE_scripts/bapdecode.py | pcap -> BAP-frame -> type-12 membership decode (tshark reassembly, svc25/26 key recovery, AES-GCM, region walk). Generalized from the GAH-REGION-DECODE lane's scratch decoders. Interpreter: miniconda python3 (needs `cryptography`) | --selftest (12 checks: planted-session positives + HMAC/tag/size negatives that must fail); --verify against the 224-body ground truth (RE_output/scratch/gah_en0) - 224/224 + full pcap run 2026-08-28 |
-| RE_scripts/femu.py | FUNCTION EMULATION RIG v2: load the unpacked binary into a Unicorn x86-64 VM, call ONE function (or sequences via the documented Rig API) with crafted args. v2 adds: dump-backed demand paging (--graft-dump: real client memory as the world), .data-from-dump + rebase with read-taint (--rebase/--rebase-diff), CRT whitelist (memcpy/memset/memmove/strlen/memcmp emulated), mapping sanity (real-span only), fault diagnostics (RIP + trace). Interpreter: miniconda python3 (`unicorn` installed 08-29) | --selftest 19 checks across no-dump and dump modes: image-map byte-exact, out-of-span MUST fault (v1 phantom fix), synthetic positives, timeout/crash/purity negatives, reason_name file-oracle + rebase-taint + in-emu string dereference. ACCEPTANCE: the type24 decode loop runs with zero scaffolding (RE_output/scratch/femu_v2_acceptance.py) |
+| RE_scripts/femu.py | FUNCTION EMULATION RIG v2 - THE BOOT-SAVER: execute one client function (or sequences via the Rig API) against the real binary + a dump of real client memory, WITHOUT a boot. Dump-backed demand paging, .data rebase + read-taint, CRT whitelist, mapping sanity, fault diagnostics (RIP + trace). Interpreter: miniconda python3 (`unicorn` installed 08-29) | --selftest 19 checks (no-dump + dump modes); ACCEPTANCE: the type24 decode loop ran the client's svc22 apply decoder against dump state with zero scaffolding (RE_output/scratch/femu_v2_acceptance.py) |
 | RE_scripts/femu_batch.py | batch purity/behavior classification over the 91k-function spine; verdict enum + DirtyGuard (image writes restored from file bytes) | --selftest 6/6; real run: 100 fns in 0.0s (9 pure / 10 import / 79 state-dependent / 2 exceptions) |
 | RE_scripts/reconcile.py | corpus <-> spine join -> RE_output/map/function_map.db: every hex/FUN_ citation in FINDINGS/claims/STATE mapped to its ENCLOSING function, names only from explicit patterns; incremental by file hash. Interpreter: /usr/bin/python3 | --selftest 9/9 (mid-func mapping, data classification, dedupe, negatives); real: 9,748 citations -> 1,671 functions, 488 names |
 | RE_scripts/funcq.py | query the function map: what does the project know about function X (names/citations/neighbors); --coverage scoreboard; --corpus search. Interpreter: /usr/bin/python3 | cited baseline 1,671/91,445 (1.83%); big-tier 12%, mid 3.1%, small 1.4% |
 | RE_scripts/beacons.py | string-beacon census: 14,041 ASCII/UTF-16 strings extracted, .text swept for rip-relative refs (10,406 refs -> 3,669 functions with naming evidence). Interpreter: /usr/bin/python3 | --selftest: POSITIVE client strings (privacy-mode, peer-creating, tried-to-join-self, managed-session-start) present once; NEGATIVE fork-side tags (ev=steamnet) absent; disasm spot-check 39/40 |
 | RE_scripts/night_pull.py | pop N items from RE_output/map/queue.json -> night-lane brief (723 seeded: 123 dark heavyweights, 400 beacon-rich mids, 200 smalls) | morning --done marks; brief carries status-mark + quarantine rules |
+
+### WHEN TO EMULATE VS BOOT (the femu accuracy contract - read before
+### spending an hour on a paired boot for a question femu can answer)
+
+femu executes the binary's REAL instructions, so fidelity depends only on
+whether the function's WORLD is available:
+
+- **EXACT (boot-grade - use femu, not a boot):** pure-compute functions.
+  Hashes, codecs, bit-unpackers, crypto primitives, framing, enum lookups.
+  Deterministic and identical to a boot; repeatable with no state pollution.
+- **FAITHFUL-TO-DUMP (use femu, note the scope):** functions over captured
+  runtime state. Execution is exact against the dump's snapshot; the answer
+  is "against THIS state at that moment". Check the result flags:
+  `rebase_reads` (answer depends on the rebase heuristic), `holes` (dump did
+  not capture the memory), `pages_pulled` (provenance).
+- **NOT EMULATABLE (fails loud, classified):** imports beyond the CRT
+  whitelist (D3D/Steam/OS), threads/sync/exceptions, VMP-residual regions,
+  state the dump did not capture. The abort reason IS the classification.
+- **BOOT REQUIRED:** emergent behavior - state machines across systems,
+  timing, live multi-client interaction, anything past the snapshot moment.
+
+Rule of thumb: "what does this code COMPUTE" -> femu first (seconds).
+"does the CLIENT do X in a live session" -> that is a boot.
+Uncertain which tier? `femu_batch.py` classifies candidate functions cheaply
+before you commit to either.
 
 ## Deploy / boot pipeline (canonical - do not fork deploys either)
 
