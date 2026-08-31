@@ -385,17 +385,23 @@ class Rig(object):
         res.rip = uc.reg_read(UC_X86_REG_RIP)
         res.fault_addr = address
         res.last_insns = list(self.trace)
-        # L9: beyond the real image span - the v1 phantom-mapping class
-        if address >= self.pe.imagebase + self.real_span:
-            res.reason = "crash:%s-beyond-image" % kind
-            uc.emu_stop()
-            return False
-        # L5: demand-page non-fetch faults from the dump
+        # L5: demand-page non-fetch faults from the dump FIRST - heap and
+        # other runtime state lives BEYOND the image span, so paging must be
+        # attempted before any "beyond-image" classification (learned in the
+        # type24 acceptance: the registry object's heap address aborted as
+        # beyond-image before the pager could serve it).
         if kind in ("read", "write") and self.dump and \
                 res.pages_pulled < self.max_page_rounds:
             if self._demand_page(address):
                 res.pages_pulled += 1
                 return True              # retry the access
+        # L9: beyond the real image span, no dump page available
+        if address >= self.pe.imagebase + self.real_span:
+            res.reason = "crash:%s-beyond-image" % kind
+            if self.dump:
+                res.detail = "no dump page at this address"
+            uc.emu_stop()
+            return False
         res.reason = "crash:%s-unmapped" % kind
         if self.dump and kind in ("read", "write"):
             res.detail = "hole (page not in dump)"
