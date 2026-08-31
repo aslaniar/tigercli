@@ -24,7 +24,9 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | FRONT_public-host-chain.md | live front page | working road C (server as group host) - the chain L1-L9 with marks |
 | FRONT_e2e-stack.md | live front page | the END-TO-END map: the layers that WORK, and the appearance gap. NOTE: its region-B-as-appearance-candidate line is SUPERSEDED by 20.202 |
 | NIGHT_RUNNER.md | live manual | running the function-map night lanes (reconcile/night_pull/funcq/beacons/femu) |
-| HANDOFF_2026-08-30_ENTITY-FRONT.md | newest handoff | ALWAYS when taking over. The membership milestone is closed; what is retired, what is usable, and the hunt in order |
+| FINDINGS 20.219 (in FINDINGS_2026-08-25.md) | newest verdict | ALWAYS when taking over. Closes the entity-index front by measurement; retracts the premise 20.212-20.218 rested on |
+| HANDOFF_2026-08-31_POOL-PROTOCOL.md | SUPERSEDED by 20.219 | the pool-family STATIC MAP is still the reference; its hunt list and its "host mask empty" premise are dead |
+| HANDOFF_2026-08-30_ENTITY-FRONT.md | superseded by 2026-08-31 | the entity-front hunt list (spent); its closed-fronts record stands |
 | HANDOFF_2026-08-30_CONSUMER-HUNT.md | superseded by ENTITY-FRONT | the appearance-consumer hunt; its premise (the profile pipeline as the road to a rendered peer) is settled |
 | HANDOFF_2026-08-29_STAGE-TRAY.md | HISTORICAL (retracted 20.191/20.192) | the staging-population lane. Its premise was false - NULL is the apply's normal third argument. Read only for that history |
 | HANDOFF_2026-08-29_PROFILE-WRITER.md | superseded | the profile-block writer contract; its job shipped at 20.178 |
@@ -34,6 +36,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | HANDOFF_2026-08-27_LAYER-SHIFT.md | superseded by ROAD-C | historical context for the scope shift |
 | RE_output/claims/lane-brief-template.md | lane contract | spawning any lane |
 | INCIDENT_2026-08-25_false-loops.md | closed incident | failure/silence investigation |
+| POSTMORTEM_2026-08-31_THE-EMPTY-MASK-LOOP.md | closed postmortem | HOW ~8 BOOTS WENT TO A NON-BLOCKER: a return code read as a state, and 8 more mechanisms. Written for a workflow-fixing session; read before briefing any multi-boot front |
 | POSTMORTEM_2026-08-30_MY-ERRORS.md | closed postmortem | the 2026-08-30 error record: three rule violations, three "the tool already existed" misses, and the engineering faults that cost two boots and a crashed launch. Read before building a new instrument |
 
 Older HANDOFF_* / *_bak files = historical, superseded-by the table above.
