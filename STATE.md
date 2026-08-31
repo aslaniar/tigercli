@@ -1,48 +1,58 @@
 # STATE - living snapshot
 
-STATUS: live (2026-08-30 15:1x). Verdict + deployed + next + reading order only.
+STATUS: live (2026-08-30 ~18:0x). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md; operational
 and platform facts live in ENVIRONMENTS.md.
 
-Updated: 2026-08-30 15:1x. *** THE BLACK SCREEN IS SOLVED IN PRINCIPLE AND REPRODUCED
-BOTH WAYS. *** The membership state-hash rejection is TOTAL, not chronic: every failure
-force-disconnects the group session 1:1 (268/268, 722/722, 289/289 across three logs),
-which drives a permanent rejoin loop (23,908 revisions / 2,426 admits in one run at the
-250 ms retry cadence) and collapses the Tower citizen join - that IS the black screen.
-It tracks the PLAYER ROW: 557/557 failures across two independent runs carry players>=1,
-against 21,832 published players=0 updates with zero failures. The player row's only new
-content is the profile block, which build_session_state does not model at all.
-ARM A (p2(131), profile OFF + client_base OFF) came back CLEAN on every measure: 0
-failures, 0 disconnects, revision 9, 2 admits, peers 0x7 / players 0x3 reached, and
-"Citizen join for PUB56.56 succeeded!" - a line absent from 557 baseline failures.
-That also INDICTS p2(129): the historical layout hashed correctly 9/9, so the +8 shift
-(session_state_client_base) was neither necessary nor sufficient. Held FALSE from here.
-NEXT: p2(132) arm C - STAGED AND GATED, one line, profile TRUE against the proven-good
-base. Fails -> the fix is bounded (model the profile bytes in the player entry; we
-author them). Clean -> client_base TRUE was the whole regression and the checksum front
-closes with the profile pipeline live. Then the render question, on a stable session for
-the first time. Chunk 8 power stays blocked: the schema dump rides the manifest emitter,
-which NEVER fires in fork-hosted flow (20.203 R4) - needs a new observation point.
+Updated: 2026-08-30 ~18:0x. *** THE MEMBERSHIP FRONT IS CLOSED. TWO PLAYERS, ONE TOWER
+INSTANCE, STABLE, WITH AUTHORED IDENTITY LIVE, ZERO ERRORS ON BOTH MACHINES. *** The
+state-hash rejection was the profile block: the client stores 396 bytes of it inside the
+hashed player entry and build_session_state modelled none of them. Fixed in two measured
+steps - the name's key16(L) terminator (20.206) and the tail's dword at +0x0c (20.207),
+both read off the CLIENT's own decode of a body we published, not derived. Result: 0
+checksum failures, 0 force-disconnects, citizen join SUCCEEDED, revision 9-20 against a
+23,908 baseline, peers 0x7 / players 0x3.
+*** 20.203 R1 IS CORRECTED: the checksum was NOT the black screen. *** With zero failures
+and zero disconnects the mac still went black, and p2(136) separated the two: the mac
+(which also HOSTS the server) goes black; the rig (pure client) never has, in any run.
+Not on the critical path - the rig proves a client holds a clean paired session and
+renders.
+THE REMAINING WALL IS PEER RENDERING, and it is now isolated on a machine with nothing
+else wrong. Closed this session: the peer channel carries no guardian even with profiles
+live (20.208 R5, the pcap 20.196 asked for); and the entity-replication cluster
+0x141718510/0x1717EB0/0x1718080 is RETIRED - attached=1, calls=0, solo AND paired, while
+the guardian renders (20.210).
+NEXT: the EVENT RING. Our type-7 record is decoded by the right decoder and committed to
+a ring; ring_commit runs 147 solo -> 624 paired, the only counter that moves with a peer.
+sobject-carrier.md says that commit writes {type,seq,count,tail,timestamp} to session
++0x130 and NOTIFIES THE +0x81e0 OBJECT. Sweep that consumer statically first
+(field_xref.py on +0x130 / +0x81e0) - no boot.
 
-## DEPLOYED (2026-08-30 evening, p2(130))
-  server exe     `35ae2802aa7cdeb7` (unchanged binary; both flags read at runtime).
-                 LIVE SETTINGS: session_state_client_base FALSE (proven good, 20.205 R4),
-                 publish_player_profile TRUE (STAGED for p2(132) arm C, inert until the
-                 next restart), world_population FALSE.
-  clients (mac+rig) `30fe49c6914902f2` (unchanged): decoder_trace / world_trace /
-                 state_diff ALL DISARMED on BOTH machines, verified byte-exact (the rig
-                 edited locally, scp'd up, scp'd back, hashes compared).
-  ROLLBACK: every flag above is a settings flip, no rebuild (backups *.bak_p2d13*_*).
-  NOTE: settings.json is FORMAT-SENSITIVE (trap 18) - text-insert edits only, never a
-        serialiser round-trip. Procedure in ENVIRONMENTS.md.
+## DEPLOYED (2026-08-30 ~18:0x, p2(137))
+  server exe     `789d8d9f0ed94e9e` via deploy_p2d6_gameplay.sh (seven harness gates).
+                 SETTINGS: publish_player_profile TRUE, session_state_client_base FALSE
+                 (the historical base is the correct one - 20.205 R4 / 20.206 R5),
+                 profile_state_variant 0, world_population TRUE.
+  clients mac+rig `3ff651086721e1ad`: milestone_trace TRUE; world_trace / state_diff /
+                 decoder_trace ALL FALSE (world_trace collides with the tracer on
+                 0x1718080; decoder_trace and state_diff both own apply-adjacent
+                 addresses). Rig settings pushed and read back byte-exact.
+  ROLLBACK: publish_player_profile FALSE is arm A, measured clean at the session layer;
+            milestone_trace FALSE restores p2(136).
+  NOTE: settings.json is FORMAT-SENSITIVE (trap 18) - text-insert edits only.
+  NOTE: NEVER hot-copy the server exe. deploy_p2d6_gameplay.sh restamps the content cache
+        to the candidate's PE identity; a raw cp leaves cache and exe mismatched and the
+        server dies at content_swap (cost a recovery this session).
 
 ## WHERE WE ARE
-Session / activity / transport / membership: DONE, symmetric, and now STABLE under arm A
-(20.205 R3) - a two-player Tower session that does not collapse, for the first time.
-Profile authoring: DONE, but it is the prime suspect for the hash break (20.205 R5).
-Appearance/entity: world-population front UNBLOCKED (observer deployed, flag off).
-Appearance closures 20.196/20.198 stand as disassembly but their NULLs are CONFOUNDED -
-every one was measured on a session force-disconnecting ~1.2x/s. Re-verify when stable.
+Session / activity / transport / membership / identity: DONE, symmetric, STABLE, verified
+on both machines with the profile live. That milestone is closed.
+Peer rendering: the one open front. Every appearance route this project pursued is closed
+by measurement, and the closures are no longer confounded - the rig holds a clean paired
+session and still renders no peer. The entity cluster is retired (20.210); the event ring
+and its +0x81e0 consumer are the next target, statically first.
+Instruments: milestone_trace (8 functions, caller RVAs, census printing ZEROS) is the
+model to extend - add a target in one line rather than writing another one-off hook.
 
 ## HARD RULES (earned; each cost a boot or a day)
   - RESET THE SERVER BETWEEN RUNS (reset_lobby_claims.sh). The 2026-08-30 solo landing
@@ -71,38 +81,35 @@ every one was measured on a session force-disconnecting ~1.2x/s. Re-verify when 
     enumeration loops (p2(63)).
 
 ## DEAD ENDS - DO NOT RESUME (mechanism in the cited FINDINGS)
+RETIRED 2026-08-30 by p2(137)/20.210: the entity-replication cluster 0x141718510 /
+  0x141717EB0 / 0x141718080 - attached=1, calls=0, solo AND paired, while the guardian
+  renders. Wrong subsystem, not a wrong observation point. Do not hook it again.
 CLOSED BY MEASUREMENT 2026-08-30: the client<->client channel as the appearance carrier
-  (20.196) | the client-side pull of a peer's character record (20.198 R2) | the
-  server-side push / "add root->account resolution" (20.198 R3) | region A as an
-  appearance carrier (20.202) | region B as an appearance carrier (it is a second name
-  block - character-registry-route.md) | the character registry as a foreign-record
-  ingest (same file) | the roster-change manifest chain as an appearance route OR as a
-  live observation point in fork-hosted flow (event-subscriber-hunt.md; 20.203 R4).
-RETRACTED 2026-08-30, MINE: the whole staging-population lane (20.191/20.192) - NULL is
-  the apply's normal third argument at stage 4 and substituting for it SUPPRESSES the
-  helper | "the client discards a peer's profile" (falsified by 20.201 R1, 14/14) | the
-  black-screen idle hypothesis (falsified by 20.200 R3) | "three 16-byte vectors are a
-  transform" - it is a compiler-vectorised 48-byte struct copy (20.201 R3b).
-CLOSED BY p2(110)/20.170: THE WHOLE ADMISSION-FORGE LANE (20.158-20.169). Its premise was
-  false and the injection poisoned the mac's OWN structures. Do not forge a peer record.
-RETRACTED 2026-08-27: "Could not find tracking data" as the release (20.105) | friends
-  lane as closed - slot 43 IS the string-pair setter (20.103) | counts-vs-bitmasks (20.104).
-RETRACTED 2026-08-29 by 20.172: peer-player instantiation read off the wrong session |
-  the "EST-N/MEM-0 wall" | the peer retry cap as the gate (it is a tuned brake).
-CLOSED BY EXECUTION: friends rich-presence as the JOIN ROUTE (20.107) | type-12 wire shape
-  (20.81) | delivery-gap theory (20.74.4) | gate-table<->reason-enum, which also makes the
-  REASON BYTE unreliable (20.83/84) | `reason_name` (20.85/86) | `client.region_private`
-  (20.82) | ws 701/702 (20.82) | steam_player_group (20.104).
-RETIRED BY 20.113 (the whole class): making a peer appear by SHAPING a BAP body - member
-  row sweeps, trailing fields, bitmasks, reason bytes, roster pushes. The client reads its
+  (20.196, and 20.208 R5 discharged its own re-open condition with profiles live: max
+  packet 268 B, flat buckets) | the client-side pull of a peer's record (20.198 R2) | the
+  server-side push (20.198 R3) | region A as an appearance carrier - fully decoded, no
+  gear/shader/ornament field (20.202) | region B (a second name block) | the character
+  registry as a foreign-record ingest | the roster-change manifest chain (20.203 R4).
+RETRACTED 2026-08-30: 20.203 R1's "the checksum IS the black screen" (20.208 R2 - zero
+  failures, still black) | the p2(129) +8 table shift (20.205 R4 - the historical base
+  hashes correctly 9/9) | the staging-population lane (20.191/20.192) | "the client
+  discards a peer's profile" | the black-screen idle hypothesis | "three 16-byte vectors
+  are a transform".
+CLOSED BY p2(110)/20.170: THE ADMISSION-FORGE LANE. Do not forge a peer record.
+RETRACTED 2026-08-27/29: "Could not find tracking data" as the release | friends lane as
+  closed | counts-vs-bitmasks | peer-player instantiation off the wrong session | the
+  "EST-N/MEM-0 wall" | the peer retry cap as the gate.
+CLOSED BY EXECUTION: friends rich-presence as the JOIN ROUTE | type-12 wire shape | the
+  delivery-gap theory | gate-table<->reason-enum (which also makes the REASON BYTE
+  unreliable) | `reason_name` | `client.region_private` | ws 701/702 | steam_player_group.
+RETIRED BY 20.113: making a peer appear by SHAPING a BAP body. The client reads its own
   session member table, not our declarations.
-ROAD C CLOSED 2026-08-28: the client walks its own managed-session member table, not BAP
-  membership (FRONT_public-host-chain.md, 20.113-20.144).
+ROAD C CLOSED 2026-08-28: FRONT_public-host-chain.md, 20.113-20.144.
 
-## PARKED: rx-decode (20.92) | reason hunts (20.86) | blind sweeps (20.49-51) | posse
-   fabrication (20.87) | type-54 bubble (20.96) | client-memory profile harvest (20.173)
-   | chunk 8 power (blocked on a live schema read - the dump must ride a hook that
-   actually fires; see 20.203 R4).
+## PARKED: rx-decode (20.92) | reason hunts (20.86) | blind sweeps | posse fabrication |
+   type-54 bubble | client-memory profile harvest | chunk 8 power (needs a hook that
+   fires) | the mac black screen (host-machine-correlated, 20.208 R3 - NOT on the
+   critical path).
 
 ## READ FIRST (any session taking over)
   0. HANDOFF_2026-08-30_CONSUMER-HUNT.md (background) + FINDINGS 20.203/20.204
