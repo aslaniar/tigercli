@@ -17,8 +17,16 @@ False positives are expected and wanted: an immediate or an unrelated constant
 can carry the same 4 bytes. The classification column is the filter - a hit with
 opcode '??' is almost always noise. Never treat a bare hit count as an answer.
 
+KNOWN BLIND SPOT (cost a wrong "no writers exist" conclusion on 08-31): this
+scan finds only accesses whose encoding CONTAINS the disp32. An access encoded
+[base + index*scale] with NO displacement (mod=00 + SIB) has no disp bytes and
+is INVISIBLE here - pass --sib-scan BASE to sweep those forms before
+concluding "nobody writes this field". Rip-relative forms are xref_scan.py's
+territory.
+
 Usage:
   field_xref.py <hex-disp> [more...]        e.g. field_xref.py 0x2c1 0x350
+  field_xref.py --sib-scan                  all [base+index*scale] accesses
   field_xref.py --selftest
 
 Exit 1 = no hits for at least one displacement (a result, not silence).
@@ -127,6 +135,42 @@ def selftest():
     return 0 if ok else 1
 
 
+SIB_REGS = ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi"]
+
+
+def sib_scan(pe):
+    """All [base + index*scale] accesses (mod=00 + SIB, no displacement).
+    The disp32 scan cannot see these - they are the allocator/indexed-write
+    class that motivated the blind-spot note. Returns (va, mnem, sib_desc)."""
+    hits = []
+    for name, vaddr, vsize, rawptr, rawsize in pe.sections:
+        if name != ".text":
+            continue
+        data = pe.data[rawptr:rawptr + rawsize]
+        n = len(data) - 2
+        for p in range(n):
+            modrm = data[p]
+            if modrm >> 6 != 0b00 or (modrm & 7) != 0b100:
+                continue
+            sib = data[p + 1]
+            scale = 1 << (sib >> 6)
+            index = (sib >> 3) & 7
+            breg = sib & 7
+            if index == 0b100:            # [base] only - no index
+                continue
+            if breg == 0b101:             # mod=00 rm=101 = disp32 form
+                continue
+            op_at = p - 1
+            op = data[op_at]
+            m, a = OPCODES.get(op, (None, None))
+            if m is None:
+                continue
+            va = pe.imagebase + vaddr + op_at
+            desc = "[%s+%s*%d]" % (SIB_REGS[breg], SIB_REGS[index], scale)
+            hits.append((va, a, m, desc))
+    return hits
+
+
 def main(argv):
     if not argv:
         print(__doc__)
@@ -134,6 +178,12 @@ def main(argv):
     if argv[0] == "--selftest":
         return selftest()
     pe = PE(str(EXE))
+    if argv[0] == "--sib-scan":
+        hits = sib_scan(pe)
+        for va, access, mnem, desc in sorted(hits):
+            print(f"  {va:#012x}  {access:<5}  {mnem:<18} {desc}")
+        print(f"-- {len(hits)} indexed access(es) (no displacement)")
+        return 0
     empty = False
     for arg in argv:
         disp = int(arg, 16)
@@ -145,6 +195,9 @@ def main(argv):
             print(f"  {va:#012x}  {access:<5}  {mnem:<18} {raw}")
         if not hits:
             empty = True
+            print("  NOTE: disp32 scans cannot see [base+index*scale] forms "
+                  "(no disp bytes) or rip-relative forms - use --sib-scan / "
+                  "xref_scan.py before concluding 'nobody touches this'.")
     return 1 if empty else 0
 
 

@@ -61,6 +61,29 @@ class PE:
         o = self.off(va)
         return None if o is None else self.data[o:o + n]
 
+    def pdata_bounds(self, va):
+        """Exact function bounds from .pdata (RUNTIME_FUNCTION entries).
+        @return (start_va, end_va) or None when va is not in a pdata entry.
+        The exception-directory range is authoritative where present - it
+        ends the 'heuristic end truncated at the first jump-out' failure."""
+        sec = [s for s in self.sections if s[0] == ".pdata"]
+        if not sec or not sec[0][4]:
+            return None
+        _n, vaddr, _vs, rawptr, rawsize = sec[0]
+        rva = va - self.imagebase
+        lo, hi = 0, rawsize // 12 - 1
+        while lo <= hi:                      # binary search by start rva
+            mid = (lo + hi) // 2
+            s_rva, e_rva = struct.unpack_from("<II", self.data,
+                                              rawptr + mid * 12)
+            if rva < s_rva:
+                hi = mid - 1
+            elif rva >= e_rva:
+                lo = mid + 1
+            else:
+                return (self.imagebase + s_rva, self.imagebase + e_rva)
+        return None
+
     def qword(self, va):
         b = self.read(va, 8)
         return None if b is None or len(b) < 8 else struct.unpack("<Q", b)[0]

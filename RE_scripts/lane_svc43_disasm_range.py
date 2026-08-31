@@ -15,6 +15,13 @@ pe = PE("/Users/rubenaslanian/Documents/opencode/sunrise-fork/"
         "RE_output/destiny2_unpacked_full.exe")
 start = int(sys.argv[1], 16)
 end = int(sys.argv[2], 16)
+# boundary check: a linear sweep that does not start on a known function
+# start desyncs silently and prints confident-looking junk (08-31 lesson)
+pb = pe.pdata_bounds(start)
+if pb is None or pb[0] != start:
+    print(f"WARNING: 0x{start:x} is not a known .pdata function start - "
+          f"linear sweep will desync at data/thunk regions; "
+          f"disasm_fn.py / pdata bounds are the anchored paths")
 code = pe.read(start, end - start)
 md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
 md.detail = True

@@ -22,6 +22,14 @@ def main(argv):
     limit = int(argv[1]) if len(argv) > 1 else 400
     pe = PE("/Users/rubenaslanian/Documents/opencode/sunrise-fork/"
             "RE_output/destiny2_unpacked_full.exe")
+    bounds = pe.pdata_bounds(va)
+    if bounds:
+        end_va = bounds[1]
+        print(f"; pdata bounds: {bounds[0]:#x} .. {end_va:#x} (exact)")
+    else:
+        end_va = None
+        print("; WARNING: no .pdata entry - heuristic end (first ret/jmp), "
+              "which can truncate before the real end")
     code = pe.read(va, limit * 16)
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
     md.detail = True
@@ -33,7 +41,10 @@ def main(argv):
                 note = f"   <-- protobuf tag {op.imm:#04x} = {TAGS[op.imm]}"
         print(f"{ins.address:#012x}  {ins.mnemonic:<7} {ins.op_str}{note}")
         n += 1
-        if ins.mnemonic in ("ret", "jmp") and n > 8:
+        if end_va is not None and ins.address + ins.size >= end_va:
+            print(f"; -- pdata end of function reached ({end_va:#x}) --")
+            break
+        if ins.mnemonic in ("ret", "jmp") and n > 8 and end_va is None:
             break
         if n >= limit:
             break

@@ -32,6 +32,7 @@ import hashlib
 import argparse
 import os
 import re
+import struct
 import sqlite3
 import sys
 
@@ -229,6 +230,21 @@ def main(argv):
     con = sqlite3.connect(args.out)
     con.execute("CREATE TABLE IF NOT EXISTS functions("
                 "addr INTEGER PRIMARY KEY, size INTEGER, auto_name TEXT)")
+    con.execute("CREATE TABLE IF NOT EXISTS citations("
+                "id INTEGER PRIMARY KEY, func INTEGER, va TEXT, kind TEXT, "
+                "file TEXT, entry TEXT, line INT, quote TEXT)")
+    con.execute("CREATE TABLE IF NOT EXISTS names("
+                "id INTEGER PRIMARY KEY, func INTEGER, va TEXT, name TEXT, "
+                "file TEXT, status TEXT DEFAULT 'prose-citation')")
+    con.execute("CREATE TABLE IF NOT EXISTS meta("
+                "file TEXT PRIMARY KEY, sha TEXT, hits INT)")
+    con.execute("CREATE INDEX IF NOT EXISTS ix_cit_func ON citations(func)")
+    con.execute("CREATE INDEX IF NOT EXISTS ix_cit_file ON citations(file)")
+
+    rows, starts = load_spine(args.spine)
+    con.executemany("INSERT OR REPLACE INTO functions VALUES (?,?,?)", rows)
+    con.commit()
+
     con.execute("CREATE TABLE IF NOT EXISTS citations("
                 "id INTEGER PRIMARY KEY, func INTEGER, va TEXT, kind TEXT, "
                 "file TEXT, entry TEXT, line INT, quote TEXT)")
