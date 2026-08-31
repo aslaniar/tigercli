@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: log-query, cross-machine-align
 """logq.py - query a logindex.py database (2026-08-27). The replacement for
 per-question grep+sed chains: one command, full-width output, every hit cited
 as source file:line (claim-ready per the evidence rules).

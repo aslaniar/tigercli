@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: pcap-decode, bap-frame-decode, key-recovery, membership-decode
 """bapdecode.py - generalized pcap -> BAP-frame -> type-12 membership decoder.
 
 Generalized 2026-08-28 from the GAH-REGION-DECODE lane's scratch decoders

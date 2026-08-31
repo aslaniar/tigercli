@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: obf-fold, chain-analysis
 """obf_fold.py - bounded stack-slot xor/ror chain folder for obfuscated code.
 
 Generalizer for the constant-obfuscation pass (svc43 region 0x1407DA000..0x1407DC000

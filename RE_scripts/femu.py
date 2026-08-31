@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: function-emulation, demand-paging, data-rebase, crt-whitelist, purity-classify, fault-diagnostics
 """femu.py - function emulation rig for the unpacked client binary. v2.
 
 v1 (2026-08-29): PE mapping, single-call harness, import purity, reason_name

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# REGISTRY: caps: boot-verdict
 # Reads BOTH clients' logs plus the server's and prints the lobby-lane verdict.
 #
 # WHY A SCRIPT: the success signal is not "did a line appear" but "WHICH xuid does

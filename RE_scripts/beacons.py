@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: string-extraction, xref-sweep, naming-evidence
 """beacons.py - string/constant beacon census over the unpacked binary.
 
 Finds every ASCII/UTF-16LE string in the image, then sweeps .text for

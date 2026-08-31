@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# REGISTRY: caps: db-maintenance, vacuum-guard
 # db_hygiene.sh - opencode session-DB maintenance (2026-08-26).
 # DRY-RUN by default: prints size/free-page report and a verdict.
 # --vacuum performs the actual VACUUM, but ONLY when safe:

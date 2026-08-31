@@ -1,3 +1,4 @@
+# REGISTRY: caps: needle-search, dump-sweep
 """Search every mapped byte of the full dump for u32 needle values.
 
 Usage: needle_scan.py <hex u32> [more...]

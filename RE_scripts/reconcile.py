@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: corpus-reconcile, function-map, incremental-scan
 """reconcile.py - build function_map.db: the corpus <-> function spine join.
 
 The project's function knowledge lives as PROSE citations (hex addresses +

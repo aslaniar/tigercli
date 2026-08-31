@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# REGISTRY: caps: server-deploy
 # P2-D6 deploy: the gameplay/entity plane wired into the standalone server.
 #
 # ORDER MATTERS, and the first version of this script got it wrong. The harness

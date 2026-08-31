@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: queue-pull, brief-generation
 """night_pull.py - pull N items from the map queue and emit a night-lane brief.
 
 The night runner needs no scheduling infra: last thing before bed, run

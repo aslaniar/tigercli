@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# REGISTRY: caps: session-bootstrap, doc-budgets
 # bootstrap_check.sh - session-start instrument (2026-08-26, DOC GOVERNANCE).
 # Prints the doc-budget report, STATE header pointer, newest findings headlines,
 # index liveness. Emits on the BORING path too (L13): a clean run prints

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: name-codec, encode-decode
 """name_codec.py - the profile-block name obfuscation, both directions (2026-08-30).
 
 The region-A name reader (0x14129AA80, deobfuscation at 0x1416D3460) transforms each

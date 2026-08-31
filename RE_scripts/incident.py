@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: incident-digest
 """incident.py - incident digest generator (2026-08-26 PORT; originally 08-15).
 
 Snapshots: session events (opencode DB) + game/client logs + server logs +

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: minidump-parse
 """Parse a Windows minidump enough to name the faulting module.
 Usage: python3 minidump_parse.py <dump>"""
 import struct, sys

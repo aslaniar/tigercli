@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# REGISTRY: caps: server-reset, lobby-claims
 # Clears the server's in-memory lobby-claim table by restarting the server.
 #
 # WHY THIS EXISTS: the claim table is what pairs the two clients (FINDINGS 20.101,

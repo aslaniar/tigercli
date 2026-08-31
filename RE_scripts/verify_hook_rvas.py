@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: hook-rva-verify
 """Resolve EVERY client-hook RVA constant against .pdata. Exit 1 if any is not a
 function START.
 

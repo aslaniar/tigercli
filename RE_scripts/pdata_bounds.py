@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: pdata-bounds, function-resolve
 """Resolve the containing function bounds of one or more addresses from .pdata.
 
 Usage: pdata_bounds.py <addr> [<addr>...]

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# REGISTRY: caps: log-locate
 # loggrep.sh - zero-infra locate convention over project logs (2026-08-27).
 # Usage: loggrep.sh <file-or-dir> <pattern...>
 #   - dir form: greps *.log in it (with -a: NUL-bearing captures need it)

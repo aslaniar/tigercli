@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: pe-parse, section-map, pdata-bounds, static-read
 """Minimal PE reader for static analysis of destiny2_unpacked_full.exe.
 
 Reused pattern from the 08-23 direction-codec recovery (peer-visibility-codec-

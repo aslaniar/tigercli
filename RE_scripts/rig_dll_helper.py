@@ -1,3 +1,4 @@
+# REGISTRY: caps: deploy-backup, deploy-verify
 """Remote-side half of deploy_client_dll.sh: backup / verify one DLL on Windows.
 
 Usage (run ON THE RIG):

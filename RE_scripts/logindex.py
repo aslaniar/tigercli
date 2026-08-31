@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: log-indexing
 """logindex.py - universal index over sunrise.log-shaped logs (2026-08-27).
 
 Turns the project's standard ev=/stage=/key=value grammar into a queryable

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: function-query, coverage-report
 """funcq.py - query the function map (built by reconcile.py).
 
 One command replaces the "grep FINDINGS for the address, open Ghidra,

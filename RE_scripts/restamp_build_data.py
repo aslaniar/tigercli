@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: identity-restamp
 """Restamp build_data.bin's identity header from a rebuilt sunrise-server.exe.
 
 The cache stores the server exe's PE identity at offsets 12 (imageTimestamp)
