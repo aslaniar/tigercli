@@ -34,6 +34,10 @@ for f in AGENTS.md LESSONS.md ENVIRONMENTS.md TOOLS.md HANDOFF_*.md; do
 done
 
 echo
+echo "== REGISTRY AUDIT (registry rows vs tool reality - 08-31 rig_dll_helper drift) =="
+/usr/bin/python3 RE_scripts/registry_audit.py 2>/dev/null | tail -1 || echo "WARN    registry audit failed to run"
+
+echo
 echo "== INDEX LIVENESS (stale index is a soft warn; missing index is loud) =="
 newest_findings=$(cat <(ls -t FINDINGS_2026-*.md 2>/dev/null) <(ls -t findings/FINDINGS_2026-*.md 2>/dev/null) 2>/dev/null | head -1)
 if [ -f RE_output/INDEX_findings.md ]; then
