@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# REGISTRY: caps: dump-read, module-lookup, range-list
 """Read a full-memory minidump and resolve virtual addresses in it.
 
 Written for the 08-15 captures in destiny-preservation/RE_output/content/, which are

@@ -42,7 +42,8 @@ against" rule.
 
 | Tool | For |
 |---|---|
-| RE_scripts/minidump_parse.py | name faulting module from a Windows minidump [caps: minidump-parse] |
+| RE_scripts/minidump_parse.py | CRASH TRIAGE ONLY - names the faulting module from a minidump. Does NOT read dump memory: for that use minidump_reader.py (or femu --graft-dump) [caps: minidump-parse] |
+| RE_scripts/minidump_reader.py | THE DUMP-MEMORY WORKHORSE: lazy seek-based reader for full dumps (6GB+ fine) - read_va/module/ranges, CLI: summary, `--read VA COUNT`, `--rva RVA COUNT` (RVA = static - 0x140000000). The engine under femu --graft-dump. Verified on dump_p2146.dmp (6.49GB, loads in 0.0s) [caps: dump-read, module-lookup, range-list] |
 | RE_scripts/diff_minidumps.py / diff_captured_tails.py | before/after artifact diffs |
 | RE_scripts/merge_logs.py / merge_timeline.py | unified timeline across client+server logs; N-source (2026-08-27: typeless-client grammar fix, server-pivot default, size-window pairing w/ distinct-size guard) | --selftest: 20 checks incl. typeless-fixture phase |
 | RE_scripts/live_console.py / retail_view.py | Layer-1 triage windows on live log streams |
