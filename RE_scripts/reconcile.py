@@ -244,6 +244,42 @@ def main(argv):
     con.executemany("INSERT OR REPLACE INTO functions VALUES (?,?,?)", rows)
     con.commit()
 
+    # pdata fragment families: contiguous RUNTIME_FUNCTION entries are one
+    # logical function split by the compiler (the donation-handler family,
+    # 30+ fragments). Without this grouping the spine overstates function
+    # counts and lanes chasing "one function" see fragments.
+    from pe_reader import PE
+    pe = PE(os.path.join(ROOT, "RE_output", "destiny2_unpacked_full.exe"))
+    psec = [s for s in pe.sections if s[0] == ".pdata"]
+    con.execute("CREATE TABLE IF NOT EXISTS families("
+                "start INTEGER PRIMARY KEY, end INTEGER, members INT)")
+    if psec and psec[0][4]:
+        _n, pvaddr, _vs, prawptr, prawsize = psec[0]
+        count = prawsize // 12
+        fams = []
+        fam_start = None
+        prev_end = None
+        for i in range(count):
+            s_rva, e_rva = struct.unpack_from("<II", pe.data,
+                                              prawptr + i * 12)
+            s_va, e_va = pe.imagebase + s_rva, pe.imagebase + e_rva
+            if fam_start is None:
+                fam_start, prev_end = s_va, e_va
+            elif s_va == prev_end:
+                prev_end = e_va
+            else:
+                fams.append((fam_start, prev_end,
+                             bisect.bisect_left(starts, prev_end) -
+                             bisect.bisect_left(starts, fam_start)))
+                fam_start, prev_end = s_va, e_va
+        if fam_start is not None:
+            fams.append((fam_start, prev_end,
+                         bisect.bisect_left(starts, prev_end) -
+                         bisect.bisect_left(starts, fam_start)))
+        con.executemany("INSERT OR REPLACE INTO families VALUES (?,?,?)",
+                        fams)
+    con.commit()
+
     changed = skipped = 0
     for path in iter_corpus_files():
         with open(path, encoding="utf8", errors="replace") as fh:
