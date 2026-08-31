@@ -29,6 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FINDINGS_GLOB = "FINDINGS_2026-*.md"
+FINDINGS_DIRS = ["", "findings"]  # root or findings/ (phase-B layout)
 CLAIMS_DIR = ROOT / "RE_output" / "claims"
 OUT_FINDINGS = ROOT / "RE_output" / "INDEX_findings.md"
 OUT_CLAIMS = ROOT / "RE_output" / "INDEX_claims.md"
@@ -50,7 +51,11 @@ LINK_PATTERNS = [
 def parse_findings(findings_dir):
     """Return list of dicts: id, file, title, ts, text, links."""
     entries = []
-    files = sorted(findings_dir.glob(FINDINGS_GLOB), reverse=True)
+    files = []
+    for d in FINDINGS_DIRS:
+        files += list((findings_dir / d).glob(FINDINGS_GLOB)) if d else \
+            list(findings_dir.glob(FINDINGS_GLOB))
+    files = sorted(set(files), reverse=True)
     cur = None
     for path in files:
         try:

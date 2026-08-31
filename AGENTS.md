@@ -27,17 +27,17 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | FINDINGS 20.219 (in FINDINGS_2026-08-25.md) | newest verdict | ALWAYS when taking over. Closes the entity-index front by measurement; retracts the premise 20.212-20.218 rested on |
 | HANDOFF_2026-08-31_POOL-PROTOCOL.md | SUPERSEDED by 20.219 | the pool-family STATIC MAP is still the reference; its hunt list and its "host mask empty" premise are dead |
 | HANDOFF_2026-08-30_ENTITY-FRONT.md | superseded by 2026-08-31 | the entity-front hunt list (spent); its closed-fronts record stands |
-| HANDOFF_2026-08-30_CONSUMER-HUNT.md | superseded by ENTITY-FRONT | the appearance-consumer hunt; its premise (the profile pipeline as the road to a rendered peer) is settled |
-| HANDOFF_2026-08-29_STAGE-TRAY.md | HISTORICAL (retracted 20.191/20.192) | the staging-population lane. Its premise was false - NULL is the apply's normal third argument. Read only for that history |
-| HANDOFF_2026-08-29_PROFILE-WRITER.md | superseded | the profile-block writer contract; its job shipped at 20.178 |
-| HANDOFF_2026-08-29_ADMISSION.md | HISTORICAL (20.170) | the admission-forge lane, now CLOSED - its premise was false. Read only for that history |
-| HANDOFF_2026-08-28_L9-RENDER.md | superseded by ADMISSION | historical: the L9 render front |
-| HANDOFF_2026-08-27_ROAD-C.md | superseded by L9-RENDER | historical: how road C was opened and closed |
-| HANDOFF_2026-08-27_LAYER-SHIFT.md | superseded by ROAD-C | historical context for the scope shift |
+| docs/handoffs/HANDOFF_2026-08-30_CONSUMER-HUNT.md | superseded by ENTITY-FRONT | the appearance-consumer hunt; its premise (the profile pipeline as the road to a rendered peer) is settled |
+| docs/handoffs/HANDOFF_2026-08-29_STAGE-TRAY.md | HISTORICAL (retracted 20.191/20.192) | the staging-population lane. Its premise was false - NULL is the apply's normal third argument. Read only for that history |
+| docs/handoffs/HANDOFF_2026-08-29_PROFILE-WRITER.md | superseded | the profile-block writer contract; its job shipped at 20.178 |
+| docs/handoffs/HANDOFF_2026-08-29_ADMISSION.md | HISTORICAL (20.170) | the admission-forge lane, now CLOSED - its premise was false. Read only for that history |
+| docs/handoffs/HANDOFF_2026-08-28_L9-RENDER.md | superseded by ADMISSION | historical: the L9 render front |
+| docs/handoffs/HANDOFF_2026-08-27_ROAD-C.md | superseded by L9-RENDER | historical: how road C was opened and closed |
+| docs/handoffs/HANDOFF_2026-08-27_LAYER-SHIFT.md | superseded by ROAD-C | historical context for the scope shift |
 | RE_output/claims/lane-brief-template.md | lane contract | spawning any lane |
 | INCIDENT_2026-08-25_false-loops.md | closed incident | failure/silence investigation |
 | POSTMORTEM_2026-08-31_THE-EMPTY-MASK-LOOP.md | closed postmortem | HOW ~8 BOOTS WENT TO A NON-BLOCKER: a return code read as a state, and 8 more mechanisms. Written for a workflow-fixing session; read before briefing any multi-boot front |
-| POSTMORTEM_2026-08-30_MY-ERRORS.md | closed postmortem | the 2026-08-30 error record: three rule violations, three "the tool already existed" misses, and the engineering faults that cost two boots and a crashed launch. Read before building a new instrument |
+| docs/postmortems/POSTMORTEM_2026-08-30_MY-ERRORS.md | closed postmortem | the 2026-08-30 error record: three rule violations, three "the tool already existed" misses, and the engineering faults that cost two boots and a crashed launch. Read before building a new instrument |
 
 Older HANDOFF_* / *_bak files = historical, superseded-by the table above.
 Every dated doc opens with a `STATUS:` line; auditor verifies (DOC GOVERNANCE).
@@ -120,7 +120,7 @@ Timestamps (exact time, never bare date): LESSONS.md. VERIFIED vs INFERRED
 labeling: LESSONS.md. Deliverable/report-back rules: LESSONS.md + template.
 
 ## Where to start (historical context)
-GAME_PLAN_2026-08-07/14 strategies; FINDINGS_2026-08-07 background; RE_output/
+docs/archive/GAME_PLAN_2026-08-07.md + GAME_PLAN_2026-08-14.md (root) strategies; FINDINGS_2026-08-07 background; RE_output/
 claims/*.md specs (dispatch map, signon, deadorbit, family-4 wire layout).
 Skills/context notes for the car-project analogy: keep THIS research's files in
 THIS directory only (`../car-projects/` is separate).

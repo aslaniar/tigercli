@@ -35,7 +35,7 @@ done
 
 echo
 echo "== INDEX LIVENESS (stale index is a soft warn; missing index is loud) =="
-newest_findings=$(ls -t FINDINGS_2026-*.md 2>/dev/null | head -1)
+newest_findings=$(cat <(ls -t FINDINGS_2026-*.md 2>/dev/null) <(ls -t findings/FINDINGS_2026-*.md 2>/dev/null) 2>/dev/null | head -1)
 if [ -f RE_output/INDEX_findings.md ]; then
   if [ "$newest_findings" ] && [ RE_output/INDEX_findings.md -ot "$newest_findings" ]; then
     echo "warn    INDEX_findings older than $newest_findings -> rerun build_index.py"

@@ -39,7 +39,10 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SPINE = os.path.join(ROOT, "RE_output", "export", "functions.csv")
 DEFAULT_DB = os.path.join(ROOT, "RE_output", "map", "function_map.db")
-CORPOR_GLOBS = ["FINDINGS_2026-*.md", "STATE.md", "HANDOFF*.md", "FRONT*.md",
+CORPOR_GLOBS = ["FINDINGS_2026-*.md", "findings/FINDINGS_2026-*.md",
+                       "STATE.md", "HANDOFF*.md",
+                       "docs/handoffs/HANDOFF*.md", "FRONT*.md",
+                       "docs/boots/BOOT_BRIEF*.md",
                 "BOOT_BRIEF*.md", "INCIDENT*.md", "RESUME*.md"]
 CLAIMS_DIR = os.path.join(ROOT, "RE_output", "claims")
 
@@ -98,6 +101,7 @@ def iter_corpus_files():
     for g in CORPOR_GLOBS:
         import glob
         files += glob.glob(os.path.join(ROOT, g))
+        files += glob.glob(os.path.join(ROOT, "findings", g))
     if os.path.isdir(CLAIMS_DIR):
         files += [os.path.join(CLAIMS_DIR, f) for f in os.listdir(CLAIMS_DIR)
                   if f.endswith(".md")]
