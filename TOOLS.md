@@ -30,7 +30,7 @@ against" rule.
 | Tool | For | Oracle/self-test |
 |---|---|---|
 | RE_scripts/pe_reader.py | PE section map VA->file offset; imported by 8+ scripts | basis of every oracle below passing |
-| RE_scripts/xref_scan.py lo hi | GENERAL rip-relative xref scanner (.text -> range), infers instruction starts | `xref_scan.py --self-test`: must find getter 0x1404DC070 -> table 0x141F91AD0 (VERIFIED PASS 2026-08-26) |
+| RE_scripts/xref_scan.py lo hi | GENERAL xref scanner: rip-relative code refs (BOTH .text sections) + --ptrs data-pointer mode (vtables/callback tables) | `--self-test`: getter 0x1404DC070 -> table 0x141F91AD0 (re-verified PASS 08-31 post-fix); pen's hand-read ref 0x140B47D22 now found |
 | RE_scripts/disasm_fn.py va | disassemble one function to heuristic end | output correctness = manual spot vs Ghidra project |
 | RE_scripts/lane_svc43_disasm_range.py a b | LINEAR disassembly of a VA range, no early stop | n/a - use for raw ranges |
 | RE_scripts/needle_scan.py | byte-pattern needle search across loaded image | run twice, stable output |
