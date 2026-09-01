@@ -118,6 +118,7 @@ def scan_ptrs(lo, hi, exe=EXE, relocated=True):
     and encoding is "absolute" or "relocated->0x<static>."""
     pe = PE(exe)
     rt = getattr(PE, "RUNTIME_BASE", None)
+    real_span = max(v + vs for _, v, vs, _, _ in pe.sections)
     hits = []
     counts = {"absolute": 0, "relocated": 0}
     for name, vaddr, vsize, rawptr, rawsize in pe.sections:
@@ -130,7 +131,7 @@ def scan_ptrs(lo, hi, exe=EXE, relocated=True):
             if lo <= val < hi:
                 hits.append((va, name, val, "absolute"))
                 counts["absolute"] += 1
-            elif relocated and rt is not None and rt <= val < rt + 0x8000000:
+            elif relocated and rt is not None and rt <= val < rt + real_span:
                 st = pe.imagebase + (val - rt)
                 if lo <= st < hi:
                     hits.append((va, name, val, "relocated->0x%x" % st))

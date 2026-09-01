@@ -36,11 +36,21 @@ done
 
 echo
 echo "== SCAN-NEGATIVE HYGIENE (20.209 R2 class: a scan's coverage limit is not a world-fact) =="
-/usr/bin/python3 RE_scripts/negative_audit.py 2>/dev/null | tail -2 || echo "WARN    negative_audit failed to run"
+na_out=$(/usr/bin/python3 RE_scripts/negative_audit.py 2>/dev/null)
+na_rc=$?
+echo "$na_out" | grep -E "LIVENESS|NEGATIVE AUDIT FLAGS" | head -3
+if [ "$na_rc" -ne 0 ]; then
+  echo "DEGRADED: negative_audit flagged scan-negative claims (rc=$na_rc) - run: /usr/bin/python3 RE_scripts/negative_audit.py"
+fi
 
 echo
 echo "== REGISTRY AUDIT (registry rows vs tool reality - 08-31 rig_dll_helper drift) =="
-/usr/bin/python3 RE_scripts/registry_audit.py 2>/dev/null | tail -1 || echo "WARN    registry audit failed to run"
+ra_out=$(/usr/bin/python3 RE_scripts/registry_audit.py 2>/dev/null)
+ra_rc=$?
+echo "$ra_out" | grep -E "REGISTRY AUDIT|caps-verified" | head -2
+if [ "$ra_rc" -ne 0 ]; then
+  echo "DEGRADED: registry_audit found drift (rc=$ra_rc) - run: /usr/bin/python3 RE_scripts/registry_audit.py"
+fi
 
 echo
 echo "== INDEX LIVENESS (stale index is a soft warn; missing index is loud) =="

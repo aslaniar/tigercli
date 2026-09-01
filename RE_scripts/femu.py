@@ -170,6 +170,7 @@ class Rig(object):
                                                 opt + 56)[0]
         self.real_span = max(v + vs for _, v, vs, _, _ in self.pe.sections)
         self.warnings = []
+        self.strict = True                 # H1: unservable reads raise, never zero-fill
         if self.size_of_image > self.real_span:
             self.warnings.append(
                 "SizeOfImage 0x%x > real section span 0x%x - mapping only "
@@ -303,7 +304,7 @@ class Rig(object):
         base = self.pe.imagebase
         lo = source_base or getattr(self, "rebase_source", None) or \
             self.runtime_base
-        hi = lo + 0x8000000
+        hi = lo + self.real_span   # H2: cover the FULL image (was 128MB cap)
         for name, vaddr, vsize, rawptr, rawsize in self.pe.sections:
             if not name.startswith(".data"):
                 continue
@@ -381,6 +382,11 @@ class Rig(object):
             res.detail = str(exc)
             uc.emu_stop()
             return
+        except Rig.FemuFault as exc:
+            res.reason = "crt-fault:" + name
+            res.detail = str(exc)
+            uc.emu_stop()
+            return
         uc.reg_write(UC_X86_REG_RAX, ret & 0xFFFFFFFFFFFFFFFF)
         rsp = uc.reg_read(UC_X86_REG_RSP)
         retaddr = struct.unpack("<Q", self.read_vm(rsp, 8))[0]
@@ -453,7 +459,19 @@ class Rig(object):
                 self.rebase_reads.add(va)
 
     # ---- L7: VM memory access with demand paging ---------------------------
-    def read_vm(self, va, n):
+    class FemuFault(Exception):
+        """Raised by read_vm (strict) when memory is unservable: not in the
+        mapped image, not in the dump, and no zero-fill waiver. The 08-31
+        red-team H1: the old zero-fill path turned unmapped memory into
+        silent CRT 'success' - the project's most-documented bug class,
+        reborn in its newest instrument."""
+
+    def read_vm(self, va, n, strict=None):
+        """Read n bytes with demand paging. Unservable pages (no dump, or
+        hole) RAISE FemuFault by default (strict) - the caller decides;
+        strict=False restores the legacy zero-fill for callers that have
+        explicitly acknowledged it."""
+        strict = self.strict if strict is None else strict
         out = bytearray()
         while n > 0:
             try:
@@ -466,6 +484,14 @@ class Rig(object):
                 take = min(n, avail)
                 if self.dump and self._demand_page(va):
                     continue
+                self.holes.add(page)
+                if self.last_result is not None:
+                    self.last_result.holes.append(page)
+                if strict:
+                    raise Rig.FemuFault(
+                        "unservable read at 0x%x (%d bytes): page not "
+                        "mapped%s" % (va, take, " and not in dump"
+                                      if self.dump else " (no dump)"))
                 out += b"\x00" * take
                 va += take
                 n -= take
