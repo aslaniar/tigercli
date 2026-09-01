@@ -11,6 +11,7 @@
 #   - the deployed file's hash must equal the build output's hash, checked
 #     AFTER the copy, on the machine that will run it;
 #   - every named instrument literal must be present IN the deployed file.
+bash "$(dirname "${BASH_SOURCE[0]}")/log_archive.sh" --label auto || true
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

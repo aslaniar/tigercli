@@ -21,6 +21,7 @@
 # Rollback after a successful deploy: restore both *.bak_p2d6_<stamp> files.
 # Rollback of the plane alone needs no rebuild: set
 # server.gameplay.topology = "disabled" in settings.json.
+bash "$(dirname "${BASH_SOURCE[0]}")/log_archive.sh" --label auto || true
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

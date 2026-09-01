@@ -22,6 +22,8 @@ rig_copy="$tmp/rig_sunrise.log"
 MAC_XUID="110000130aa9ec5"
 RIG_XUID="110000130aa9ec6"
 
+bash "$(dirname "${BASH_SOURCE[0]}")/log_archive.sh" --label auto
+
 echo "======== BOOT VERDICT  $(date '+%Y-%m-%d %H:%M') ========"
 
 if ssh "${ssh_opts[@]}" "$rig_host" "rem" 2>/dev/null; then
