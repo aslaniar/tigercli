@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: field-xref, sib-scan, disp8-scan
 """field_xref.py - find every .text access to a STRUCT FIELD displacement.
 
 The gap this fills: xref_scan.py finds rip-relative references to a DATA RANGE,
