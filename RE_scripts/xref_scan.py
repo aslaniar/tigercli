@@ -104,21 +104,38 @@ def scan(lo, hi, exe=EXE):
     return hits
 
 
-def scan_ptrs(lo, hi, exe=EXE):
+def scan_ptrs(lo, hi, exe=EXE, relocated=True):
     """Data-pointer mode: absolute 8-byte references to [lo,hi) in the
     writable/readonly data sections (vtables, callback tables, dispatch
-    entries). Returns (slot_va, section, value)."""
+    entries). Returns (hits, counts).
+
+    DUAL-ENCODING (2026-08-31, the 20.209 R2 lesson): .data/.rdata pointers
+    are stored in TWO encodings - image-based (0x140000000+rva) and
+    RUNTIME_BASE-relocated (the dump/pack session's base). A scan testing
+    only one encoding returns a confident 0 and gets promoted to "statically
+    unreachable" (the entity-table dead end). Both are tested and counted.
+    Returns (hits, counts) where hits are (slot_va, section, value, encoding)
+    and encoding is "absolute" or "relocated->0x<static>."""
     pe = PE(exe)
+    rt = getattr(PE, "RUNTIME_BASE", None)
     hits = []
+    counts = {"absolute": 0, "relocated": 0}
     for name, vaddr, vsize, rawptr, rawsize in pe.sections:
         if not name.startswith((".data", ".rdata")):
             continue
         blob = pe.data[rawptr:rawptr + rawsize]
         for off in range(0, len(blob) - 7):
             val = struct.unpack_from("<Q", blob, off)[0]
+            va = pe.imagebase + vaddr + off
             if lo <= val < hi:
-                hits.append((pe.imagebase + vaddr + off, name, val))
-    return hits
+                hits.append((va, name, val, "absolute"))
+                counts["absolute"] += 1
+            elif relocated and rt is not None and rt <= val < rt + 0x8000000:
+                st = pe.imagebase + (val - rt)
+                if lo <= st < hi:
+                    hits.append((va, name, val, "relocated->0x%x" % st))
+                    counts["relocated"] += 1
+    return hits, counts
 
 
 def main():
@@ -142,10 +159,12 @@ def main():
     lo = int(argv[0], 0)
     hi = int(argv[1], 0)
     if ptrs:
-        hits = scan_ptrs(lo, hi)
-        print(f"data-pointer refs with value in 0x{lo:X}..0x{hi:X}: {len(hits)}")
-        for va, sec, val in hits[:40]:
-            print(f"   0x{va:X}  [{sec}]  = 0x{val:X}")
+        hits, counts = scan_ptrs(lo, hi)
+        print(f"data-pointer refs with value in 0x{lo:X}..0x{hi:X}: "
+              f"{len(hits)}  (absolute: {counts['absolute']}, "
+              f"relocated: {counts['relocated']})")
+        for va, sec, val, enc in hits[:40]:
+            print(f"   0x{va:X}  [{sec}]  = 0x{val:X}  {enc}")
         if not hits:
             print("NOTE: 0 data-pointer hits. Remaining known blind spots: "
                   "absolute moffs64 embedded in .text code.")

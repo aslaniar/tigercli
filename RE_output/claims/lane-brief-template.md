@@ -47,6 +47,25 @@ died the same way: the analysis ran, the SYNTHESIS never landed. The rules:
    one spawn, one report, end the turn. The main session harvests via the
    artifact mtimes + the completion notification, never the lane's own polling.
 
+Report-back stays <=3 lines per ARH4.
+
+## SCAN-NEGATIVE HYGIENE (2026-08-31 - a coverage limit is not a world-fact)
+Every zero/none finding ("0 refs", "no writers", "statically unreachable")
+MUST record an `ENCODEDS:` line in the claim stating exactly what forms and
+encodings the scan searched. A tool's coverage limit promoted to a structural
+claim is the 20.209 R2 class - three incidents: xref_scan form-filter,
+field_xref disp32-only, image-encoded-pointer scans against
+RUNTIME_BASE-relocated .data. Pointer scans over .data/.rdata use
+xref_scan.py --ptrs (dual-encoding: image + relocated). The corpus carries a
+flagger: RE_scripts/negative_audit.py.
+
+## DEAD-END AUDIT (required when the lane works to escape a recorded dead end)
+Before building any instrument to escape a dead end, answer in one line:
+`DEAD-END AUDIT: <the cheap check that would falsify the dead end's premise>`
+If the premise dies to a cheap re-check (existing tool, known encoding fact),
+do that instead of building. Precedent: 20.209 R2's "statically unreachable"
+died to a 5-minute relocated-pointer scan - after a 6.5GB dump tool was built.
+
 ## Standing rules (unchanged)
 - READ-ONLY on the fork unless the brief says otherwise; no git commits; the edit
   scope from the brief; stop stale sunrise-server.exe before smokes; the cache

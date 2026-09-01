@@ -35,6 +35,10 @@ for f in AGENTS.md LESSONS.md ENVIRONMENTS.md TOOLS.md HANDOFF_*.md; do
 done
 
 echo
+echo "== SCAN-NEGATIVE HYGIENE (20.209 R2 class: a scan's coverage limit is not a world-fact) =="
+/usr/bin/python3 RE_scripts/negative_audit.py 2>/dev/null | tail -2 || echo "WARN    negative_audit failed to run"
+
+echo
 echo "== REGISTRY AUDIT (registry rows vs tool reality - 08-31 rig_dll_helper drift) =="
 /usr/bin/python3 RE_scripts/registry_audit.py 2>/dev/null | tail -1 || echo "WARN    registry audit failed to run"
 
