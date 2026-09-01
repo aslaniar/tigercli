@@ -36,3 +36,11 @@ the gate records it in the artifact.
 Byte-literals that MUST appear in the deployed binary if shipped this build.
 gate_boot.py --literals <deployed-file> verifies them IN the deployed artifact,
 not the build dir (L14).
+
+## WIDE NET (2026-08-31, user directive)
+
+Every instrumentation boot ships probes for ALL plausible points along the
+suspect chain, not just the current lead. A single-site capture earns one bit
+per boot while the boot is the expensive resource. Before writing the brief:
+enumerate the chain's decision points (entry, each gate, each sink) and give
+every one either a probe or a pre-named reason why it cannot fire.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: batch-classification, dirty-guard
 """femu_batch.py - batch purity/behavior classification over the binary's
 functions using the femu rig (2026-08-29, night-runner T1/T3 support).
 

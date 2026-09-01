@@ -13,6 +13,8 @@ session touches deployment, tooling invocation, Ghidra runs, or cross-machine op
 - **The rig** `rasla@192.168.1.136` - ssh master ~/.ssh/cm-rig (may need to be
   reopened; needs the USER's password - FINDINGS_2026-08-24.md:1476). Rig game
   dir: `C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\`.
+  Large-file transfer: tar-over-ssh, NEVER scp/sftp - see
+  "RIG<->MAC FILE TRANSFER" below.
   Client DLL deploys there via RE_scripts/deploy_client_dll.sh <mac|rig>.
 - **Mac NIC map - THE INTERFACE IS NOT A CONSTANT, RESOLVE IT EVERY TIME.**
   en0 = Wi-Fi 192.168.1.164, en13 = ethernet 192.168.1.7. Which one carries
@@ -185,6 +187,32 @@ launch. A healthy restart also leaves `sessions:[]`, which IS the clean lobby-cl
 reset_lobby_claims.sh exists to produce, so an interrupted reset that you then recover from
 has still achieved the reset. Verify the exe hash after recovery: a relaunch runs whatever
 is on disk, and it must equal the hash the boot brief names.
+
+## [BOTH MACHINES] RIG<->MAC FILE TRANSFER - TAR-OVER-SSH, NEVER SFTP/SCP (2026-08-31)
+
+Windows OpenSSH's sftp-server caps a single stream at ~10-15 MB/s regardless of
+link speed (channel-window behavior, not crypto; 12 MB/s is the textbook number).
+A 6 GB mem dump at that cap is ~9 minutes; the same bytes as a tar-over-ssh pull
+land in ~1 min on the ethernet link. THE METHOD - pull from the Mac, reusing the
+existing cm-rig master:
+
+    ssh -S ~/.ssh/cm-rig rasla@192.168.1.136 \
+      "tar cf - -C C:/remote/dir name.dmp" > name.dmp
+
+- Windows 10+ ships tar.exe (system32); the default shell runs it, and cmd does
+  no CRLF mangling on stdout. No Git Bash needed for the transfer itself.
+- scp/sftp client-side flags and cipher changes DO NOT help - the cap is in the
+  Windows server. Parallel streams are the only sftp workaround; tar-over-ssh
+  avoids the channel entirely and should saturate the link (~100+ MB/s wired).
+- RULES:
+  1. One ssh-touching action per call, nothing chained before/after (the
+     ENVIRONMENTS "SHELL" hang applies - it holds the pipe AFTER succeeding;
+     if the byte count looks complete, it IS complete - verify, don't interrupt).
+  2. ALWAYS SHA256 both ends after landing: rig `certutil -hashfile f SHA256`,
+     Mac `shasum -a 256 f`. A silently truncated 6 GB stream is otherwise
+     indistinguishable from success.
+  3. If paired-boot work is in flight, resolve the route first (Machine map NIC
+     rule) - on Wi-Fi this transfer is slow AND steals boot traffic.
 
 ## [BOTH MACHINES] TRAP 18 - NEVER ROUND-TRIP settings.json THROUGH A JSON SERIALISER
 

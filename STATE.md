@@ -1,127 +1,140 @@
 # STATE - living snapshot
 
-STATUS: live (2026-08-30 ~18:0x). Verdict + deployed + next + reading order only.
-FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md; operational
-and platform facts live in ENVIRONMENTS.md.
+STATUS: live (2026-08-31 22:1x). Verdict + deployed + next + reading order only.
+FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
+HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-08-30 ~18:0x. *** THE MEMBERSHIP FRONT IS CLOSED. TWO PLAYERS, ONE TOWER
-INSTANCE, STABLE, WITH AUTHORED IDENTITY LIVE, ZERO ERRORS ON BOTH MACHINES. *** The
-state-hash rejection was the profile block: the client stores 396 bytes of it inside the
-hashed player entry and build_session_state modelled none of them. Fixed in two measured
-steps - the name's key16(L) terminator (20.206) and the tail's dword at +0x0c (20.207),
-both read off the CLIENT's own decode of a body we published, not derived. Result: 0
-checksum failures, 0 force-disconnects, citizen join SUCCEEDED, revision 9-20 against a
-23,908 baseline, peers 0x7 / players 0x3.
-*** 20.203 R1 IS CORRECTED: the checksum was NOT the black screen. *** With zero failures
-and zero disconnects the mac still went black, and p2(136) separated the two: the mac
-(which also HOSTS the server) goes black; the rig (pure client) never has, in any run.
-Not on the critical path - the rig proves a client holds a clean paired session and
-renders.
-THE REMAINING WALL IS PEER RENDERING, and it is now isolated on a machine with nothing
-else wrong. Closed this session: the peer channel carries no guardian even with profiles
-live (20.208 R5, the pcap 20.196 asked for); and the entity-replication cluster
-0x141718510/0x1717EB0/0x1718080 is RETIRED - attached=1, calls=0, solo AND paired, while
-the guardian renders (20.210).
-NEXT: the EVENT RING. Our type-7 record is decoded by the right decoder and committed to
-a ring; ring_commit runs 147 solo -> 624 paired, the only counter that moves with a peer.
-sobject-carrier.md says that commit writes {type,seq,count,tail,timestamp} to session
-+0x130 and NOTIFIES THE +0x81e0 OBJECT. Sweep that consumer statically first
-(field_xref.py on +0x130 / +0x81e0) - no boot.
+Updated: 2026-08-31 22:1x. *** THE ADMISSION FRONT IS FULLY MAPPED, THREE MECHANISMS
+DEEP, WITH THE MISSING SERVER ITEMS NAMED. Chain: (1) 20.234 closed every static
++0x38 writer; (2) 20.236/20.237 dumps proved HOST/JOINER asymmetry - the joiner's
+peer record never ACTIVATES (state dword 0 vs local 5), no maskB bit; (3) 20.239
+named the missing server item #1: the fork SKIPS the peer's citizen advertisement in
+the same-region (shared-bubble) case; (4) p2-151 fixed that behind
+membership_peer_same_region_advert (WORKS - peer_citizen=1) but exposed two more:
+20.240 - (a) the client never ACKs (zero type-38) so the retry cap (=2) withdraws
+the peer after 2 bodies (4112->3899-forever), and (b) "no tracking data" - the
+client's machine-id-keyed array at pool+0x602BC has NO PEER ROWS, and that feed is
+a SEPARATE missing item; (5) 20.241 mapped the array completely: adders named
+(0x1404F4980 canonical / 0x1404F7710 self-heal), the genuine feed arrives through a
+registration-table callback from flattened second-.text - dispatch type NOT
+statically nameable. THE USER'S FRAMING GOVERNS (20.238): the client is unmodified
+retail; every missing writer is gated on server input the fork does not send.
 
-## DEPLOYED (2026-08-30 ~18:0x, p2(137))
-  server exe     `789d8d9f0ed94e9e` via deploy_p2d6_gameplay.sh (seven harness gates).
-                 SETTINGS: publish_player_profile TRUE, session_state_client_base FALSE
-                 (the historical base is the correct one - 20.205 R4 / 20.206 R5),
-                 profile_state_variant 0, world_population TRUE.
-  clients mac+rig `3ff651086721e1ad`: milestone_trace TRUE; world_trace / state_diff /
-                 decoder_trace ALL FALSE (world_trace collides with the tracer on
-                 0x1718080; decoder_trace and state_diff both own apply-adjacent
-                 addresses). Rig settings pushed and read back byte-exact.
-  ROLLBACK: publish_player_profile FALSE is arm A, measured clean at the session layer;
-            milestone_trace FALSE restores p2(136).
-  NOTE: settings.json is FORMAT-SENSITIVE (trap 18) - text-insert edits only.
-  NOTE: NEVER hot-copy the server exe. deploy_p2d6_gameplay.sh restamps the content cache
-        to the candidate's PE identity; a raw cp leaves cache and exe mismatched and the
-        server dies at content_swap (cost a recovery this session).
+## DEPLOYED (2026-08-31 21:1x)
+  server exe     e486ab77b071ea9e - RUNNING, sessions:[]. p2-151 build: NEW SETTING
+                 server.gameplay.membership_peer_same_region_advert (default FALSE,
+                 currently TRUE) - same-bubble peer advertisements build against the
+                 region-bound shared host row. Rollback: flip the switch, no rebuild.
+                 settings.json diff is exactly one line; backup at /tmp/settings.json
+                 .bak_same_region (and *.bak_p2d6_* for exe+cache).
+  clients        46b294b76e681704 (mac+rig, 2026-08-31 19:0x) - p2-149 build: ptable
+                 probe self=<idx>/rec8=/selfRef= fields. No hook changes since.
+  dumps          p2-146 (rig, femu's verified graft-dump target - KEEP) and p2-150
+                 (rig, verified-paired reference, PROVENANCE.txt inside) in
+                 RE_output/dumps/. p2-149 DELETED (superseded, analysis banked).
+  index          RE_output/logindex/p2150.db + p2150.drift.json (mac/rig/server,
+                 drift-anchored) - the log evidence for everything in 20.240/20.241.
+  capture        RE_scripts/capture_gameplay_plane.sh (UDP 3097/3074/3075/30976,
+                 en0+en13+lo0, route resolve + liveness probe; smoke-tested).
+  BOOT HYGIENE: deploy client DLLs BEFORE the user boots (a running process never
+  re-reads its image; cost a boot). Restart the server with reset_lobby_claims.sh
+  backgrounded (it hangs after succeeding). Use logindex/logq, not grep chains.
 
 ## WHERE WE ARE
-Session / activity / transport / membership / identity: DONE, symmetric, STABLE, verified
-on both machines with the profile live. That milestone is closed.
-Peer rendering: the one open front. Every appearance route this project pursued is closed
-by measurement, and the closures are no longer confounded - the rig holds a clean paired
-session and still renders no peer. The entity cluster is retired (20.210); the event ring
-and its +0x81e0 consumer are the next target, statically first.
-Instruments: milestone_trace (8 functions, caller RVAs, census printing ZEROS) is the
-model to extend - add a target in one line rather than writing another one-off hook.
+Session/membership/identity: DONE. Entity-index/slot supply: CLOSED, not a
+blocker (20.219). Peer rendering: the wall, now mapped three mechanisms deep
+(see Updated block). The p2-151 fix (same-region advert) is LIVE and verified;
+the remaining blockers are the type-38 ack absence and the tracking-data feed.
+
+## NEXT (per 20.241 - the tracking feed is REACHED, its dispatch is flattened)
+ p2-151 verdict + 20.240 mechanisms stand. The static hunt is DONE: the +0x602BC
+ tracking array is filled per-ENTITY through a registration-table callback invoked
+ from flattened second-.text code (20.241 R4) - the dispatching message type cannot
+ be named statically. The contact/proximity evaluator 0x1410C3F40 (0xE000 class ==
+ 0x2000, distance check) gates the entry: tracking rows make a peer CONTACTABLE.
+ THE WORK (dynamic, one boot): probe 0x1404F4980 (canonical adder, in-gap, unpdata'd
+ - verify_hook_rvas will flag it NOT-CODE; hook the CALLERS 0x140C18089/0x140C180C2/
+ 0x140C1830C instead, all inside .pdata fn 0x140C17E40) logging caller-RVA +
+ machine-id arg during a paired dwell. The caller RVA separates the genuine feed from
+ the self-heal; retail lines 194/195 timestamp the fixup. Then: type-38 ack + the
+ fixup-release decide whether the fork sends a NEW message or populates an existing
+ one. FALLBACK unchanged (20.238): stage-tray client-side write, host side.
+
+## SUPERSEDED (20.221 - gate 2, still valid, no longer the front)
+A) self-only BY DESIGN -> peers arrive by server-mediated replication the fork never
+   sends. Front = the gameplay-plane entity message; ent_recv/ent_header/ent_create
+   return as the RECEIVER (their two retirements, 20.210 R3 and 20.213 R2, are both
+   suspect - they may log zero simply because nothing is sent).
+B) the peer's +0x818 should become the local identity under an authority hand-off the
+   fork never arranges. Front = what writes +0x818.
+DISCRIMINATOR (offline, no boot): the p2-146 dump - compare the peer record 0x66514EC0
+against the local 0x665118D0 and find +0x818's provenance.
+DUMP: RE_output/dumps/p2-146-paired-tower/ (6.5 GB, both clients in Tower, players 0x3).
+SCENARIO-SCOPED, not time-scoped: Tier-1 code/tables reusable until the GAME binary
+changes; Tier-2 roster/manager state only valid for THIS scenario (a fork change that
+alters what the client receives makes it stale). See 20.221 R5.
+
+## SUPERSEDED FRAMING (do not re-run; full text in FINDINGS)
+The 20.220 hunt list (hook the predicate halves, chase [rbx+8] as a wire field,
+'which gate stops the loop') is SPENT: 20.221 answered it - gate 2 is an
+ownership test and the loop is self-only. The predicate 0x1412AADF0 is NOT an
+authority split either (identical toggling on mac and rig, p2-145).
 
 ## HARD RULES (earned; each cost a boot or a day)
-  - RESET THE SERVER BETWEEN RUNS (reset_lobby_claims.sh). The 2026-08-30 solo landing
-    loop was a 12-hour-old server's accumulated state; every historical landing was on
-    a fresh one. The recovery procedure in ENVIRONMENTS.md works - practice it.
-  - NO .text patching; NO interface slot bound by a guessed ordinal. Census FIRST.
-  - EVERY hook RVA goes through `RE_scripts/verify_hook_rvas.py` before a boot. A
-    module-range check passes on a WRONG address and the detour never fires (20.173 R1).
-  - Bundle OBSERVATION freely; bundle BEHAVIOUR only behind a switch flippable without a
-    rebuild. p2(62) changed six bindings, froze, and its cause is now unknowable.
-  - CENSUS BEFORE FILTER, always. Multiple retractions came from asserting a mechanism
-    off a filtered or truncated view.
-  - BUDGET OBSERVERS PER EVENT CLASS. A shared cap gets spent by the wrong event and the
-    resulting null reads as a finding (20.190, 20.193 R5 - it cost two boots).
-  - SCAN AFTER THE WRITE. p2(127) asked "does it persist" from before the write and got
-    1 hit in 24 (20.200 R2).
-  - PREFER LANDMARKS OVER ARITHMETIC. We choose what the server publishes, so the client's
-    heap is self-labelling. Searching for a published value found the per-player array in
-    one boot after three sessions of contradictory offset derivation (20.201 R2).
-  - Wire fields have TWO conventions and the FIELD decides, not the C++ type: raw fields
-    keep byte order, VALUE fields are MSB-first. Mixing them shipped byte-reversed SOIDs
-    (20.197 R1).
-  - One long-running or ssh-touching action per shell call; they hang AFTER succeeding and
-    an interrupt leaves the server dead (recovery procedure in ENVIRONMENTS.md).
-  - Solo control boot before any two-machine run; never return fabricated ids to client
-    enumeration loops (p2(63)).
+  - RESET THE SERVER BETWEEN RUNS (reset_lobby_claims.sh, backgrounded).
+  - NO .text patching; NO guessed interface ordinals. Census FIRST.
+  - EVERY hook RVA through verify_hook_rvas.py before a boot (it catches
+    added/dropped digits - both have happened).
+  - Bundle OBSERVATION freely; BEHAVIOUR only behind a settings switch.
+  - CENSUS BEFORE FILTER. BUDGET OBSERVERS PER EVENT CLASS.
+  - SCAN AFTER THE WRITE. PREFER LANDMARKS OVER ARITHMETIC.
+  - Wire fields: raw fields keep byte order, VALUE fields are MSB-first.
+  - One long-running/ssh action per shell call; it hangs AFTER succeeding.
+  - Solo control boot before any two-machine run.
+  - Boot-test scope is fixed at brief approval; instrument tweaks wait.
 
-## DEAD ENDS - DO NOT RESUME (mechanism in the cited FINDINGS)
-RETIRED 2026-08-30 by p2(137)/20.210: the entity-replication cluster 0x141718510 /
-  0x141717EB0 / 0x141718080 - attached=1, calls=0, solo AND paired, while the guardian
-  renders. Wrong subsystem, not a wrong observation point. Do not hook it again.
-CLOSED BY MEASUREMENT 2026-08-30: the client<->client channel as the appearance carrier
-  (20.196, and 20.208 R5 discharged its own re-open condition with profiles live: max
-  packet 268 B, flat buckets) | the client-side pull of a peer's record (20.198 R2) | the
-  server-side push (20.198 R3) | region A as an appearance carrier - fully decoded, no
-  gear/shader/ornament field (20.202) | region B (a second name block) | the character
-  registry as a foreign-record ingest | the roster-change manifest chain (20.203 R4).
-RETRACTED 2026-08-30: 20.203 R1's "the checksum IS the black screen" (20.208 R2 - zero
-  failures, still black) | the p2(129) +8 table shift (20.205 R4 - the historical base
-  hashes correctly 9/9) | the staging-population lane (20.191/20.192) | "the client
-  discards a peer's profile" | the black-screen idle hypothesis | "three 16-byte vectors
-  are a transform".
-CLOSED BY p2(110)/20.170: THE ADMISSION-FORGE LANE. Do not forge a peer record.
-RETRACTED 2026-08-27/29: "Could not find tracking data" as the release | friends lane as
-  closed | counts-vs-bitmasks | peer-player instantiation off the wrong session | the
-  "EST-N/MEM-0 wall" | the peer retry cap as the gate.
-CLOSED BY EXECUTION: friends rich-presence as the JOIN ROUTE | type-12 wire shape | the
-  delivery-gap theory | gate-table<->reason-enum (which also makes the REASON BYTE
-  unreliable) | `reason_name` | `client.region_private` | ws 701/702 | steam_player_group.
-RETIRED BY 20.113: making a peer appear by SHAPING a BAP body. The client reads its own
-  session member table, not our declarations.
-ROAD C CLOSED 2026-08-28: FRONT_public-host-chain.md, 20.113-20.144.
-
-## PARKED: rx-decode (20.92) | reason hunts (20.86) | blind sweeps | posse fabrication |
-   type-54 bubble | client-memory profile harvest | chunk 8 power (needs a hook that
-   fires) | the mac black screen (host-machine-correlated, 20.208 R3 - NOT on the
-   critical path).
+## DEAD ENDS - DO NOT RESUME (mechanism in FINDINGS)
+RETIRED 20.241 R4: STATIC NAMING of the tracking-feed dispatch type - the feed
+   arrives through a registration-table callback invoked from flattened second-.text
+   (stack-obfuscated fake-rbp swaps); the dynamic discriminator is the 20.241 R5
+   probe (add-site caller RVA during a paired dwell).
+RETIRED 20.234: the +0x38 WRITER under every covered static encoding: accessor family
+   (0x1404C8750/B30/B50/BA0/BC0 - all call sites readers), all-width disp8 x 30
+   participant fns = 0, decomposed-base x 37 fns = 0, 59 stride sites enumerated.
+   Second-.text SIB sites remain unattributable (no landmarks) - bounded, not proven.
+RETIRED 20.220: slot SUPPLY as the blocker. Chain: loop 0x1413086E0 -> creator
+  0x1416EE180 -> 0x14170F190 -> idx_alloc 0x141711D10. It IS on the path, has 145
+  free slots, and is never asked - the loop stops at its GATES before creating.
+  (Two allocators: per-member index [rbx+8] via 0x140B76E00; entity slot via
+  0x141711D10. Both real, different jobs.)
+RETIRED 20.219: THE WHOLE ENTITY-INDEX/SLOT-SUPPLY FRONT. The mask is not empty
+  (145-150 free, the hysteresis midpoint); zero allocations are attempted with a
+  peer present; the 44 creation failures were SELF-allocation during load. Also
+  dead: type-28 as the missing message (the transfer needs no token), the
+  "assignment unlocks a local fill" model (the sync SENDS, it does not fill), and
+  the ordering/race reading (the lifecycle runs 38,596x per boot).
+UN-RETIRED 20.221: entity-replication cluster 0x141718510/0x1717EB0/0x1718080.
+  BOTH retirements (20.210 R3, 20.213 R2) are suspect - it may log zero because
+  nothing sends it a peer. Treat as the RECEIVER candidate, not a dead end.
+RETIRED: router-flags gate (20.218). Type-20-as-teardown (20.217 am2). Assignment
+  VALUE semantics (20.217). PEER CHANNEL as appearance carrier - client<->client
+  pre-packaging REFUTED by pcap (20.196, 20.208 R5); this one is HARD and still
+  constrains 20.221 reading (a). Region A appearance fields (20.202).
+  Admission-forge (20.170). Road C (20.113-20.144). Staging population (20.191/2).
+  svc21=pool request. Full list: FINDINGS dead-end blocks.
+PARKED: mac black screen (host-machine-correlated, decoupled from the failure
+  loop, 20.213 R3; Ubuntu server move is the clean test) | rx-decode | reason
+  hunts | posse fabrication.
 
 ## READ FIRST (any session taking over)
-  0. HANDOFF_2026-08-30_CONSUMER-HUNT.md (background) + FINDINGS 20.203/20.204
-     (tonight: the checksum mechanism, the state_diff instrument, the exact next
-     boot shape in 20.204 R3 - that staged recipe IS the pickup point).
-  1. AGENTS.md (router) + its conditional triggers. Boot work ALSO loads LESSONS.md
-     PRE-BOOT CHECKLIST and runs `gate_boot.py` on the brief.
-  2. FRONT_e2e-stack.md for the layer map; FINDINGS 20.107 for what has never been touched.
-  3. ENVIRONMENTS.md before ANY deploy, capture or settings edit - it carries trap 18
-     (settings.json format sensitivity), the NIC-is-not-a-constant rule, and the
-     server-recovery procedure.
-  4. Contract refs in RE_output/claims/: l9-profile-layout.md, profile-builder.md,
-     msg12-schema-decoded.md. steamfriends-vtable-audit.md is LARGELY RETRACTED.
-  5. Captures contain NUL bytes - grep with `grep -a`, and prefer
-     `logindex.py` + a query over grep chains for anything beyond a one-line peek.
+  0. FINDINGS 20.238-20.241 (the corrected framing + the admission front, three
+     mechanisms deep, all named) then 20.234-20.237 (static closure + the dumps).
+     BOOT BRIEFS p2-149/p2-150/p2-151 carry the verified-paired discipline.
+  1. AGENTS.md conditional triggers; boot work loads LESSONS pre-boot checklist
+     and runs gate_boot.py on the brief.
+  2. ENVIRONMENTS.md before ANY deploy/capture/settings edit (trap 18: settings
+     are format-sensitive text edits; NIC is not a constant; server recovery;
+     RIG<->MAC FILE TRANSFER = tar-over-ssh, NEVER scp/sftp, SHA256 both ends).
+  3. Log evidence for the admission front: RE_output/logindex/p2150.db (+ drift
+     json) - query with logq.py --aligned.
+  4. Captures contain NUL bytes (grep -a); logindex/logq over grep chains.

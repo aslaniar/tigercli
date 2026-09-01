@@ -24,6 +24,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | FRONT_public-host-chain.md | live front page | working road C (server as group host) - the chain L1-L9 with marks |
 | FRONT_e2e-stack.md | live front page | the END-TO-END map: the layers that WORK, and the appearance gap. NOTE: its region-B-as-appearance-candidate line is SUPERSEDED by 20.202 |
 | NIGHT_RUNNER.md | live manual | running the function-map night lanes (reconcile/night_pull/funcq/beacons/femu) |
+| HANDOFF_2026-08-31_GATE-FEEDERS.md | newest handoff | ALWAYS when taking over. The gate-feeder lane (blocker 3): the construction gate is named and measured, cond 5 is the blocker, and what feeds it is the open question |
 | FINDINGS 20.219 (in FINDINGS_2026-08-25.md) | newest verdict | ALWAYS when taking over. Closes the entity-index front by measurement; retracts the premise 20.212-20.218 rested on |
 | HANDOFF_2026-08-31_POOL-PROTOCOL.md | SUPERSEDED by 20.219 | the pool-family STATIC MAP is still the reference; its hunt list and its "host mask empty" premise are dead |
 | HANDOFF_2026-08-30_ENTITY-FRONT.md | superseded by 2026-08-31 | the entity-front hunt list (spent); its closed-fronts record stands |

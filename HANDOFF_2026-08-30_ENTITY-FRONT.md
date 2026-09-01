@@ -1,9 +1,8 @@
 # HANDOFF 2026-08-30 (evening) - THE ENTITY FRONT
 
-STATUS: live. Supersedes HANDOFF_2026-08-30_CONSUMER-HUNT.md, whose hunt list is spent:
-its items 1-2 were parked on a dead emitter, and its central premise (that the profile
-pipeline was the road to a rendered peer) is now settled - the pipeline WORKS and renders
-nothing, because region A carries no appearance field at all.
+STATUS: superseded by HANDOFF_2026-08-31_POOL-PROTOCOL.md (its peer-rendering
+hunt is spent; the pool-protocol lane replaced it). Kept for the closed-fronts
+record: membership milestone closed, entity cluster retired, peer channel closed.
 
 ## THE ONE-PARAGRAPH STATE OF THE WORLD
 
