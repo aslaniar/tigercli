@@ -4,7 +4,18 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-02 10:4x PDT. *** 20.252 (p2-158 canary): THE GATE-BYTE WRITER IS FOUND -
+Updated: 2026-09-02 11:3x PDT. *** 20.253 (offline): THE IMAGE IS A STAGING SNAPSHOT -
+pool ctor PUBLISHES the fresh table into a per-activity staging object (0x1403CB340:
+table->X+0x80, flag X+0x70; direction CORRECTED from 20.252), gated by THE 20.220
+authority predicate 0x1412AADF0 (pools built on its FALSE side). Snapshot manager
+0x140C21FE0 is flattened (obfuscator wall - do not chase); 21 checkout sites: pool
+query paths, ctor, and manager clusters 0x1416BC33E/0x141741130 (4 snapshots ->
+0x140092D40). THE QUESTION: which consumer WRITES participant-record data back into
+table/snapshot from OUTSIDE (authority/server) - (a) read 0x140092D40 + 0x1416BC33E
+offline, or (b) one probe boot: hook 0x1403CB340 both machines + watch the SNAPSHOT's
+gate byte (capture-then-quiet). Fork has NO participant-table model server-side - if
+snapshot deltas ride the pool protocol, the fork must build it.
+PRIOR: *** 20.252 (p2-158 canary): THE GATE-BYTE WRITER IS FOUND -
 the participant records (gate bytes included) are copied as ONE WHOLESALE TABLE IMAGE
 handed to the pool ctor 0x1404F77D0 ([rsp+0x70]) -> 0x1403CB340 (0x59290 stack backup +
 image copy) -> 0x1404DF6A0 copier (0xB24 x 0x80 SSE loop, .pdata gap). NO client code
