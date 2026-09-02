@@ -114,13 +114,24 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
     sites; second-.text SIB unattributable (bounded, not proven).
  RETIRED 20.220: slot SUPPLY as the blocker (loop stops at its GATES; two real
     allocators, different jobs).
- RETIRED 20.219: the whole entity-index/slot-supply front (also dead: type-28 as
-    the missing message, assignment-unlocks-fill, ordering/race reading).
+ *** RE-OPENED 2026-09-02 (postmortem THE-WRONG-QUESTION) *** 20.219: the entity front
+    was closed on a SUB-QUESTION. Genuinely dead: slot supply as SCARCITY (~145 free),
+    type-28 as the missing message, assignment-unlocks-fill, ordering/race. What its own
+    RESULT 4 measured and nobody acted on: "the client NEVER ASKS. Creation is not
+    reached." What 20.219 R5 retracted WITHOUT meeting its control: 20.208 R6 (arming
+    world_population -> type=7 sobject + type=52 epoch made the client ATTEMPT
+    player_broadcast creation, vs ZERO in four prior runs) and 20.213 R1 (a SERVER
+    setting - lease size - switched the attempt ON, firing on type-12 pushes; failure
+    localised between "roster member exists" and the index request). THAT IS THE ONLY
+    KNOWN SERVER-SIDE LEVER ON ENTITY CREATION, AND IT IS THE FRONT.
  UN-RETIRED 20.221: entity-replication cluster - RECEIVER candidate, see above.
  RETIRED: router-flags gate (20.218) | type-20 teardown (20.217 am2) |
     assignment VALUE semantics (20.217) | PEER CHANNEL as appearance carrier
-    (pcap-refuted 20.196, 20.208 R5 - HARD, still constrains 20.221 reading (a))
-    | region A appearance fields (20.202) | admission-forge (20.170) |
+    (pcap-refuted 20.196, 20.208 R5 - HARD FOR APPEARANCE/BULK ONLY: it never tested
+    continuous POSITION/STATE, which is small and flat - the exact shape it measured.
+    Do NOT extend it to "the peer channel is irrelevant to rendering". Still constrains
+    20.221 reading (a)) | region A appearance fields (20.202 - correctly closed, all
+    232 B decoded field-by-field on two accounts) | admission-forge (20.170) |
     road C (20.113-20.144) | staging population (20.191/2) | svc21=pool request.
     Full list: FINDINGS dead-end blocks.
  PARKED: mac black screen (Ubuntu server move is the clean test) | rx-decode |
