@@ -269,6 +269,27 @@ checklist remains prose so the reasoning survives; the gate stops the slip.
 
 ---
 
+19. **AN INSTRUMENT THAT INSTALLS A VECTORED EXCEPTION HANDLER, WRITES DEBUG
+    REGISTERS, OR SUSPENDS GAME THREADS IS A BEHAVIOURAL CHANGE.** (2026-09-02,
+    gate_wwatch: three abnormal host outcomes in three armed boots - rig crash at
+    landing, rig crash in Tower, mac MACHINE freeze - across two builds with and
+    without mitigations. Full account: POSTMORTEM_2026-09-02_THE-WIRE-WATCH.md.)
+    The detour class is read-only pass-through and "bundle OBSERVATION freely" is
+    TRUE for it; the VEH/DR/suspend class intercepts the host itself and its host
+    cost is never zero. Rules: (a) the mechanism must be validated on the platform
+    BEFORE paired exposure - a known-inert mechanism (Rosetta never delivers DR
+    hits) means the instrument is disabled THERE, not swept anyway; (b) coverage
+    prints its denominator every cycle from boot one ("threads covered/total"); (c)
+    the kill criteria are pre-named and the retirement is one line long - ours
+    fired at the second crash; (d) a mitigation that survives one test confirms the
+    mitigation, not the mechanism - name the residual risk in the same sentence;
+    (e) every exception-machinery state change is walked through "what does the
+    handler do for a hit it no longer expects". Before building this class at all,
+    exhaust the clean-detour chokepoint search: the watch's question got answered,
+    but every question AFTER the first was answered by a plain detour (pubrest).
+
+---
+
 # THE ANTI-RABBIT-HOLE RULES (2026-08-20, binding - the execution contract for lanes AND the main session)
 
 The observed killer failure = the RABBIT HOLE: reacting to a symptom

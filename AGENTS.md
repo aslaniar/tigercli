@@ -41,6 +41,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | docs/postmortems/POSTMORTEM_2026-08-30_MY-ERRORS.md | closed postmortem | the 2026-08-30 error record: three rule violations, three "the tool already existed" misses, and the engineering faults that cost two boots and a crashed launch. Read before building a new instrument |
 | docs/postmortems/POSTMORTEM_2026-09-01_THE-NIGHT-RUNNER.md | closed postmortem | the 0831/0901 ~30-lane night wave and the 3 boots it fed: one unexamined inherited premise under correct work; readiness language that conflated "the callee does X" with "the call happens"; a census written larger than its scan. Read before briefing a lane wave |
 | docs/postmortems/POSTMORTEM_2026-09-01_INSTRUMENTATION.md | closed postmortem | every instrument of the 09-01 session: the probe that logged the answer and not the question (3 boots), budgets spent before the event, a control that could not fire, an instrument that overstated the wire, and the patterns that WORKED (first-seen-key gating, whole-array enter+leave dumps). Read before writing any probe |
+| docs/postmortems/POSTMORTEM_2026-09-02_THE-WIRE-WATCH.md | closed postmortem | the DR watch's three abnormal host outcomes and its retirement (LESSONS U18): VEH/DR/suspend = behavioural; platform-mechanism validation; kill criteria; mitigation-vs-root-cause. Read before building any instrument that intercepts the host |
 
 Older HANDOFF_* / *_bak files = historical, superseded-by the table above.
 Every dated doc opens with a `STATUS:` line; auditor verifies (DOC GOVERNANCE).
@@ -74,7 +75,7 @@ U9 document gate expected value | U10 one contract per boot
 U11 exoneration only as tested  | U12 boot brief states graphics delta
 U13 null result indicts instrument first | U14 assert artifact provenance
 U15 source scope of authority   | U16 mark EVERY chain link
-U17 no optional protocol types  | ARH1-8 anti-rabbit-hole (lane execution)
+U17 no optional protocol types  | U18 invasive instruments (VEH/DR/suspend) = behavioural; postmortem 09-02 | ARH1-8 anti-rabbit-hole (lane execution)
 NST parse/smoke before run      | METHOD contract-first, census before port
 
 JUDGMENT RULES (not automatable; review-time attention here): U15, U10-composition.
