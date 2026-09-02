@@ -4,7 +4,12 @@ STATUS: live (2026-09-01 14:4x). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-01 19:0x. *** 20.249 (p2-156): MARKING THE CLIENT'S OWN MACHINE ID
+Updated: 2026-09-01 19:4x. *** 20.250 (p2-157): THE c4 FRONT IS DEAD. ~6,100 reader calls
+through a sustained paired dwell and the peer's contactable byte is NEVER queried - each
+client asks only about itself - while that byte sat at 1 on both machines. 20.245 R3 and
+20.246 R6 RETRACTED; the tracking cluster is fully exonerated. Crash discriminator
+resolved: self-marking caused p2-156, the probe is clean. THE PROJECT IS NOW ONE FRONT:
+cond5, dynamic. PRIOR: *** 20.249 (p2-156): MARKING THE CLIENT'S OWN MACHINE ID
 CRASHED THE MAC AND KEPT THE RIG OUT. Reverted; push disabled (c4_mark_push=0 verified).
 AND THE PREMISE IS SUSPECT: the new probe shows each client's +0x602C4 reader asks only
 about ITS OWN id, so 20.245 R3's "evaluator blocked by c4=0" is likely the self entry
@@ -73,37 +78,41 @@ any fix there is client-side. Peer rendering remains the wall. What is LEFT:
      peer at all (the local guardian renders with ent_recv/ent_create at ZERO).
      Now the cheapest open question in the project.
 
-## NEXT (per 20.249 - p2-156 CRASHED THE MAC; THE c4 PREMISE IS SUSPECT)
- p2-156 sent {peer, SELF}. On the mac the body found ONE row - its own - and marked it
- (c4 0x00 -> 0x01, mac:48022/48023). ~750 ms later the activity client lost its host
- (join result with a BLANK session id), began rejecting message types it had handled all
- boot (17, 52), entered private_repair, and the process died (Wine debugger crash). The
- rig never reached the Tower - repeated "falling back to a new character", baboon kick,
- with track_set calls=14 vs 1 in p2-155. CAUSE (INFERRED): asserting "contactable" about
- the client's OWN identity, a state the client excludes by construction (gate cond 2 is
- "i != self index"). NOT EXCLUDED: the new c4query probe is a second variable; it ran
- thousands of calls first and the symptoms are protocol-state corruption, not a wild
- pointer, but it is named. DISCRIMINATOR: re-run PEER-ONLY on the same client build.
- *** THE BIGGER RESULT (20.249 R1): the c4query probe logged the READER'S QUESTION for
- the first time, and each client asks 0x1404F7680 about its OWN machine id ONLY - mac
- asks mac, rig asks rig, one distinct pair each, on the SAME pool that holds the rows.
- So 20.245 R3's "the evaluator was blocked by +0x602C4=0" is SUSPECT: that abort is the
- SELF entry being skipped correctly, not the peer being gated. The whole c4 lever
- (p2-154/155/156) may have been aimed at a byte whose zero value was never wrong.
- 20.246 R6 rests on the same reading. Neither retracted outright - the disassembly still
- shows the activation block reading the byte - but no boot has EVER observed a query for
- a peer's id.
- THE FRONT IS NO LONGER "make c4 nonzero". It is: does anything ever read the PEER's
- contactable byte? The c4query probe already answers it - it needs a PAIRED dwell, which
- p2-156 never reached. If the query set stays self-only through a full pairing, the c4
- front is DEAD, 20.245 R3 / 20.246 R6 retract, and peer-render goes back to cond5 alone
- (20.246 R7's dynamic write-watch) with the tracking cluster fully exonerated.
- SAFE STATE NOW: pool_c4_mark_push=FALSE, server restarted, bind line verified
- `c4_mark_push=0 peer_retry_cap=2`. Source reverted to PEER-ONLY (one-element list);
- the server's ids= log line now prints the real count (it hardcoded 2 - my defect,
- 20.249 R4b). NOT DEPLOYED - rebuild sits in build/ awaiting a decision.
- DO NOT MARK SELF. DO NOT RAISE membership_peer_retry_cap (20.247 R8).
- TOOL DEBT: femu misalignment fixed (20.244 R4); 20.186/187 suspect. STATE diet ~180/120.
+## NEXT (per 20.250 - THE c4 FRONT IS DEAD; cond5 IS THE WHOLE PROBLEM)
+ p2-157 RESULT: through a sustained paired dwell (302 samples at maskB=0x3) the
+ +0x602C4 reader was called ~6,100 times and NEVER ONCE asked about the peer - the
+ complete c4query set for the boot is TWO pairs, each client querying only ITS OWN
+ machine id (rig:1784, mac:1911). Meanwhile the PEER's byte was set to 1 on both
+ machines the whole time (rig:1834, mac:54990) and each client's own row stayed 0x00.
+ A working lever on a door nothing opens.
+ RETRACTED: 20.245 R3 ("the evaluator was blocked by c4=0" - those reads were the SELF
+ entry, where 0 is correct) and 20.246 R6's conclusion that c4 is the peer-activation
+ gate (its disassembly reading of the three non-gate probes stands). p2-154/155/156
+ were aimed at a byte never consulted for a peer. The tracking cluster is now fully
+ EXONERATED, not half-suspected.
+ CRASH DISCRIMINATOR RESOLVED: peer-only + the byte-identical p2-156 client =
+ stable full dwell. Self-marking caused the p2-156 crash (20.249 confirmed); the
+ c4query probe is exonerated (~6,100 calls, no incident).
+ HONEST LIMIT (pre-named L5): "no peer query IN THIS SCENARIO", not "none exists".
+ *** THE PROJECT IS NOW ONE FRONT. Everything in the tracking/admission cluster is
+ closed or exonerated (20.219 slot supply, 20.245 row lifecycle, 20.250 contactable).
+ What remains is cond5 - bit 4 of participant record+0x38 - unmoved through every
+ measurement: 384/384 dump records, 300 live samples p2-155, 200 more p2-157, bit4=1
+ appearing ZERO times ever.
+ NEXT: cond5's DYNAMIC front (20.246 R7). Static is exhausted (20.246 R1-R4 incl. the
+ record-handle encoding no prior scan covered), and the user's framing governs - the
+ client is unmodified retail and rendered peers against Bungie on server input alone,
+ so a writer EXISTS and is runtime-registered where static analysis cannot reach.
+ THE INSTRUMENT: a write-watch on record+0x38 during a paired dwell. The address is
+ already logged live every tick by ptable (table=0x1D3065B8 + i*0x2AC0 + 0x38), so the
+ target needs no discovery - only a hardware/page watch or a hook on whatever writes
+ the region. Design it against the instrumentation postmortem's rules: log the KEY not
+ just the value, gate on novelty not a budget, and pick a control that can actually fire.
+ SETTINGS NOW: pool_c4_mark_push TRUE and HARMLESS (peer-only; keep or disable, it
+ changes nothing). DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
+ TOOL DEBT: reset_lobby_claims.sh cries wolf every run (counts listeners, 30975 binds
+ twice); c4query derefs before its dedupe check. Both in the instrumentation postmortem.
+ STATE diet debt: ~185 vs 120.
 
 ## SUPERSEDED (20.221 - gate 2, still valid, no longer the front)
 A) self-only BY DESIGN -> peers arrive by server-mediated replication the fork never
