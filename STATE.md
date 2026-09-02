@@ -4,7 +4,15 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-02 11:3x PDT. *** 20.253 (offline): THE IMAGE IS A STAGING SNAPSHOT -
+Updated: 2026-09-02 12:1x PDT. *** 20.254 (offline): THE WRITE-BACK IS REAL - the p2-158
+hit geometry (table+0x38 AND table+0x2AF8) proves a full-table RESTORE (dest=table) ran at
+landing through an obfuscated thunk (0x1403CB790 -> jmp 0x1403CB340; source provenance
+behind the second-.text wall). 20.246's client-side "no writer" is superseded in KIND:
+the writer is a bulk SSE copy dispatched from obfuscated code. p2-159 probe DESIGNED:
+hook 0x1403CB340 (clean pdata fn) logging dest/src + the SOURCE's per-record gate bytes
++ caller RVA; paired dwell shows whether the restore source ever carries bit4=1 on the
+non-authority machine. Ship with wwatch capture-then-quiet. NO BOOT SPENT.
+PRIOR: *** 20.253 (offline): THE IMAGE IS A STAGING SNAPSHOT -
 pool ctor PUBLISHES the fresh table into a per-activity staging object (0x1403CB340:
 table->X+0x80, flag X+0x70; direction CORRECTED from 20.252), gated by THE 20.220
 authority predicate 0x1412AADF0 (pools built on its FALSE side). Snapshot manager
