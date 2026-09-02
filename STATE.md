@@ -39,24 +39,27 @@ cond5 closed as a wire front statically (bit4 never set: 384/384 dumps + 904 liv
 20.245 row lifecycle by-design; 20.242 tracking feed exists; 20.239 citizen advert
 works; 20.219 slot supply closed. THE USER'S FRAMING GOVERNS (20.238): unmodified
 retail rendered peers on server input alone - every missing writer is gated on server
-input the fork does not send. Full narrative: FINDINGS 20.238-20.257.
+input the fork does not send. Full narrative: FINDINGS 20.238-20.258.
 
-## DEPLOYED (2026-09-02 11:5x - p2-159 cancelled after solo; safe build 159c0140a02fe996)
-   clients        BOTH: 159c0140a02fe996 - pubrest (retained, the behavioral-boot
-                  verifier) + wwatch RETIRED (install emits result=retired; no VEH/DR/
-                  suspend-sweep anywhere). History: b241ecda (sweep-fix) crashed the rig
-                  in Tower and froze the mac -> postmortem 09-02, LESSONS U18.
-                  Rollbacks: rig .bak_p2d7_20260902_115445, mac .bak chain 20260901_233724.
-   server exe     4f51581cbd3561c7 - RUNNING (p2-154 deploy, built==deployed). The
-                  type-45 PEER-CONTACT push behind pool_c4_mark_push (harmless, 20.250).
-                  Rollback: settings .bak_p2d8_c4mark_20260901_145236; exe+cache .bak_p2d6_*.
-   dumps          p2-146 and p2-150 (rig, verified-paired, PROVENANCE.txt inside), in
-                  RE_output/dumps/. p2-149 DELETED (superseded, analysis banked).
-   index          RE_output/logindex/p2150.db + drift json (p2-150 evidence).
-   capture        RE_scripts/capture_gameplay_plane.sh (UDP 3097/3074/3075/30976,
-                  en0+en13+lo0; smoke-tested). BOOT HYGIENE: deploy client DLLs BEFORE
-                  the user boots (a running process never re-reads its image); restart
-                  the server with reset_lobby_claims.sh backgrounded; logindex/logq.
+## DEPLOYED (2026-09-02 14:2x - p2-160 attempt 3 ran and delivered; see 20.258)
+   clients        BOTH: 3b4e5cfcda66df7d - pubrest with the p2-160 corrections (dump not
+                  gated on role; anchor from pgate's self record; 8 records scanned;
+                  baseline anchored; no stability gate; bytes= clamped) + wwatch RETIRED
+                  (install emits result=retired; no VEH/DR/suspend-sweep anywhere).
+                  Rollbacks: mac/rig .bak_p2d7_20260902_1426*; earlier chain 20260902_11*.
+   server exe     4f51581cbd3561c7 - RUNNING, UNCHANGED through p2-160 (p2-154 deploy).
+                  A build carrying membership_peer_row_flags (default 0) is STAGED, NOT
+                  deployed: RE_build/staged/sunrise-server.exe.p2-161-rowflags
+                  (1e7cefc6f9c4af25). 20.258 makes it low-value; do not deploy for it.
+   images         p2-160 staging pair (solo + peer, complete, PROVENANCE.txt inside):
+                  RE_output/dumps/p2-160_staging_images/. THE positive reference.
+   dumps          p2-146 and p2-150 (rig, verified-paired, PROVENANCE.txt inside).
+   index          RE_output/logindex/p2160c.db (p2-160 attempt 3); p2150.db (p2-150).
+   capture        RE_scripts/capture_gameplay_plane.sh. BOOT HYGIENE: deploy client DLLs
+                  BEFORE the user boots (a running process never re-reads its image);
+                  restart the server with reset_lobby_claims.sh backgrounded; logindex/logq.
+                  AND: replay a probe's trigger over the PREVIOUS boot's recorded lines
+                  before deploying it (p2-160 cost 3 launch cycles for want of this).
 
 ## WHERE WE ARE
 Session/membership/identity: DONE. Slot supply CLOSED (20.219); row lifecycle
@@ -64,18 +67,21 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
 (20.252/20.254); write-back conduit MESSAGE-FED (20.255); DR watch RETIRED
 (U18). Peer rendering remains the wall.
 
-## NEXT (per 20.257 - the behavioral boot)
-  1. OFFLINE (this lane): finish the femu type-12 map. (a) Resolve 20.257 R6 -
-     what index does key resolver 0x1404C7BC0 walk with (rig.trace)?
-     (b) Graft its entry or bypass it (0x140351D90/0x14034C290 then
-     0x1404C74B0(INDEX,&stream,&id,&id,0) directly). (c) A/B probe bodies
-     (scratch/femu_type12_map.py) -> the byte map; plant the 0x2AC0 record
-     layout (identity +8, gate +0x38) - EITHER ANSWER at +0x38 closes a front.
-  2. BEHAVIORAL BOOT (settings-gated) per 20.256 R3, but read 20.257 R2 first:
-     pushes are SOLO bodies - if the gate byte is unsourced from the solo
-     field set, check citizen-advert fields / the 4095 peer-row variant first.
-  3. pubrest f38src verifies bit4=1 at the publish; pgate reports cond5; the
-     20.223 receiver vtable group appears or the front moves. Brief follows.
+## NEXT (per 20.258 - ALL OFFLINE; no boot until a question needs one)
+  1. RE-READ 20.251's BASIS. It says the cond5-gated receiver is REQUIRED to render
+     a peer. 20.258 R6 measured the RENDERED self record at +0x38 = 0x00, bit4 clear.
+     Both cannot be right as stated. Settle which before any further +0x38 work -
+     this is the load-bearing question now, and it is free to answer.
+  2. CHASE +0x00. In 10,944 bytes, the only structural difference between a rendering
+     record and a non-rendering one is +0x00 (self 0x05, peer 0x00), and self's moved
+     0x03 -> 0x05 when the peer arrived. Find its writer and its meaning. Note pgate's
+     cond4 ALREADY reads this byte on the NEXT record (logged as next0=), so the
+     condition set has been looking at it all along.
+  3. 20.256 R4a: re-check the type-12 -> 0x1416E6250 attribution (the router's case-12
+     handler link was never walked; vtable group .rdata 0x141C9F6F0-0x141C9F728).
+  DO NOT RESUME: the femu type-12 byte map (20.256 R2 / 20.257) - answered by 20.258.
+  LOW VALUE, DO NOT BOOT: membership_peer_row_flags - it moves bytes inside the member
+     row, whose fields land in ranges 20.258 shows do not include +0x38.
  SETTINGS NOW: pool_c4_mark_push TRUE and HARMLESS (peer-only). DO NOT MARK SELF
  (20.249). DO NOT RAISE the retry cap (20.247 R8).
  TOOL DEBT: reset_lobby_claims.sh cries wolf; c4query derefs before dedupe.
