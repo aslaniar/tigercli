@@ -26,11 +26,12 @@ is unmodified retail and rendered peers against Bungie on server input alone, so
 writer EXISTS and is runtime-registered where static analysis cannot reach. Full
 narrative: FINDINGS 20.238-20.251 (verdicts only here - GOVERNANCE).
 
-## DEPLOYED (2026-09-01 15:0x - p2-154 ARMED)
-   clients        d3809e97f927b228 (mac, 2026-08-31 23:29) - the p2-153 build:
-                  track_add/track_fixup/track_set/track_c4 + trackadd/retwatch
-                  probes. Rig hash unverified since (ssh needs a password); its
-                  p2-153 instruments are evidenced by its own log lines.
+## DEPLOYED (2026-09-01 23:4x - p2-158 WIRE-WATCH, mac ONLY - rig pending ControlMaster)
+   clients        mac: 398bd2b95bab243c - gate_wwatch (DR write-watch on record+0x38
+                  peer/self + selftest control; brief BOOT_BRIEF_p2-158.md, GATE PASS).
+                  Rollback: steam_api64.dll.bak_p2d7_20260901_233724.
+                  rig: STILL ON d3809e97f927b228 (p2-153) - deploy after the user
+                  reopens the ssh ControlMaster; DO NOT pair-boot until then.
    server exe     4f51581cbd3561c7 - RUNNING (p2-154 deploy, built==deployed,
                   lobby+ladder empty). The type-45 PEER-CONTACT push behind
                   pool_c4_mark_push. Bind line proves both switches: `c4_mark_push=1
