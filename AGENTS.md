@@ -39,6 +39,8 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | INCIDENT_2026-08-25_false-loops.md | closed incident | failure/silence investigation |
 | POSTMORTEM_2026-08-31_THE-EMPTY-MASK-LOOP.md | closed postmortem | HOW ~8 BOOTS WENT TO A NON-BLOCKER: a return code read as a state, and 8 more mechanisms. Written for a workflow-fixing session; read before briefing any multi-boot front |
 | docs/postmortems/POSTMORTEM_2026-08-30_MY-ERRORS.md | closed postmortem | the 2026-08-30 error record: three rule violations, three "the tool already existed" misses, and the engineering faults that cost two boots and a crashed launch. Read before building a new instrument |
+| docs/postmortems/POSTMORTEM_2026-09-01_THE-NIGHT-RUNNER.md | closed postmortem | the 0831/0901 ~30-lane night wave and the 3 boots it fed: one unexamined inherited premise under correct work; readiness language that conflated "the callee does X" with "the call happens"; a census written larger than its scan. Read before briefing a lane wave |
+| docs/postmortems/POSTMORTEM_2026-09-01_INSTRUMENTATION.md | closed postmortem | every instrument of the 09-01 session: the probe that logged the answer and not the question (3 boots), budgets spent before the event, a control that could not fire, an instrument that overstated the wire, and the patterns that WORKED (first-seen-key gating, whole-array enter+leave dumps). Read before writing any probe |
 
 Older HANDOFF_* / *_bak files = historical, superseded-by the table above.
 Every dated doc opens with a `STATUS:` line; auditor verifies (DOC GOVERNANCE).

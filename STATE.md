@@ -1,64 +1,109 @@
 # STATE - living snapshot
 
-STATUS: live (2026-08-31 22:1x). Verdict + deployed + next + reading order only.
+STATUS: live (2026-09-01 14:4x). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-08-31 22:1x. *** THE ADMISSION FRONT IS FULLY MAPPED, THREE MECHANISMS
-DEEP, WITH THE MISSING SERVER ITEMS NAMED. Chain: (1) 20.234 closed every static
-+0x38 writer; (2) 20.236/20.237 dumps proved HOST/JOINER asymmetry - the joiner's
-peer record never ACTIVATES (state dword 0 vs local 5), no maskB bit; (3) 20.239
-named the missing server item #1: the fork SKIPS the peer's citizen advertisement in
-the same-region (shared-bubble) case; (4) p2-151 fixed that behind
-membership_peer_same_region_advert (WORKS - peer_citizen=1) but exposed two more:
-20.240 - (a) the client never ACKs (zero type-38) so the retry cap (=2) withdraws
-the peer after 2 bodies (4112->3899-forever), and (b) "no tracking data" - the
-client's machine-id-keyed array at pool+0x602BC has NO PEER ROWS, and that feed is
-a SEPARATE missing item; (5) 20.241 mapped the array completely: adders named
-(0x1404F4980 canonical / 0x1404F7710 self-heal), the genuine feed arrives through a
-registration-table callback from flattened second-.text - dispatch type NOT
-statically nameable. THE USER'S FRAMING GOVERNS (20.238): the client is unmodified
-retail; every missing writer is gated on server input the fork does not send.
+Updated: 2026-09-01 19:0x. *** 20.249 (p2-156): MARKING THE CLIENT'S OWN MACHINE ID
+CRASHED THE MAC AND KEPT THE RIG OUT. Reverted; push disabled (c4_mark_push=0 verified).
+AND THE PREMISE IS SUSPECT: the new probe shows each client's +0x602C4 reader asks only
+about ITS OWN id, so 20.245 R3's "evaluator blocked by c4=0" is likely the self entry
+being skipped correctly. PRIOR: *** 20.248 (p2-155): THE CONTACTABLE BYTE IS SETTABLE FROM
+THE WIRE - peer row c4 0x00 -> 0x01 on BOTH machines across the type-45 handler call, the
+first nonzero +0x602C4 in this project. It changed NOTHING downstream: the reader still
+returns 0 (wrong row/pool), no evaluator activation, cond5 unmoved over 300 paired
+samples. p2-156 is BEHAVIOURAL - mark every known machine id, not just the peer's.
+PRIOR: *** 20.247 (p2-154): THE c4 PUSH SHIPPED AND THE CLIENT
+DID NOT TAKE IT. Body delivered + accepted on both clients (after the peer's row
+existed) and +0x602C4 never moved: the encoding, transport and row are EXONERATED,
+the DISPATCH is refuted. Next = a client hook on the handler + pool dispatcher.
+Also 20.247 R8: raising membership_peer_retry_cap STOPS THE RIG LANDING - reverted,
+do not repeat. PRIOR: *** 20.246: THE CONSTRUCTION GATE (cond5) IS CLOSED BY
+MEASUREMENT. Bit 4 of record+0x38 is NEVER set - 384/384 censused records across both
+dumps (p2-146 paired-Tower 192/192 over 6 coherence-tested tables, the PEER record
+included), and no writer exists under any static encoding, including the record-handle
+convention (0x1404DF500 -> +0x30) closed this session. No fork message can feed it;
+any fix there is client-side [AMENDED - see below]. PRIOR VERDICTS, all standing: 20.245 the tracking-row/
+latch lifecycle is by-design and NOT a blocker (add -> one release -> latch -> quiet);
+the evaluator RUNS and stops on +0x602C4 = 0; 20.242 the tracking feed exists (client
+self-heals the row); 20.239/p2-151 the same-region citizen advert shipped and works.
+THE USER'S FRAMING GOVERNS (20.238): the client is unmodified retail; every missing
+writer is gated on server input the fork does not send. Full narrative: FINDINGS
+20.238-20.246 (this file carries verdicts only - DOC GOVERNANCE).
 
-## DEPLOYED (2026-08-31 21:1x)
-  server exe     e486ab77b071ea9e - RUNNING, sessions:[]. p2-151 build: NEW SETTING
-                 server.gameplay.membership_peer_same_region_advert (default FALSE,
-                 currently TRUE) - same-bubble peer advertisements build against the
-                 region-bound shared host row. Rollback: flip the switch, no rebuild.
-                 settings.json diff is exactly one line; backup at /tmp/settings.json
-                 .bak_same_region (and *.bak_p2d6_* for exe+cache).
-  clients        46b294b76e681704 (mac+rig, 2026-08-31 19:0x) - p2-149 build: ptable
-                 probe self=<idx>/rec8=/selfRef= fields. No hook changes since.
-  dumps          p2-146 (rig, femu's verified graft-dump target - KEEP) and p2-150
-                 (rig, verified-paired reference, PROVENANCE.txt inside) in
-                 RE_output/dumps/. p2-149 DELETED (superseded, analysis banked).
-  index          RE_output/logindex/p2150.db + p2150.drift.json (mac/rig/server,
-                 drift-anchored) - the log evidence for everything in 20.240/20.241.
-  capture        RE_scripts/capture_gameplay_plane.sh (UDP 3097/3074/3075/30976,
-                 en0+en13+lo0, route resolve + liveness probe; smoke-tested).
-  BOOT HYGIENE: deploy client DLLs BEFORE the user boots (a running process never
-  re-reads its image; cost a boot). Restart the server with reset_lobby_claims.sh
-  backgrounded (it hangs after succeeding). Use logindex/logq, not grep chains.
+## DEPLOYED (2026-09-01 15:0x - p2-154 ARMED)
+   clients        d3809e97f927b228 (mac, 2026-08-31 23:29) - the p2-153 build:
+                  track_add / track_fixup / track_set / track_c4 + trackadd and
+                  retwatch probes. CORRECTED 2026-09-01: this block previously
+                  recorded 9cb220cc9c971035, which is the p2-152 client - it was
+                  never updated for the p2-153 deploy. Rig hash unverified since
+                  (ssh needs an interactive password); its p2-153 instruments are
+                  evidenced by its own p2-153 log lines.
+   server exe     4f51581cbd3561c7 - RUNNING (p2-154 deploy 2026-09-01 15:0x,
+                  built==deployed, lobby+ladder empty). p2-154 build: the type-45
+                  PEER-CONTACT push (activity_peer_contact_encoder +
+                  append_peer_contact_notification, call site in the membership
+                  push) behind pool_c4_mark_push. Bind line proves both switches
+                  parsed: `stage=settings ... c4_mark_push=1 peer_retry_cap=65535`.
+                  settings.json diff vs .bak_p2d8_c4mark_20260901_145236 is exactly
+                  two lines (+pool_c4_mark_push true, retry cap 2 -> 65535).
+                  Rollback: restore that backup; exe+cache .bak_p2d6_*.
+   dumps          p2-146 (rig, femu's verified graft-dump target - KEEP) and p2-150
+                  (rig, verified-paired reference, PROVENANCE.txt inside) in
+                  RE_output/dumps/. p2-149 DELETED (superseded, analysis banked).
+   index          RE_output/logindex/p2150.db + p2150.drift.json (mac/rig/server,
+                  drift-anchored) - the log evidence for 20.240/20.241; p2-152's
+                  logs get their own index after the boot.
+   capture        RE_scripts/capture_gameplay_plane.sh (UDP 3097/3074/3075/30976,
+                  en0+en13+lo0, route resolve + liveness probe; smoke-tested).
+   BOOT HYGIENE: deploy client DLLs BEFORE the user boots (a running process never
+   re-reads its image; cost a boot). Restart the server with reset_lobby_claims.sh
+   backgrounded (it hangs after succeeding). Use logindex/logq, not grep chains.
 
 ## WHERE WE ARE
-Session/membership/identity: DONE. Entity-index/slot supply: CLOSED, not a
-blocker (20.219). Peer rendering: the wall, now mapped three mechanisms deep
-(see Updated block). The p2-151 fix (same-region advert) is LIVE and verified;
-the remaining blockers are the type-38 ack absence and the tracking-data feed.
+Session/membership/identity: DONE. Entity-index/slot supply: CLOSED (20.219).
+Tracking-row/latch lifecycle: CLOSED, not a blocker (20.245). Construction gate
+cond5: CLOSED AS A WIRE FRONT (20.246) - the bit has no writer and is never set;
+any fix there is client-side. Peer rendering remains the wall. What is LEFT:
+ (1) +0x602C4, the contactable byte - the ONE missing evaluator input, and the
+     only remaining blocker with a verified fork-side lever (the type-0x2D body).
+     This is the p2-154 boot.
+ (2) type-38 ack absence -> the withdraw-unacked-2 cycle (retry-cap switch).
+ (3) UNTESTED SINCE 20.208: whether the construction path is required to render a
+     peer at all (the local guardian renders with ent_recv/ent_create at ZERO).
+     Now the cheapest open question in the project.
 
-## NEXT (per 20.241 - the tracking feed is REACHED, its dispatch is flattened)
- p2-151 verdict + 20.240 mechanisms stand. The static hunt is DONE: the +0x602BC
- tracking array is filled per-ENTITY through a registration-table callback invoked
- from flattened second-.text code (20.241 R4) - the dispatching message type cannot
- be named statically. The contact/proximity evaluator 0x1410C3F40 (0xE000 class ==
- 0x2000, distance check) gates the entry: tracking rows make a peer CONTACTABLE.
- THE WORK (dynamic, one boot): probe 0x1404F4980 (canonical adder, in-gap, unpdata'd
- - verify_hook_rvas will flag it NOT-CODE; hook the CALLERS 0x140C18089/0x140C180C2/
- 0x140C1830C instead, all inside .pdata fn 0x140C17E40) logging caller-RVA +
- machine-id arg during a paired dwell. The caller RVA separates the genuine feed from
- the self-heal; retail lines 194/195 timestamp the fixup. Then: type-38 ack + the
- fixup-release decide whether the fork sends a NEW message or populates an existing
- one. FALLBACK unchanged (20.238): stage-tray client-side write, host side.
+## NEXT (per 20.249 - p2-156 CRASHED THE MAC; THE c4 PREMISE IS SUSPECT)
+ p2-156 sent {peer, SELF}. On the mac the body found ONE row - its own - and marked it
+ (c4 0x00 -> 0x01, mac:48022/48023). ~750 ms later the activity client lost its host
+ (join result with a BLANK session id), began rejecting message types it had handled all
+ boot (17, 52), entered private_repair, and the process died (Wine debugger crash). The
+ rig never reached the Tower - repeated "falling back to a new character", baboon kick,
+ with track_set calls=14 vs 1 in p2-155. CAUSE (INFERRED): asserting "contactable" about
+ the client's OWN identity, a state the client excludes by construction (gate cond 2 is
+ "i != self index"). NOT EXCLUDED: the new c4query probe is a second variable; it ran
+ thousands of calls first and the symptoms are protocol-state corruption, not a wild
+ pointer, but it is named. DISCRIMINATOR: re-run PEER-ONLY on the same client build.
+ *** THE BIGGER RESULT (20.249 R1): the c4query probe logged the READER'S QUESTION for
+ the first time, and each client asks 0x1404F7680 about its OWN machine id ONLY - mac
+ asks mac, rig asks rig, one distinct pair each, on the SAME pool that holds the rows.
+ So 20.245 R3's "the evaluator was blocked by +0x602C4=0" is SUSPECT: that abort is the
+ SELF entry being skipped correctly, not the peer being gated. The whole c4 lever
+ (p2-154/155/156) may have been aimed at a byte whose zero value was never wrong.
+ 20.246 R6 rests on the same reading. Neither retracted outright - the disassembly still
+ shows the activation block reading the byte - but no boot has EVER observed a query for
+ a peer's id.
+ THE FRONT IS NO LONGER "make c4 nonzero". It is: does anything ever read the PEER's
+ contactable byte? The c4query probe already answers it - it needs a PAIRED dwell, which
+ p2-156 never reached. If the query set stays self-only through a full pairing, the c4
+ front is DEAD, 20.245 R3 / 20.246 R6 retract, and peer-render goes back to cond5 alone
+ (20.246 R7's dynamic write-watch) with the tracking cluster fully exonerated.
+ SAFE STATE NOW: pool_c4_mark_push=FALSE, server restarted, bind line verified
+ `c4_mark_push=0 peer_retry_cap=2`. Source reverted to PEER-ONLY (one-element list);
+ the server's ids= log line now prints the real count (it hardcoded 2 - my defect,
+ 20.249 R4b). NOT DEPLOYED - rebuild sits in build/ awaiting a decision.
+ DO NOT MARK SELF. DO NOT RAISE membership_peer_retry_cap (20.247 R8).
+ TOOL DEBT: femu misalignment fixed (20.244 R4); 20.186/187 suspect. STATE diet ~180/120.
 
 ## SUPERSEDED (20.221 - gate 2, still valid, no longer the front)
 A) self-only BY DESIGN -> peers arrive by server-mediated replication the fork never

@@ -410,7 +410,16 @@ class Rig(object):
         # attempted before any "beyond-image" classification (learned in the
         # type24 acceptance: the registry object's heap address aborted as
         # beyond-image before the pager could serve it).
-        if kind in ("read", "write") and self.dump and \
+        # 2026-09-01 night addition: FETCH faults at runtime addresses are now
+        # paged too. The dump contains the module's code at its RUNTIME base
+        # (0x7FF7...), so a vtable call through a runtime pointer can execute
+        # the dump's copy of the code in place; subsequent rip-relative reads
+        # from that copy land in runtime data pages, which the dump also
+        # serves. Without this, any handler that calls through a runtime
+        # vtable (e.g. the type-0x2D body handler 0x1404F3870 at
+        # 0x1404bd406: call [r10+rax*8+0x178]) aborted as beyond-image even
+        # though the dump holds the target page.
+        if self.dump and kind in ("read", "write", "fetch") and \
                 res.pages_pulled < self.max_page_rounds:
             if self._demand_page(address):
                 res.pages_pulled += 1
@@ -433,10 +442,18 @@ class Rig(object):
     def _demand_page(self, address):
         """Pull one page from the dump into the VM. Returns True on success."""
         page = address & ~0xFFF
-        dump_va = (address - self.pe.imagebase + self.dump_base
-                   if self.pe.imagebase <= address <
+        # BUGFIX 2026-08-31 (found by the tracking-chain femu probe): dump_va must
+        # be derived from the PAGE, not from the faulting address - the old
+        # `else address` pulled a window STARTING at the unaligned address and
+        # wrote it at the page, shifting every byte by (address & 0xFFF). Any
+        # first-access pull at a non-aligned address served shifted data
+        # (e.g. a count dword read at +0x238 actually returned the bytes at
+        # +0x470). Image pages map as page - imagebase + dump_base; heap and
+        # other pages map as the page itself.
+        dump_va = (page - self.pe.imagebase + self.dump_base
+                   if self.pe.imagebase <= page <
                    self.pe.imagebase + self.real_span
-                   else address)          # heap/other: absolute runtime VA
+                   else page)          # heap/other: absolute runtime VA
         data = self.dump.read_va(dump_va, 0x1000)
         if not data:
             return False
