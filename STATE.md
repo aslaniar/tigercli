@@ -4,21 +4,20 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-02 14:4x PDT. *** 20.258 (p2-160, 3 launch cycles): THE STAGING IMAGE
-WAS CAPTURED IN BOTH SHAPES (solo + peer, same src/call site, complete). TWO VERDICTS:
-(1) NOTHING the type-12 peer row carries reaches +0x38 - the row writes record 1
-contiguously +0x08..+0x37 and STOPS DEAD at the gate byte; 2154 differing bytes, ZERO on
-any record's +0x38. The femu byte-map lane (20.256 R2/20.257) is CLOSED - do not resume.
-(2) *** THE RENDERED SELF RECORD ALSO HAS +0x38 = 0x00 AND FAILS cond5. *** Self and peer
-records differ in 31 of 10,944 bytes and are structurally identical; the ONLY byte set in
-self and zero in the peer is +0x00 (self 0x05, peer 0x00). cond5 may not be the render
-gate at all - 20.251's "cond5-gated receiver REQUIRED to render a peer" is now in tension
-and must be re-read before anything is built on it.
-NEXT: (a) re-read 20.251's basis; (b) chase +0x00, the one structural gap; (c) 20.256 R4a
-re-check of the type-12 attribution. ALL OFFLINE - no boot until a question needs one.
-POSTMORTEM: the p2-160 addendum in docs/postmortems/POSTMORTEM_2026-09-01_INSTRUMENTATION.md
-(3 cycles, 2 spent on the instrument; the rule: replay a probe's trigger over the previous
-boot's own recorded lines BEFORE deploying).
+Updated: 2026-09-02 15:1x PDT. *** 20.259 (p2-161): cond5 IS NOT THE RENDER GATE.
+The bit was FORCED SET on the peer record (throwaway client diagnostic, reverted), all
+conditions the probe tracks passed for 294 consecutive walks, and NOTHING RENDERED and
+NOTHING was constructed - not one new event class. With 20.258 R6 (the RENDERED self
+record has +0x38 = 0x00, bit4 clear), the +0x38 front is DEAD: ~10 boots hunted a writer
+for a byte that changes nothing when set. DO NOT RESUME IT.
+HONEST LIMITS (settle offline before anyone reopens the byte): pgate's ALL-PASS is OUR
+model, not the game's decision; THERE IS NO cond2 IN THE PROBE (cond1/3/4/5 only, so
+"all conditions pass" has always meant "all we implemented"); and the decider may read
+the STAGING IMAGE, whose +0x38 stayed 0x00 - we poked the table only.
+NEXT (offline, no boot): the local player RENDERS and 20.258 R6 showed its record is
+structurally identical to the peer's - so the difference is NOT in the participant record.
+Find what actually renders the local player, then ask what SERVER INPUT drives that path
+for a second participant. Also open: 20.256 R4a (case-12 -> 0x1416E6250 never walked).
 VERDICT TRAIL (one line each; full text in FINDINGS):
   20.255 p2-159 cancelled: rig crash + mac machine freeze -> DR watch RETIRED (3/3
     boots abnormal, LESSONS U18); pubrest retained (plain detour) and delivered the
@@ -67,23 +66,24 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
 (20.252/20.254); write-back conduit MESSAGE-FED (20.255); DR watch RETIRED
 (U18). Peer rendering remains the wall.
 
-## NEXT (per 20.258 - ALL OFFLINE; no boot until a question needs one)
-  1. RE-READ 20.251's BASIS. It says the cond5-gated receiver is REQUIRED to render
-     a peer. 20.258 R6 measured the RENDERED self record at +0x38 = 0x00, bit4 clear.
-     Both cannot be right as stated. Settle which before any further +0x38 work -
-     this is the load-bearing question now, and it is free to answer.
-  2. CHASE +0x00. In 10,944 bytes, the only structural difference between a rendering
-     record and a non-rendering one is +0x00 (self 0x05, peer 0x00), and self's moved
-     0x03 -> 0x05 when the peer arrived. Find its writer and its meaning. Note pgate's
-     cond4 ALREADY reads this byte on the NEXT record (logged as next0=), so the
-     condition set has been looking at it all along.
-  3. 20.256 R4a: re-check the type-12 -> 0x1416E6250 attribution (the router's case-12
-     handler link was never walked; vtable group .rdata 0x141C9F6F0-0x141C9F728).
-  DO NOT RESUME: the femu type-12 byte map (20.256 R2 / 20.257) - answered by 20.258.
-  LOW VALUE, DO NOT BOOT: membership_peer_row_flags - it moves bytes inside the member
-     row, whose fields land in ranges 20.258 shows do not include +0x38.
- SETTINGS NOW: pool_c4_mark_push TRUE and HARMLESS (peer-only). DO NOT MARK SELF
- (20.249). DO NOT RAISE the retry cap (20.247 R8).
+## NEXT (per 20.259 - ALL OFFLINE; the +0x38 front is closed)
+  1. THE POSITIVE-REFERENCE METHOD, which has now produced results twice: the local
+     player RENDERS and its record is structurally identical to the peer's (20.258 R6).
+     The difference is therefore NOT in the participant record. Find the path that
+     actually renders the LOCAL player, then ask what SERVER INPUT would drive that same
+     path for a second participant. Offline, no boot.
+  2. Settle 20.259's two honest limits before anyone reopens +0x38 on a hunch:
+     (a) WHAT IS cond2? The probe implements cond1/3/4/5 and no cond2 exists anywhere in
+         it, so every "all conditions pass" in the record has been partial.
+     (b) does the construction check read the STAGING IMAGE rather than the live table?
+         We poked the table only; the image's +0x38 stayed 0x00 throughout.
+  3. 20.256 R4a: the router's case-12 -> 0x1416E6250 link was never walked (vtable group
+     .rdata 0x141C9F6F0-0x141C9F728).
+  DEAD, DO NOT RESUME: the +0x38 / cond5 writer hunt (20.259); the femu type-12 byte map
+     (20.258); membership_peer_row_flags as a lever (20.258 - wrong byte ranges).
+ SETTINGS NOW: mac client gate_poke REVERTED TO 0 (diagnostic retired per the governing
+ constraint). pool_c4_mark_push TRUE and HARMLESS. DO NOT MARK SELF (20.249). DO NOT
+ RAISE the retry cap (20.247 R8).
  TOOL DEBT: reset_lobby_claims.sh cries wolf; c4query derefs before dedupe.
 
 ## SUPERSEDED (20.221 gate-2 framing; dump pointer lives in DEPLOYED)
