@@ -4,22 +4,27 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-01 22:04 PDT. *** 20.250 (p2-157): THE c4 FRONT IS DEAD. ~6,100
-reader calls through a sustained paired dwell and the peer's contactable byte is
-NEVER queried - each client asks only about itself - while that byte sat at 1 on
-both machines. 20.245 R3 and 20.246 R6 RETRACTED; the tracking cluster fully
-EXONERATED; crash discriminator resolved (self-marking caused p2-156, the
-c4query probe is clean).
-THE PROJECT IS NOW ONE FRONT: cond5, dynamic. Standing verdicts behind it:
+Updated: 2026-09-01 22:3x PDT. *** 20.251 (offline, no boot): OPEN QUESTION (3) ANSWERED -
+THE cond5-GATED RECEIVER IS REQUIRED TO RENDER A PEER. The replication cluster has
+exactly ONE entry (ent_recv <- ent_header <- ent_create; single caller at every hop,
+oracle-validated E8/E9 + ptrs + moffs64) and that entry is the receiver object - which is
+never constructed without cond5. The only other player-entity door, the creation loop
+0x1413086E0, is self-only BY DESIGN: gate 2 is an ownership test and the owner field
+carries each member's OWN identity (mac live: peer record owned by the rig's handle; rig
+dump: rec0=RIG / rec1=MAC, symmetric). THE WRITE-WATCH ON record+0x38 IS VALIDATED.
+PRIOR: *** 20.250 (p2-157): THE c4 FRONT IS DEAD. The peer's contactable byte is NEVER
+queried (~6,100 reader calls, each client asks only about itself); 20.245 R3 and
+20.246 R6 RETRACTED; tracking cluster fully EXONERATED.
+cond5 IS THE ONE FRONT, AND IT IS VALIDATED (20.251). Standing verdicts behind it:
 20.246 cond5 closed as a WIRE front (bit 4 of participant record+0x38 has NO
 writer under any covered static encoding; 384/384 dump records + 500 live
 samples, bit4=1 appeared ZERO times ever); 20.245 tracking-row/latch lifecycle
 by-design, not a blocker; 20.242 the tracking feed exists (client self-heals the
 row); 20.239 the same-region citizen advert ships and works; 20.219 slot supply
-closed (145 free slots, never asked). THE USER'S FRAMING GOVERNS (20.238): the
-client is unmodified retail and rendered peers against Bungie on server input
-alone, so a writer EXISTS and is runtime-registered where static analysis cannot
-reach. Full narrative: FINDINGS 20.238-20.250 (verdicts only here - GOVERNANCE).
+closed (145 free slots, never asked). THE USER'S FRAMING GOVERNS (20.238): the client
+is unmodified retail and rendered peers against Bungie on server input alone, so a
+writer EXISTS and is runtime-registered where static analysis cannot reach. Full
+narrative: FINDINGS 20.238-20.251 (verdicts only here - GOVERNANCE).
 
 ## DEPLOYED (2026-09-01 15:0x - p2-154 ARMED)
    clients        d3809e97f927b228 (mac, 2026-08-31 23:29) - the p2-153 build:
@@ -47,27 +52,22 @@ Session/membership/identity: DONE. Entity-index/slot supply: CLOSED (20.219).
 Tracking-row/latch lifecycle: CLOSED (20.245). Contactable byte: DEAD (20.250).
 Construction gate cond5: CLOSED AS A WIRE FRONT (20.246) - static is exhausted
 (R1-R4, incl. the record-handle encoding no prior scan covered); the fix is
-dynamic. Peer rendering remains the wall. What is LEFT:
- (1) cond5's DYNAMIC front - the write-watch (see NEXT).
+dynamic. QUESTION (3) ANSWERED (20.251): the construction path IS required - the
+replication cluster's single entry is the receiver, and the local loop is
+self-only by design. Peer rendering remains the wall. What is LEFT:
+ (1) cond5's DYNAMIC front - the write-watch (see NEXT). Validated: no
+     alternate door exists for a peer entity.
  (2) type-38 ack absence -> the withdraw-unacked-2 cycle (retry-cap switch).
- (3) UNTESTED SINCE 20.208: whether the construction path is required to render a
-     peer at all (the local guardian renders with ent_recv/ent_create at ZERO).
-     Now the cheapest open question in the project.
 
-## NEXT (per 20.250 - THE c4 FRONT IS DEAD; cond5 IS THE WHOLE PROBLEM)
+## NEXT (per 20.250 + 20.251 - cond5 IS THE WHOLE PROBLEM, AND THE WATCH IS VALIDATED)
  THE INSTRUMENT: a write-watch on record+0x38 during a paired dwell. The address
  is already logged live every tick by ptable (table=0x1D3065B8 + i*0x2AC0 + 0x38),
  so the target needs no discovery - only a hardware/page watch or a hook on
  whatever writes the region. Design against the instrumentation postmortem's
  rules: log the KEY not just the value, gate on novelty not a budget, and pick a
  control that can actually fire.
- SEQUENCING NOTE (2026-09-01 review): open question (3) is cheaper than the
- watch and could invalidate its premise (a peer rendered without the
- construction path makes the watch a non-blocker hunt). Run the (3)
- discriminator - partly offline via the p2-146 dump - BEFORE arming the watch.
- SETTINGS NOW: pool_c4_mark_push TRUE and HARMLESS (peer-only; keep or disable).
- DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
- TOOL DEBT: reset_lobby_claims.sh cries wolf every run; c4query derefs before its dedupe check (instrumentation postmortem). STATE diet debt: cleared 2026-09-01.
+ SETTINGS NOW: pool_c4_mark_push TRUE and HARMLESS (peer-only). DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
+ TOOL DEBT: reset_lobby_claims.sh cries wolf; c4query derefs before dedupe (instrumentation postmortem).
 
 ## SUPERSEDED (20.221 gate-2 framing; dump pointer lives in DEPLOYED)
  Scenario-scoped, not time-scoped (20.221 R5): Tier-1 code/tables reusable until
