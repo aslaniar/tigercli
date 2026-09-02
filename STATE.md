@@ -66,24 +66,25 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
 (20.252/20.254); write-back conduit MESSAGE-FED (20.255); DR watch RETIRED
 (U18). Peer rendering remains the wall.
 
-## NEXT (per 20.259 - ALL OFFLINE; the +0x38 front is closed)
-  1. THE POSITIVE-REFERENCE METHOD, which has now produced results twice: the local
-     player RENDERS and its record is structurally identical to the peer's (20.258 R6).
-     The difference is therefore NOT in the participant record. Find the path that
-     actually renders the LOCAL player, then ask what SERVER INPUT would drive that same
-     path for a second participant. Offline, no boot.
-  2. Settle 20.259's two honest limits before anyone reopens +0x38 on a hunch:
-     (a) WHAT IS cond2? The probe implements cond1/3/4/5 and no cond2 exists anywhere in
-         it, so every "all conditions pass" in the record has been partial.
-     (b) does the construction check read the STAGING IMAGE rather than the live table?
-         We poked the table only; the image's +0x38 stayed 0x00 throughout.
-  3. 20.256 R4a: the router's case-12 -> 0x1416E6250 link was never walked (vtable group
-     .rdata 0x141C9F6F0-0x141C9F728).
-  DEAD, DO NOT RESUME: the +0x38 / cond5 writer hunt (20.259); the femu type-12 byte map
-     (20.258); membership_peer_row_flags as a lever (20.258 - wrong byte ranges).
- SETTINGS NOW: mac client gate_poke REVERTED TO 0 (diagnostic retired per the governing
- constraint). pool_c4_mark_push TRUE and HARMLESS. DO NOT MARK SELF (20.249). DO NOT
- RAISE the retry cap (20.247 R8).
+## NEXT (per 20.260/20.261 - ALL OFFLINE; two more fronts closed WITH MECHANISM)
+  CLOSED THIS SESSION, properly (by construction, not by null observation):
+   - the local creation loop 0x1413086E0. Gate 2 (`cmp [rdi+0x818],[rsp+0x68]`) asks
+     "is this member MINE?"; member[+0x818] is the OWNER machine id and the peer's copy
+     correctly holds the peer's own (symmetric, both machines, 3 boots - 20.261 R2).
+     DO NOT try to make a peer pass it: that would build a locally-owned duplicate, not a
+     replicated peer, and the server cannot coherently express it anyway.
+   - cond5 / +0x38 (20.259, forced set, nothing constructed).
+  THE WHOLE REMAINING QUESTION: HOW IS THE REPLICATION RECEIVER ENTERED? Peer entities
+  must come from the replication path (20.221 cluster / 20.223 receiver group), not the
+  local loop. 20.251 says that receiver is cond5-gated and REQUIRED; 20.259 says cond5
+  forced changes nothing. 20.260 R2 makes the "local loop is self-only" half solid, so
+  the tension is entirely in the second half. Re-read 20.251's basis FIRST.
+  LEAD, unexamined: a large asymmetry in a supposedly symmetric session - the mac iterates
+  the rig's member record 60,560x in p2-150 while the rig iterates the mac's only 12x
+  (20.261 R4). Nobody has asked why.
+  ALSO OPEN: 20.256 R4a (the router's case-12 -> 0x1416E6250 link was never walked).
+ SETTINGS NOW: mac client gate_poke REVERTED TO 0. pool_c4_mark_push TRUE and HARMLESS.
+ DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
  TOOL DEBT: reset_lobby_claims.sh cries wolf; c4query derefs before dedupe.
 
 ## SUPERSEDED (20.221 gate-2 framing; dump pointer lives in DEPLOYED)
