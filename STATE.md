@@ -4,15 +4,21 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-02 13:0x PDT. *** 20.256 (offline): TYPE-12 DECODE CHAIN MAPPED - body
-hdr ([+4]=size, [+8]=payload) -> stream -> 0x140412A40 -> 0x1404C74B0 -> 0x1404C1930
-(13-bit entity-index registry walk) -> 0x1404BD2A0/0x1404BEE90 -> schema-driven apply
-into the table-layout image. The byte map is DATA (runtime schema): extract EMPIRICALLY
-via femu (svc22 precedent, 7/7) - run the decoder on a captured type-12 body, diff image
-vs body. BEHAVIORAL BOOT DESIGN: femu map -> fork sets bit4 in the mapped body field
-(settings-gated) -> pubrest f38src verifies bit4=1 on the receiver -> pgate cond5 ->
-receiver construction. U18 ADDED (invasive instruments = behavioural; watch retired).
-POSTMORTEM: docs/postmortems/POSTMORTEM_2026-09-02_THE-WIRE-WATCH.md.
+Updated: 2026-09-02 14:4x PDT. *** 20.258 (p2-160, 3 launch cycles): THE STAGING IMAGE
+WAS CAPTURED IN BOTH SHAPES (solo + peer, same src/call site, complete). TWO VERDICTS:
+(1) NOTHING the type-12 peer row carries reaches +0x38 - the row writes record 1
+contiguously +0x08..+0x37 and STOPS DEAD at the gate byte; 2154 differing bytes, ZERO on
+any record's +0x38. The femu byte-map lane (20.256 R2/20.257) is CLOSED - do not resume.
+(2) *** THE RENDERED SELF RECORD ALSO HAS +0x38 = 0x00 AND FAILS cond5. *** Self and peer
+records differ in 31 of 10,944 bytes and are structurally identical; the ONLY byte set in
+self and zero in the peer is +0x00 (self 0x05, peer 0x00). cond5 may not be the render
+gate at all - 20.251's "cond5-gated receiver REQUIRED to render a peer" is now in tension
+and must be re-read before anything is built on it.
+NEXT: (a) re-read 20.251's basis; (b) chase +0x00, the one structural gap; (c) 20.256 R4a
+re-check of the type-12 attribution. ALL OFFLINE - no boot until a question needs one.
+POSTMORTEM: the p2-160 addendum in docs/postmortems/POSTMORTEM_2026-09-01_INSTRUMENTATION.md
+(3 cycles, 2 spent on the instrument; the rule: replay a probe's trigger over the previous
+boot's own recorded lines BEFORE deploying).
 VERDICT TRAIL (one line each; full text in FINDINGS):
   20.255 p2-159 cancelled: rig crash + mac machine freeze -> DR watch RETIRED (3/3
     boots abnormal, LESSONS U18); pubrest retained (plain detour) and delivered the
@@ -33,7 +39,7 @@ cond5 closed as a wire front statically (bit4 never set: 384/384 dumps + 904 liv
 20.245 row lifecycle by-design; 20.242 tracking feed exists; 20.239 citizen advert
 works; 20.219 slot supply closed. THE USER'S FRAMING GOVERNS (20.238): unmodified
 retail rendered peers on server input alone - every missing writer is gated on server
-input the fork does not send. Full narrative: FINDINGS 20.238-20.256.
+input the fork does not send. Full narrative: FINDINGS 20.238-20.257.
 
 ## DEPLOYED (2026-09-02 11:5x - p2-159 cancelled after solo; safe build 159c0140a02fe996)
    clients        BOTH: 159c0140a02fe996 - pubrest (retained, the behavioral-boot
@@ -53,20 +59,23 @@ input the fork does not send. Full narrative: FINDINGS 20.238-20.256.
                   the server with reset_lobby_claims.sh backgrounded; logindex/logq.
 
 ## WHERE WE ARE
-Session/membership/identity: DONE. Entity-index/slot supply: CLOSED (20.219).
-Tracking-row/latch lifecycle: CLOSED (20.245). Contactable byte: DEAD (20.250).
-Gate-byte writer: FOUND (20.252/20.254 - bulk copier + obfuscated restore).
-Write-back conduit: MESSAGE-FED (20.255 - type-12 -> 0x1416E6250 image -> staging).
-The DR watch: RETIRED (U18). Peer rendering remains the wall.
+Session/membership/identity: DONE. Slot supply CLOSED (20.219); row lifecycle
+CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
+(20.252/20.254); write-back conduit MESSAGE-FED (20.255); DR watch RETIRED
+(U18). Peer rendering remains the wall.
 
-## NEXT (per 20.256 - THE BEHAVIORAL BOOT)
- 1. OFFLINE (this lane): femu the type-12 decode (0x140412A40 chain, svc22 precedent)
-    against a captured type-12 body + the p2-150 dump state -> the body-to-image byte
-    map; verify whether any body field lands at image+0x38.
- 2. BEHAVIORAL BOOT (settings-gated fork change): set bit4 in the mapped body field
-    for the peer's record; pubrest f38src verifies bit4=1 at the message-driven
-    publish; pgate reports cond5; the 20.223 receiver vtable group either appears or
-    the front moves again. Boot brief to follow the femu result.
+## NEXT (per 20.257 - the behavioral boot)
+  1. OFFLINE (this lane): finish the femu type-12 map. (a) Resolve 20.257 R6 -
+     what index does key resolver 0x1404C7BC0 walk with (rig.trace)?
+     (b) Graft its entry or bypass it (0x140351D90/0x14034C290 then
+     0x1404C74B0(INDEX,&stream,&id,&id,0) directly). (c) A/B probe bodies
+     (scratch/femu_type12_map.py) -> the byte map; plant the 0x2AC0 record
+     layout (identity +8, gate +0x38) - EITHER ANSWER at +0x38 closes a front.
+  2. BEHAVIORAL BOOT (settings-gated) per 20.256 R3, but read 20.257 R2 first:
+     pushes are SOLO bodies - if the gate byte is unsourced from the solo
+     field set, check citizen-advert fields / the 4095 peer-row variant first.
+  3. pubrest f38src verifies bit4=1 at the publish; pgate reports cond5; the
+     20.223 receiver vtable group appears or the front moves. Brief follows.
  SETTINGS NOW: pool_c4_mark_push TRUE and HARMLESS (peer-only). DO NOT MARK SELF
  (20.249). DO NOT RAISE the retry cap (20.247 R8).
  TOOL DEBT: reset_lobby_claims.sh cries wolf; c4query derefs before dedupe.
@@ -109,8 +118,8 @@ The DR watch: RETIRED (U18). Peer rendering remains the wall.
     reason hunts | posse fabrication.
 
 ## READ FIRST (any session taking over)
-  0. FINDINGS 20.238-20.256 (the verdict stack; 20.252-20.256 = the
-     gate-byte writer, the staging layer, the type-12 lever). BOOT BRIEFS
+  0. FINDINGS 20.238-20.257 (the verdict stack; 20.252-20.256 = the
+     gate-byte writer, staging layer, type-12 lever; 20.257 = femu lane). BOOT BRIEFS
      p2-158/p2-159 carry the watch-era discipline; postmortem 09-02 (U18).
   1. AGENTS.md conditional triggers; boot work loads LESSONS pre-boot checklist
      and runs gate_boot.py on the brief.

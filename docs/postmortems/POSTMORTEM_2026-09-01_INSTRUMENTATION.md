@@ -1,9 +1,12 @@
 # POSTMORTEM - INSTRUMENTATION, WHOLE SESSION (2026-09-01)
 
-STATUS: closed postmortem (2026-09-01). Subject: every instrument this session relied on
-or built - across p2-154, p2-155, p2-156 and the static work between them - and what each
-could and could not say. Written for a workflow-fixing session. Companion records:
-FINDINGS 20.246-20.249. Sibling: POSTMORTEM_2026-09-01_THE-NIGHT-RUNNER.md.
+STATUS: closed postmortem (2026-09-01), REOPENED ONCE and closed again 2026-09-02 with an
+ADDENDUM (p2-160, pubrest) at the end of this file. Subject: every instrument this session
+relied on or built - across p2-154, p2-155, p2-156 and the static work between them - and
+what each could and could not say. Written for a workflow-fixing session. Companion
+records: FINDINGS 20.246-20.249. Sibling: POSTMORTEM_2026-09-01_THE-NIGHT-RUNNER.md.
+The 2026-09-02 addendum is here rather than in a new file because its defect is the SAME
+defect as DEFECT 1, one level up: a probe that could not say what its own question was.
 
 ## THE ONE-LINE SUMMARY
 
@@ -133,3 +136,223 @@ was zero / every record was clean / the control passed / two ids were sent / the
 not ready. In each case the instrument was correct about its own narrow claim and was read
 as making a larger one. The counter-practice is to write down, next to each probe, the
 sentence it CANNOT support - and to check that sentence before quoting the probe.
+
+
+---
+
+# ADDENDUM - p2-160, THE DUMP THAT COULD NOT FIRE (2026-09-02)
+
+STATUS: closed. Subject: the pubrest image dump across the p2-160 boot - THREE launch
+cycles, two of them spent on this instrument rather than on the question. Companion record:
+FINDINGS 20.258. Author: the 2026-09-02 session, about its own work.
+
+## THE ONE-LINE SUMMARY
+
+Three times I shipped an instrument after reviewing only the part of it I had just edited,
+and three times the defect was in the part I had not looked at. The fix that finally worked
+was not a cleverer gate - it was REPLAYING THE SHIPPED LOGIC OVER ALREADY-RECORDED LINES
+before deploying, which I could have done after the first failed boot and did not do until
+the third.
+
+## THE COST
+
+Three paired launch cycles. The user quit and relaunched two machines each time. Attempt 1
+produced no dump at all; attempt 2 produced two dumps of which the one that mattered was
+spent on a non-peer image; attempt 3 shipped only after replay confirmed correct behaviour
+on both prior runs' recorded data. The user's words, which belong in the record: "do you
+know how long boot tests take?" They are right, and the answer is that I was treating their
+launches as the cheap resource and my review time as the expensive one, when the ratio is
+the other way around by orders of magnitude.
+
+## WHAT HAPPENED
+
+pubrest hexdumps the staging source image. Its dump block read:
+
+    if (restore && isEnter && srcOk) { ... }
+
+`restore` is `is_armed_table(arg1 + 0x80)` - true only when the copy's DESTINATION is a
+known participant table. In the p2-160 boot, across a full paired Tower dwell:
+
+    pubrest calls: 24        role histogram: {unknown: 24}
+    ...with a genuine peer in the source image: 8
+    pubrestimg dumps: 0
+
+Not one call classified as a restore, so the block never ran. And it could never have run:
+STATE.md already recorded, from 20.255, that the restore is **obfuscated-direct and
+BYPASSES 0x1403CB340** - which is the exact function this hook detours. A restore does not
+arrive at this hook by construction. The dump was gated on an event that the instrument's
+own placement excludes.
+
+The publish side arrives here fine, and that is where the wanted image lives: 8 calls at
+`caller_rva=0x16E62AD` (inside the message-driven publish 0x1416E6250 of 20.255) carried a
+source image at 0x6AFC6A40 whose record 0 was the local identity and whose record 1 was
+0x846C8338F7D022E6 - the other machine. The image we needed was in the probe's hands, with
+its address logged, eight times, and the probe declined to dump it.
+
+Fix: gate the dump on what it needs - a readable source image of a known shape
+(`isEnter && srcOk && rec8[0] != 0`) - and record `role` in the dump header as an
+observation instead of using it as a precondition.
+
+## MY ERRORS, NAMED
+
+### 1. I FIXED THE FINE STRUCTURE OF A BRANCH WHOSE GUARD WAS ALWAYS FALSE
+I rewrote the dump from one shot to two, corrected which image gets which shot index, and
+fixed the novelty gate that would have starved it. Every one of those edits was inside
+`if (restore && ...)`. I never asked the prior question - CAN THIS BLOCK BE REACHED? -
+because I was working at the layer below it. The question to ask first about any branch you
+are about to improve is whether it executes, and I asked it last.
+
+### 2. I HELD BOTH HALVES OF THE CONTRADICTION AND DID NOT JOIN THEM
+This is the part that is not bad luck. In this same session I read STATE.md's line that the
+restore is obfuscated-direct and bypasses 0x1403CB340, and I read the code computing `role`
+from armed tables, and I quoted the first one in the boot brief's own premise section. Two
+facts, one session, one file apart, and I never put them in the same sentence. A fact
+recalled and a fact USED are different things; quoting a constraint into a document is not
+the same as testing the design against it.
+
+### 3. I PRE-NAMED THE NEGATIVE AND NEVER PRICED IT
+The brief's ABSENCE NEGATIVE says, verbatim: "`stage=pubrest` lines present but ZERO
+`pubrestimg`: no call classified as a RESTORE with src_ok=1." That is exactly what
+happened. I wrote the failure mode down, in advance, in the correct words - and treated it
+as a remote edge case rather than asking how likely it was. U6 asks for the negative to be
+NAMED; U9 asks for the gate's EXPECTED VALUE. I satisfied the first and skipped the second,
+and the second was the one that would have stopped the boot. A pre-named negative that is
+in fact the modal outcome is a design review finding, not a contingency.
+
+### 4. MY ADVERSARIAL PASS AUDITED THE LAYER I WAS EDITING
+Six findings, all real, all applied - and all about shot selection, gate starvation and
+label correctness. Not one questioned the reachability of the block containing them. A
+self-review that only inspects the diff will confirm the diff and miss its premise. The
+pass needed one question it did not contain: what must be TRUE IN THE WORLD for this code
+to run, and is it?
+
+### 5. I USED GREP CHAINS ON A LIVE BOOT, AGAIN
+For several rounds I dug through the running client's log with grep/sed pipelines, until
+the user told me to use our tooling. AGENTS.md routes log digging through logq.py over a
+logindex.py index; the LAST SECTION OF THIS VERY FILE already records that same failure
+from 2026-09-01. Once indexed, the whole diagnosis was one query returning the role
+histogram and the peer-bearing call sites. The repeat is worse than the original: the rule
+was not merely written down somewhere, it was written down in the document about my own
+instrumentation mistakes.
+
+## WHAT THIS COST, AND WHAT IT DID NOT
+
+Cost: one paired boot, and the user's time launching two machines for it.
+Did NOT cost: the diagnosis. The instrument logged `role`, `src`, `caller_rva` and
+`rec8_0/1` on EVERY call, so the run that failed to produce the artifact fully explained
+why, and named the exact address and call site the fixed version should target. The boot
+was not wasted so much as spent on the instrument instead of the question.
+
+## WHAT WORKED, AND SHOULD BE COPIED
+
+- The two fixes I did make were necessary and are now VERIFIED live, not just argued:
+  the novelty gate would genuinely have collapsed the peer-bearing call (24 calls, all with
+  f38 tuples of 00,00,00,00 and unchanging args - the peer transition is invisible in the
+  fingerprint without the peer bit), and the `rec8_1 != rec8_0` peer test was vindicated
+  when the mac's own pgate showed slot 1 holding the SELF identity while solo. Both would
+  have been boot-killers in their own right.
+- A probe that logs the CONTEXT OF ITS OWN DECISION can be debugged from a single run. Every
+  input to the dump predicate was on every line, which is the only reason one failed boot
+  produced a precise fix instead of another round of guessing. Copy this: log the operands
+  of a gate, not just its outcome.
+- Proving a behaviour switch offline BEFORE it enters a binary: the peer-row flag mask was
+  mirrored into the Python encoder port and run over all 32 values - every one
+  size-preserving at 4095 B, flags=0 byte-identical to the golden body, bapdecode accepting
+  each. It cannot silently break the encode when a later boot uses it.
+- Declining to deploy the server build that carried that switch. It was not needed for
+  p2-160's contract, and 20.247 R8 is precisely the story of a change bundled to serve a
+  later experiment breaking the current one.
+
+## THE CANDIDATE RULE (for LESSONS, if it survives another session)
+
+AN INSTRUMENT'S TRIGGER IS A CLAIM ABOUT CONTROL FLOW, AND MUST BE MARKED LIKE ANY OTHER
+CHAIN LINK (U16). The brief marks the chain the boot reasons about; it does not mark the
+predicate that decides whether the probe fires. Here the trigger's mark would have been
+`role==restore reaches this hook: ASSUMED` - and the very next line of STATE.md refuted it.
+Cheap to check, and it converts this class of failure from a spent boot into a brief edit.
+
+
+---
+
+## ATTEMPT 2 - THE PEER TEST WITH NOTHING TO ANCHOR IT
+
+The attempt 1 fix made the dump fire. It fired twice, and the shot that mattered was spent
+before the second machine had even joined:
+
+    shot 0  peer=0  rec8_0=0x88CB5281391A82CB  rec8_1=0x0             <- correct baseline
+    shot 1  peer=1  rec8_0=0x1A82CB013E294F94  rec8_1=0x88CB5281391A82CB
+
+Record 1 holds the LOCAL identity; record 0 holds a byte-shifted view of it (`1A82CB` is a
+substring of the local key's low half). My peer test was `rec8_1 != 0 && rec8_1 != rec8_0`,
+which that satisfies. My stability gate - added specifically to reject torn reads - passed
+it too, because the shape is STABLE and REPEATABLE rather than a one-off tear.
+
+### THE ERROR: I DREW THE NARROW CONCLUSION FROM A LINE THAT SUPPORTED A WIDER ONE
+Attempt 1's pgate had already printed `i=1 self=1` - the local player sitting in slot 1. I
+READ that line, and I QUOTED it in the brief to justify the `rec8_1 != rec8_0` guard. The
+conclusion I drew was "record 1 can hold self, so guard against rec8_1 == rec8_0". The
+conclusion available was "record ordering is not fixed, therefore record 0 is not reliably
+self, therefore THIS TEST HAS NO ANCHOR". I used the evidence to patch the symptom it
+pointed at and never asked what else it invalidated.
+
+### THE SECOND ERROR: A GUARD BUILT ON A GUESS ABOUT THE FAILURE'S NATURE
+I called the attempt-1 anomaly a "torn read" and designed a stability gate around that
+guess. I had the data to check it - the tuple appeared once in attempt 1, which is
+consistent with a tear but equally consistent with a transient state - and I did not go
+back and ask whether a repeated observation would distinguish them. Attempt 2 answered it:
+the shape recurs. A mitigation designed against an unverified mechanism is a coin flip
+dressed as engineering.
+
+## ATTEMPT 3 - THE LINE-BY-LINE READ I SHOULD HAVE DONE FIRST
+
+Reading the WHOLE function rather than my own diff surfaced five more defects, two of which
+would each have cost another boot on their own:
+
+1. **THE ANCHOR CAME FROM DUMP ORDERING - A DEADLOCK.** I learned the local identity from
+   the solo baseline. If a peer is already present when the client joins, no solo image ever
+   appears, so no baseline fires, so no anchor exists, so the peer shot can NEVER fire. The
+   instrument would have been silent on a rejoin and I would have read that as a finding.
+   The anchor now comes from pgate, which walks the live table and knows self authoritatively.
+2. **ONLY TWO RECORDS WERE SCANNED.** `rec8[2]` assumes the peer lands in slot 1 - the exact
+   assumption attempt 2 had just disproved from the other direction. A peer at record 2+ was
+   invisible. Now eight records, best-effort past record 0.
+3. **THE BASELINE WAS NOT ANCHORED EITHER.** Gated only on `!peerInImage`, so attempt 2's
+   shifted image qualifies as "not a peer" and could become the baseline - after which every
+   byte of the solo-vs-peer diff reads as meaning. I had fixed the peer side and left its
+   mirror image untouched, which is the same error as attempt 1 at a smaller scale.
+4. **THE STABILITY GATE WAS ACTIVELY HARMFUL.** Collapsed to one shared slot, an interleaved
+   peer image broke the baseline's streak - replay showed the BASELINE ceasing to fire on
+   attempt 1's own recorded lines. It also spent margin where margin is scarcest: the peer
+   window is ~6 bodies and the genuine tuple was seen three times, so demanding a second
+   sighting risks losing a short pairing outright. Removed; the anchor is strictly stronger
+   and needs one sighting.
+5. **`bytes=` OVERSTATED THE IMAGE** - 0x59300 reported for a 0x59260 image, because the
+   loop's final `done = off + kChunk` was not clamped. Small, but it is a coverage figure,
+   and a coverage figure that rounds up is worse than none.
+
+## THE PRACTICE THAT ACTUALLY WORKED, AND ITS PRICE FOR ARRIVING LATE
+
+Every attempt-3 fix was validated by replaying the shipped predicate over the pubrest lines
+already recorded in attempts 1 and 2:
+
+    attempt 1 lines -> shot0 (0x88CB..., 0x0) and shot1 (0x88CB..., 0x846C8338F7D022E6)
+    attempt 2 lines -> shot0 only; the shifted image REJECTED
+
+That replay is what caught defects 3 and 4 - both of which I had just written, and neither
+of which I would have found by re-reading my own reasoning. The data to run it existed from
+the moment attempt 1 finished. Running it cost about a minute.
+
+RULE, and the one worth carrying out of this: WHEN A BOOT HAS ALREADY PRODUCED LINES FROM
+AN INSTRUMENT, THE NEXT VERSION OF THAT INSTRUMENT IS TESTED AGAINST THOSE LINES BEFORE IT
+IS DEPLOYED. A probe's trigger is executable logic over a known input format; a recorded run
+is a fixture. Shipping an instrument change to a boot without replaying it against the
+previous boot's own output is spending the user's launch to run a unit test.
+
+## THE THROUGH-LINE OF THE WHOLE ADDENDUM
+
+Attempt 1: the guard on the branch I was editing. Attempt 2: the assumption under the test I
+was editing. Attempt 3 (found before shipping, by replay): the mirror of the fix I was
+editing, and a mitigation whose mechanism I had guessed. Every one is the same shape - I
+audited the thing I had just changed and treated everything around it as given. A diff-scoped
+review confirms the diff. The scope has to be the FUNCTION, and the check has to be
+EXECUTION AGAINST REAL RECORDED INPUT, not re-reading.
