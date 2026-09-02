@@ -57,16 +57,14 @@ writer EXISTS and is runtime-registered where static analysis cannot reach. Full
 narrative: FINDINGS 20.238-20.251 (verdicts only here - GOVERNANCE).
 
 ## DEPLOYED (2026-09-01 23:4x - p2-158 WIRE-WATCH, mac ONLY - rig pending ControlMaster)
-   clients        BOTH: b241ecda3159a9d5 (2026-09-02 10:14) - gate_wwatch, sweep-fix
-                  build: DRs are re-applied EVERY 250ms sweep (the first build armed
-                  threads only once -> threads born after the first sweep, including
-                  the selftest thread, were never watched: selftest FAIL on rig AND
-                  mac, caught by the control as designed). Brief BOOT_BRIEF_p2-158.md,
-                  GATE PASS. Rollbacks: mac .bak_p2d7_20260901_233724,
-                  rig .bak_p2d7_20260902_101441. CANARY STATUS: mac selftest FAIL is
-                  PERMANENT (Wine/Rosetta DR delivery, pre-named claim (e)) - the rig
-                  (native Win64) is the watched machine; rig selftest ok = go for
-                  paired dwell.
+   clients        BOTH: 2952c2640147773e (2026-09-02 11:3x) - p2-159: pubrest hook
+                  (0x1403CB340 publish/restore observer + one-shot source-image dump)
+                  + wwatch capture-then-quiet + VEC consumption-rule fix (any #DB from
+                  our DR addresses is consumed - closes the post-quiet unhandled-#DB
+                  hole; adversarial review NOT-READY -> all 7 findings fixed).
+                  BOOT_BRIEF_p2-159.md GATE PASS. Rollbacks: mac .bak_p2d7_20260901_233724
+                  chain, rig .bak_p2d7_20260902_112956. Canary: rig solo first (selftest
+                  ok + pubrest lines); mac wwatch stays FAIL-by-platform (Rosetta).
    server exe     4f51581cbd3561c7 - RUNNING (p2-154 deploy, built==deployed,
                   lobby+ladder empty). The type-45 PEER-CONTACT push behind
                   pool_c4_mark_push. Bind line proves both switches: `c4_mark_push=1
