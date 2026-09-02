@@ -47,6 +47,68 @@ FACTS = [
      "are stored runtime-relocated (pe_reader.to_static, 19,990/20,000 "
      "empirical) - invalidates image-encoding-only pointer scans"),
 ]
+# WAIVED (2026-09-01 housekeeping pass, all 11 flags adjudicated individually):
+# each entry (filename, line substring, reason). Waivers are VISIBLE in output -
+# a waiver is a reviewed decision, never a silent pass. FINDINGS is append-only,
+# so dead/retracted claims keep their original text and are waived here instead.
+#  - three are phrase false positives ("zero references" = refcount RETIRE, or
+#    the flag hits the tool-debt note / the changelog citing the trap rule);
+#  - four are retracted or corrected claims (the flag hits the retraction text
+#    itself: 20.222 correcting 20.209 R2, staging population dead 20.191/2);
+#  - three are live claims whose encodings are documented inline in the entry
+#    without the literal ENCODEDS keyword (all-sections E8/E9/rip-rel; the
+#    enumerated covered-encoding set of 20.234; the four dual-encoding attempts
+#    of 20.246 R1-R4) - all three are now behind the dynamic front (20.246 R7).
+WAIVERS = [
+    ("FINDINGS_2026-08-25.md",
+     "source mismatch with zero references",
+     "not a scan-negative: 'zero references' = refcount-zero RETIRE in "
+     "group_host_sessions logic"),
+    ("FINDINGS_2026-08-25.md",
+     "The selector at stage 2 reads a slot nobody writes",
+     "RETRACTED claim (staging population, 20.191/20.192) - dead entry kept "
+     "for history"),
+    ("FINDINGS_2026-08-25.md",
+     "THE ENTITY RECEIVE CHAIN HAS ZERO STATIC REFERENCES OF ANY KIND",
+     "corrected by 20.222 (handler table was in .rdata all along) - "
+     "retraction on record in the corpus"),
+    ("FINDINGS_2026-08-25.md",
+     "ZERO static references to 0x1404F2970 anywhere",
+     "encodings documented inline (all-sections E8/E9/rip-rel scan) - "
+     "declaration satisfied in substance"),
+    ("FINDINGS_2026-08-25.md",
+     'disp32 scans cannot see - the "no writers exist" trap',
+     "not a claim: tool-honesty changelog citing the trap rule"),
+    ("FINDINGS_2026-08-25.md",
+     "STATICALLY UNREACHABLE. THE HANDLER TABLE IS IN .rdata AND ALWAYS WAS",
+     "the flag hits the retraction text itself (20.222 correcting 20.209 R2)"),
+    ("FINDINGS_2026-08-25.md",
+     'xref_scan.py returned "0 refs" for 0x1427E45D0',
+     "not a claim: tool-debt incident record"),
+    ("FINDINGS_2026-08-25.md",
+     "nobody writes +0x38 by any covered encoding in any participant",
+     "encodings enumerated in 20.234 R1-R2 ('covered encoding' is that "
+     "enumerated set); scope-limited claim, superseded by the dynamic "
+     "front 20.246 R7"),
+    ("FINDINGS_2026-08-25.md",
+     "statically unreachable after four attempts",
+     "four dual-encoding attempts documented in the entry (20.246 R1-R4); "
+     "superseded by the dynamic front 20.246 R7"),
+    ("FINDINGS_2026-08-15.md",
+     "later proven inert (see 9.36, the zero references)",
+     "historical entry, resolved in-file at 9.36"),
+    ("FINDINGS_2026-08-15.md",
+     "ZERO references from the chain's executed flow",
+     "historical entry, resolved in-file at 9.36"),
+]
+
+
+def waived(fname, line):
+    low = line.lower()
+    return [(sub, why) for (f, sub, why) in WAIVERS
+            if f == fname and sub.lower() in low]
+
+
 CORPOR_GLOBS = ["FINDINGS_2026-*.md", "findings/FINDINGS_2026-*.md",
                 "STATE.md", "docs/handoffs/HANDOFF*.md", "FRONT*.md"]
 DATE_RE = re.compile(r"20\d{2}-\d{2}-\d{2}")
@@ -95,6 +157,7 @@ def audit():
                         "file": os.path.basename(path), "line": lineno,
                         "entry": entry, "phrase": phrase,
                         "has_encodeds": has_encodeds, "stale": stale,
+                        "line_text": line,
                         "quote": line.strip()[:110]})
                 break  # one flag per line
     return flags, checked
@@ -102,15 +165,25 @@ def audit():
 
 def main(argv):
     flags, checked = audit()
-    print("LIVENESS: scan-negative claims checked=%d flagged=%d" %
-          (checked, len(flags)))
-    if not flags:
-        print("NEGATIVE AUDIT PASS - all scan-negative claims carry "
-              "ENCODEDS declarations and predate no invalidating fact")
+    active, waived_flags = [], []
+    for f in flags:
+        w = waived(f["file"], f["line_text"])
+        (waived_flags if w else active).append((f, w[0][1] if w else ""))
+    print("LIVENESS: scan-negative claims checked=%d flagged=%d "
+          "waived=%d active=%d" %
+          (checked, len(flags), len(waived_flags), len(active)))
+    if waived_flags:
+        print("WAIVED (%d) - reviewed waivers, see WAIVERS in negative_audit.py:"
+              % len(waived_flags))
+        for f, why in waived_flags:
+            print("  %s:%d - %s" % (f["file"], f["line"], why))
+    if not active:
+        print("NEGATIVE AUDIT PASS - no active scan-negative flags (waivers "
+              "listed above are documented in source)")
         return 0
     print("NEGATIVE AUDIT FLAGS (%d) - premise possibly stale or "
-          "undeclared:" % len(flags))
-    for f in flags[:15]:
+          "undeclared:" % len(active))
+    for f, _ in active[:15]:
         miss = []
         if not f["has_encodeds"]:
             miss.append("no ENCODEDS")
@@ -119,8 +192,8 @@ def main(argv):
         print("  %s:%d [%s] (%s)\n    %s" %
               (f["file"], f["line"], f["entry"][:44], ", ".join(miss),
                f["quote"]))
-    if len(flags) > 15:
-        print("  ... +%d more" % (len(flags) - 15))
+    if len(active) > 15:
+        print("  ... +%d more" % (len(active) - 15))
     print("REMEDIATION: re-run the scan with dual encodings "
           "(xref_scan --ptrs tests image + RUNTIME_BASE-relocated), then "
           "add an ENCODEDS: line to the claim.")
