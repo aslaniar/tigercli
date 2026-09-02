@@ -9,6 +9,17 @@ All deep content lives in the files it points to.
 PROJECT: derive a full private server for the D2 Season-of-Arrivals build and
 run D1-on-PC research; in-process Sunrise DLL + standalone fork replacement,
 multi-account/multi-peer work in flight. Full strategy: GAME_PLAN_2026-08-14.md.
+
+*** THE GOVERNING CONSTRAINT (user, 2026-09-02; it outranks any lane's convenience) ***
+THE CLIENT IS NEVER MODIFIED. THE SERVER MUST ACCOMPLISH EVERYTHING. This was a retail
+game: retail clients rendered peers against Bungie on server input alone, so every
+missing behaviour IS reachable from the wire, and a client-side shortcut does not just
+break scope - it destroys the evidence that the server-side answer exists. This forbids
+.text patching AND client-side WRITES INTO GAME DATA (the p2-161 gate poke is the case
+that forced the rule to be written down: it slipped past the narrower "no .text patching"
+line). Client-side writes are admissible ONLY as a throwaway DIAGNOSTIC that answers
+"does X matter", never as a delivered mechanism, and the switch reverts to 0 the moment
+the boot ends. Instruments that only READ are unaffected.
 Keep project knowledge ONLY in this repo's plain files (STATE.md, FINDINGS_*.md,
 AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 

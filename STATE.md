@@ -92,7 +92,10 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
 
 ## HARD RULES (earned; each cost a boot or a day)
   - RESET THE SERVER BETWEEN RUNS (reset_lobby_claims.sh, backgrounded).
-  - NO .text patching; NO guessed interface ordinals. Census FIRST.
+  - THE CLIENT IS NEVER MODIFIED - THE SERVER MUST ACCOMPLISH EVERYTHING (user,
+    2026-09-02; full statement in AGENTS.md). No .text patching AND no client-side
+    writes into game data. Client writes are throwaway DIAGNOSTICS only, reverted at
+    the end of the boot. NO guessed interface ordinals. Census FIRST.
   - EVERY hook RVA through verify_hook_rvas.py before a boot (it catches
     added/dropped digits - both have happened).
   - Bundle OBSERVATION freely; BEHAVIOUR only behind a settings switch.
