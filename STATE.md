@@ -4,7 +4,18 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-01 22:3x PDT. *** 20.251 (offline, no boot): OPEN QUESTION (3) ANSWERED -
+Updated: 2026-09-02 10:4x PDT. *** 20.252 (p2-158 canary): THE GATE-BYTE WRITER IS FOUND -
+the participant records (gate bytes included) are copied as ONE WHOLESALE TABLE IMAGE
+handed to the pool ctor 0x1404F77D0 ([rsp+0x70]) -> 0x1403CB340 (0x59290 stack backup +
+image copy) -> 0x1404DF6A0 copier (0xB24 x 0x80 SSE loop, .pdata gap). NO client code
+computes bit 4; the masks ride in the same image. NEW FRONT: who sources the image
+(ctor caller 0x140BFE3F8, static tables 0x141C19A70/80 + manager array)? If the image is
+server-fed pool state, the FORK controls cond5 - set bit4 in its participant records
+(INFERRED, verify first). Watch status: rig pipeline PROVEN (selftest ok x3); the captures
+landed (0x00->0x00 both windows); rig then died silently ~3k ticks later (AV, garbage
+context, triage dump useless). DO NOT re-boot the watch as-is: next watch boot ships
+capture-then-quiet disarm. Mac cannot watch (Wine/Rosetta, selftest FAIL permanent).
+PRIOR: *** 20.251 (offline, no boot): OPEN QUESTION (3) ANSWERED -
 THE cond5-GATED RECEIVER IS REQUIRED TO RENDER A PEER. The replication cluster has
 exactly ONE entry (ent_recv <- ent_header <- ent_create; single caller at every hop,
 oracle-validated E8/E9 + ptrs + moffs64) and that entry is the receiver object - which is
