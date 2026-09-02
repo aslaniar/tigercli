@@ -4,7 +4,19 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-02 12:1x PDT. *** 20.254 (offline): THE WRITE-BACK IS REAL - the p2-158
+Updated: 2026-09-02 12:2x PDT. *** 20.255 (p2-159 cancelled after solo phase): RIG CRASHED
+AGAIN + MAC MACHINE FROZE -> THE DR WATCH IS RETIRED (3/3 armed boots abnormal across two
+builds; gate_wwatch::install now emits result=retired; no VEH/DR/suspend-sweep in future
+boots). CLIENT SURVIVED THE LANDING on the mitigation build - the quiet worked for the
+landing, the crash came later anyway. RETAINED: pubrest (plain detour) - and IT DELIVERED
+THE LEVER: a MESSAGE-DRIVEN publish path (0x1416E6250, act-router family, vtable group
+.rdata 0x141C9F6F0+) publishes a heap image carrying PER-MEMBER IDENTITIES (rig identity
+seen on the mac solo) into the staging object, FIRING RIGHT AFTER type=12
+membership_replication (4112 B) - THE MESSAGE THE FORK ALREADY SENDS. THE BEHAVIORAL BOOT:
+map type-12 body bytes -> image record fields (decode 0x1416E6250/0x1404DBF10 assembly),
+set bit4 fork-side, verify via pubrest f38src nonzero on the receiver. Restore side
+confirmed obfuscated-direct (bypasses 0x1403CB340 - no restore lines, watch caught it).
+PRIOR: *** 20.254 (offline): THE WRITE-BACK IS REAL - the p2-158
 hit geometry (table+0x38 AND table+0x2AF8) proves a full-table RESTORE (dest=table) ran at
 landing through an obfuscated thunk (0x1403CB790 -> jmp 0x1403CB340; source provenance
 behind the second-.text wall). 20.246's client-side "no writer" is superseded in KIND:
