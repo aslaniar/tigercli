@@ -90,11 +90,18 @@ rendering = the wall, now decomposed into the four-wall stack W1-W4 (see NEXT).
   blank slots claiming the blank record. CASCADE: mechanically credible (fill the blob
   -> stop the disown, disown rec1, arm the claim); residual pins = which word gets bit
   7 (existing vs re-born record) + the exact 86 bytes - both ride the probe rebuild.
-  Sequencing lever: peer slot visible before the transport birth -> right bit at birth.
-   PREREQUISITES REMAINING: (i) pin the runtime bit value; (ii) full 86-byte identities
-  in resv lines - both ride the probe rebuild. Then: fork encoder (fields 10-12, peer
-  row; settings-gated, size-consistent, NST fixture) -> solo control -> ONE paired
-  verification boot (poke pre-named + reverted). Outcome tree 0/L/a-e in the spec.
+  Sequencing lever (20.280): peer slot visible before the transport birth -> the record
+  is born with the right bit; the fork controls send order.
+  SHIPPED (20.281, commit be11722, all gates green, NOT DEPLOYED): the W1 fix - server
+  setting membership_peer_transport_identity emits the peer row's 86-byte transport
+  identity (schema field 10) with the peer's advertised NetAddr blob recovered from its
+  own join descriptor (+688 bits, wire-tested byte-exact 9/9, fail-loud
+  peer_transport_identity line per body); the W4 probes - first-seen-key leave gating
+  (slot x ret-class) on ent_gate/ent_pass/connmgr, gatebit (runtime bitreq pin),
+  resv_ident (full 86-byte cards), slot_card (the sweep's own card view). verify_hook_rvas
+  PASS; sensor-auth PASS. REMAINING BEFORE BOOT: deploy both (hash+literal asserts),
+  settings edits (transport identity ON for paired, OFF for solo control first), brief
+  per BOOT_IMPL section C + outcome tree 0/L/a-e, gate_poke armed + reverted.
 
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
  pool_c4_mark_push TRUE and HARMLESS.
