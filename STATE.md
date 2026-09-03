@@ -69,38 +69,21 @@ Session/membership/identity DONE; slot supply, row lifecycle, contactable byte,
 gate-byte writer, staging publish lever all CLOSED (mechanism in FINDINGS). Peer
 rendering = the wall, now decomposed into the four-wall stack W1-W4 (see NEXT).
 
-## NEXT (per 20.277 - OFFLINE first; the boot is fix-verification, not exploration)
-  TWO STACKED WALLS, both server-side (20.277):
-   W-A: the guard's compared 86-byte identity blob (participant slot) is composed from
-        the fork's SESSION payload (matches the ingress tail: 00 01 1x 00 01 30 AA 9E...),
-        while the reservation records' identities are NETADDR format ({IP,port,flags} -
-        rec2 = C0 A8 01 88 19 0C 00 FF = {192.168.1.136:3097}). The rig's endpoint bytes
-        appear nowhere in the slot blob -> predicate 1 can never select the peer's
-        record. (20.274's suspect, precise form: wrong-FORMAT blob, not empty.)
-   W-B: the peer record stalled 3/4 and its mask cleared (t=328727) exactly when the
-        fork's membership payload landed and the row was marked _established; the record
-        never mirrored the channel's established->connected (t=330639). The record's
-        final rung for rec=0 came from the JOIN/initial-updates flow, not the channel.
-  RED-TEAM VERDICT IN (20.279): the static chain holds, but (a) the required mask bit
-  is 7 MAC / 6 RIG (per-remote-slot+6), NOT 5 - rec2 never carried the guard's bit;
-  (b) the boot as gated was unwinnable (4 stacked walls; ent_pass>0 needs an unnamed
-  cascade); (c) the informative bail-3 outcome is unobservable with the current emit
-  budget; (d) the boot silently depends on the gate_poke. FOUR PREREQUISITE OFFLINE
-  ITEMS before any encoder code: (i) pin dword[[container+8]+8] at runtime (bit 7/6);
-  (ii) log full 86-byte reservation identities; (iii) schema-walk the t12 identity node
-  AND exclude the 0x808086F8 family; (iv) hunt the +0x3112 SET path - if not fed by the
-  same composer as +0x142, the fix as designed cannot work and must not run. The
-  verification boot (when it runs) needs: first-seen-key/per-slot emit gating on the
-  leave probes, poke pre-named + reverted, solo control first, outcome tree (0)/(a)-(d)
-  per 20.279 R3.
-  CONSOLIDATED IMPLEMENTATION SPEC WRITTEN: RE_output/claims/BOOT_IMPL_peer-rendering-walls.md
-  (the four-wall stack W1-W4, the prerequisite items (i)-(iv), the fork + probe changes,
-  the boot protocol, and the pre-named outcome tree 0/L/a-e with fail-loud mechanisms).
-  Execution order: prerequisites (i)-(iv) offline -> encoder + probe changes -> solo
-  control -> paired verification boot. Nothing in the encoder ships before (iii) names
-  the field and (iv) settles the cascade question.
-  DO NOT: hook the notifier; resume wide-net instrument sets; assume +0x14.
-  ALSO OPEN: 20.256 R4a (the router's case-12 -> 0x1416E6250 link was never walked).
+## NEXT (implementation spec: RE_output/claims/BOOT_IMPL_peer-rendering-walls.md)
+  Four-wall stack to a rendered peer, all server-side (20.275-20.279 + red team):
+   W1 identity: guard compares slot+0x142 (86 B) - all-zero, cursor-composed from a
+      body field the fork never sends. Fix = emit the peer's transport identity there.
+   W2 mask: guard requires bit (remote-slot+6) = 7 MAC / 6 RIG; rec2 never carried it.
+   W3 record stall: peer rec stuck 3/4; predicates 2+3 demand 4/5; the final rung
+      comes from the session-join flow, not the channel.
+   W4 instruments: first-seen-key emit gating on the leave probes (else the
+      informative bail-3 outcome is invisible - the p2-164 lesson).
+  PREREQUISITES before encoder code: (i) pin the runtime bit value; (ii) full
+  86-byte identities in resv lines; (iii) schema-walk the t12 identity node + exclude
+  0x808086F8; (iv) hunt the +0x3112 SET path (cascade gate). Then: fork encoder
+  (settings-gated, size-consistent, NST fixture) -> solo control -> ONE paired
+  verification boot (poke pre-named + reverted). Outcome tree 0/L/a-e in the spec.
+
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
  pool_c4_mark_push TRUE and HARMLESS.
  DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
