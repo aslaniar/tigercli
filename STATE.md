@@ -90,18 +90,16 @@ rendering = the wall, now decomposed into the four-wall stack W1-W4 (see NEXT).
   blank slots claiming the blank record. CASCADE: mechanically credible (fill the blob
   -> stop the disown, disown rec1, arm the claim); residual pins = which word gets bit
   7 (existing vs re-born record) + the exact 86 bytes - both ride the probe rebuild.
-  Sequencing lever (20.280): peer slot visible before the transport birth -> the record
-  is born with the right bit; the fork controls send order.
-  SHIPPED (20.281, commit be11722, all gates green, NOT DEPLOYED): the W1 fix - server
-  setting membership_peer_transport_identity emits the peer row's 86-byte transport
-  identity (schema field 10) with the peer's advertised NetAddr blob recovered from its
-  own join descriptor (+688 bits, wire-tested byte-exact 9/9, fail-loud
-  peer_transport_identity line per body); the W4 probes - first-seen-key leave gating
-  (slot x ret-class) on ent_gate/ent_pass/connmgr, gatebit (runtime bitreq pin),
-  resv_ident (full 86-byte cards), slot_card (the sweep's own card view). verify_hook_rvas
-  PASS; sensor-auth PASS. REMAINING BEFORE BOOT: deploy both (hash+literal asserts),
-  settings edits (transport identity ON for paired, OFF for solo control first), brief
-  per BOOT_IMPL section C + outcome tree 0/L/a-e, gate_poke armed + reverted.
+  p2-165 RAN (20.282): the field traveled encode->send->DECODE (the client's ingress
+  parser consumed it - no reject/freeze) but the entry->slot compose hop drops it
+  (slot+0x142 zero everywhere; sweep disowned both peer records as predicted). W4
+  probes ALL proven (first-seen-key caught the peer-slot eval; gatebit pinned bitreq=7
+  mac/6 rig; full 86-byte cards captured - the reservation identity IS write_net_addr's
+  shape). The mac's black screen froze its evaluation right after the digest. NEXT
+  BOOT: probes widened + deployed (8edaf9685e751d32) - entry dump 0x600 (the old SEH
+  buffer truncated at 0xE8, the peer row's identity sat past it) + slot_dump (each
+  populated slot's first 0x300 bytes) will show where the 86 bytes go client-side.
+  Server setting stays ON; pokes reverted post-boot; relaunch clients for the next run.
 
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
  pool_c4_mark_push TRUE and HARMLESS.
