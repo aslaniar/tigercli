@@ -78,10 +78,22 @@ rendering = the wall, now decomposed into the four-wall stack W1-W4 (see NEXT).
       comes from the session-join flow, not the channel.
    W4 instruments: first-seen-key emit gating on the leave probes (else the
       informative bail-3 outcome is invisible - the p2-164 lesson).
-  PREREQUISITES before encoder code: (i) pin the runtime bit value; (ii) full
-  86-byte identities in resv lines; (iii) schema-walk the t12 identity node + exclude
-  0x808086F8; (iv) hunt the +0x3112 SET path (cascade gate). Then: fork encoder
-  (settings-gated, size-consistent, NST fixture) -> solo control -> ONE paired
+  PREREQUISITES (iii)+(iv) DONE (20.280): the identity field is NAMED - the t12 member
+  row's 0x808086B2 fields [10]/[11]/[12] (three presence-flagged 86-byte arrays, node
+  0x80807C82), landing at slot+0x142/+0x198/+0x1EE (guard arg4 = field 10, arg5 = field
+  12); 0x808086F8 excluded. Mask machinery mapped end-to-end: the record embeds THREE
+  connection objects (states +0x1D18/+0x1DC0/+0x30E8 - predicate 2's field is obj C);
+  the guard tests word rec+0x3112 (birth-set: bit = container-at-creation+6); the claim
+  (0x1417C08F0 find-or-create -> 0x1417C3480/0x1417C43C0) sets rec+0x3114 + flags; the
+  admission SWEEP (0x1417021C0 family = the probed 'ptable') DISOWNS any record no slot
+  claims by the 86-byte compare - that is the t=328727 clear; rec1's immunity = the
+  blank slots claiming the blank record. CASCADE: mechanically credible (fill the blob
+  -> stop the disown, disown rec1, arm the claim); residual pins = which word gets bit
+  7 (existing vs re-born record) + the exact 86 bytes - both ride the probe rebuild.
+  Sequencing lever: peer slot visible before the transport birth -> right bit at birth.
+   PREREQUISITES REMAINING: (i) pin the runtime bit value; (ii) full 86-byte identities
+  in resv lines - both ride the probe rebuild. Then: fork encoder (fields 10-12, peer
+  row; settings-gated, size-consistent, NST fixture) -> solo control -> ONE paired
   verification boot (poke pre-named + reverted). Outcome tree 0/L/a-e in the spec.
 
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
