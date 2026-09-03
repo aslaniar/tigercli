@@ -4,18 +4,20 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-03 2x:xx PDT. *** 20.276 (static, verified; callers.py added): the
-reservation record EMBEDS a real connection object at rec+0xA8 (idx=(obj-table-0xA8)/
-0x41F0, proven in 3 reservation-core fns). The ladder's .text writers are FULLY mapped:
-setter 0x1416D82A0 states 0-4 + connected-rung 0x1416BCFC0 state 5 (20.273's "no
-writers" was a base-alias artifact: writers spell the field +0x1D18 from the obj base,
-not +0x1DC0 from the rec base). The connected-rung is MESSAGE-FED via registered handler
-0x1417E5A10 -> pump 0x1416D4A30/0x1416D4B00/0x1416D56C0 (event type 4, subtype!=8).
-The peer's record reached 4 (the advancers' events work for it) and never 5 - the
-connected message is the missing input. Mask +0x3112's only writer = bit-CLEAR routine
-0x1417C4810 (admit family + ent-gate region callers). NEXT: ONE boot - hooks on
-0x1417E5A10 (message captures) + 0x1416BCFC0 (rung fires + caller RVA) + resv change-gate
-widened to +0x3112; then cross-reference the fork's server send vocabulary.
+Updated: 2026-09-03 2x:xx PDT. *** 20.277 (p2-164 LOG RE-READ, no boot): the peer
+channel COMPLETED to connected (t=330639, "WITHOUT RELAY") - transport exonerated. The
+peer's reservation record stalled at 3/4 BEFORE that and its mask cleared at t=328727,
+the exact moment the fork's membership payload landed (peer row _established). Every
+LOGGED ent_gate evaluation (25 of 898; emit budget) predates the peer record and bailed
+predicate 2 on a non-peer record; bail-5 ret is record-independent (cannot say which
+record matched). The fork composes TWO DIFFERENT identity byte-sets: the participant
+slot blob (session bytes, +0x14 in the 0x2AC0 table, matches the ingress payload tail)
+and the reservation record's NetAddr identity ({IP,port,flags}) - the peer's endpoint
+bytes appear in only the latter. FRONT = two stacked server-side walls: W-A (slot blob
+wrong format -> predicate 1 can never select the peer's record) and W-B (record stalls
+3/4 + mask cleared on membership arrival -> predicate 2 would fail anyway). NEXT: pin
+the guard's exact blob source from its disassembly, then read the fork's two composition
+paths and diff against rec=0's known-good pair; boot only as fix verification.
 VERDICT TRAIL (one line each; full text in FINDINGS):
   20.271-20.273: no activity type feeds the reservation subsystem - its input is the
     SESSION-JOIN layer; the reservation record IS a connection entry (ladder named by
@@ -71,27 +73,25 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
 (20.252/20.254); write-back conduit MESSAGE-FED (20.255); DR watch RETIRED
 (U18). Peer rendering remains the wall.
 
-## NEXT (per 20.276 - ONE boot, then fork-side cross-reference)
-  The connected rung is MESSAGE-FED: handler 0x1417E5A10 (registered; parses via
-  0x1417E6140) -> 0x1417E5B20 -> pump 0x1416D4A30 -> 0x1416D4B00 -> 0x1416D56C0
-  (event type 4, subtype != 8) -> connected-rung 0x1416BCFC0 -> setter(obj,5).
-  The fork-session connection reached (4,5) so the message EXISTS on that wire; the
-  peer's record stuck at (3,4) - the advancers (0x1417D1FC0/0x1417D4590/0x1417D3010,
-  all -> state 4, identity-checked) worked for the peer, the connected message did not.
-  BOOT (p2-165): hook A = 0x1417E5A10 (log parsed message head: type/len/bytes);
-  hook B = 0x1416BCFC0 (log obj identity + old state + _ReturnAddress); resv probe
-  change-gate widened to +0x3112. All read-only, settings-gated, verify_hook_rvas.
-  PRE-NAMED OUTCOMES: (a) hook A fires for the fork session only -> the peer-connected
-  message is missing from the wire entirely -> find it in the fork's server vocabulary
-  (group_host.cpp / bap_peer_session.cpp) and emit it peer-addressed; (b) hook A fires
-  for the peer too but hook B never follows -> the identity lookup
-  (0x1417CE430/0x1417C3920) fails on the peer's identity -> the fork's published
-  NetAddr/identity blob is the lever; (c) hook B fires for the peer and the record
-  still stalls -> the write lands but the guard's OTHER predicate (+0x30E8 snapshot)
-  lags -> chase the snapshot writer. (d) hook A silent for both -> the pump arm
-  (type 4) is not the only connected path -> fall back to iterator hook 0x1417C53B0.
-  DO NOT: hook the notifier 0x1417FFA20; resume the slot-blob suspect (demoted 20.275);
-  write any client code beyond read-only observation.
+## NEXT (per 20.277 - OFFLINE first; the boot is fix-verification, not exploration)
+  TWO STACKED WALLS, both server-side (20.277):
+   W-A: the guard's compared 86-byte identity blob (participant slot) is composed from
+        the fork's SESSION payload (matches the ingress tail: 00 01 1x 00 01 30 AA 9E...),
+        while the reservation records' identities are NETADDR format ({IP,port,flags} -
+        rec2 = C0 A8 01 88 19 0C 00 FF = {192.168.1.136:3097}). The rig's endpoint bytes
+        appear nowhere in the slot blob -> predicate 1 can never select the peer's
+        record. (20.274's suspect, precise form: wrong-FORMAT blob, not empty.)
+   W-B: the peer record stalled 3/4 and its mask cleared (t=328727) exactly when the
+        fork's membership payload landed and the row was marked _established; the record
+        never mirrored the channel's established->connected (t=330639). The record's
+        final rung for rec=0 came from the JOIN/initial-updates flow, not the channel.
+  OFFLINE SEQUENCE: (1) pin the guard's EXACT blob source from ent_gate 0x141703910's
+  disassembly (which table/offset the 86-byte memcmp reads - do not assume +0x14);
+  (2) read the fork's two composition paths (Sunrise/src/server: participant-slot blob
+  vs published NetAddr) and diff byte layouts against rec=0's known-good pair;
+  (3) server-side fix: compose the slot identity from the same published NetAddr;
+  (4) ONE boot as fix verification (ent_pass>0 is the success line).
+  DO NOT: hook the notifier; resume wide-net instrument sets; assume +0x14.
   ALSO OPEN: 20.256 R4a (the router's case-12 -> 0x1416E6250 link was never walked).
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
  pool_c4_mark_push TRUE and HARMLESS.
