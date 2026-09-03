@@ -4,61 +4,61 @@ STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-02 15:1x PDT. *** 20.259 (p2-161): cond5 IS NOT THE RENDER GATE.
-The bit was FORCED SET on the peer record (throwaway client diagnostic, reverted), all
-conditions the probe tracks passed for 294 consecutive walks, and NOTHING RENDERED and
-NOTHING was constructed - not one new event class. With 20.258 R6 (the RENDERED self
-record has +0x38 = 0x00, bit4 clear), the +0x38 front is DEAD: ~10 boots hunted a writer
-for a byte that changes nothing when set. DO NOT RESUME IT.
-HONEST LIMITS (settle offline before anyone reopens the byte): pgate's ALL-PASS is OUR
-model, not the game's decision; THERE IS NO cond2 IN THE PROBE (cond1/3/4/5 only, so
-"all conditions pass" has always meant "all we implemented"); and the decider may read
-the STAGING IMAGE, whose +0x38 stayed 0x00 - we poked the table only.
-NEXT (offline, no boot): the local player RENDERS and 20.258 R6 showed its record is
-structurally identical to the peer's - so the difference is NOT in the participant record.
-Find what actually renders the local player, then ask what SERVER INPUT drives that path
-for a second participant. Also open: 20.256 R4a (case-12 -> 0x1416E6250 never walked).
+Updated: 2026-09-03 13:10 PDT. *** 20.275 (offline re-read of p2164.db + review verdict):
+20.274 R3(b)/R4 CORRECTED - the peer's reservation record carried mask=0x0020 through its
+entire climb (predicate 1 WAS satisfiable) and cleared to 0x0000 exactly at the stall.
+The empty-slot-blob suspect is DEMOTED. The front is 20.272 R5's CHANNEL-MIRROR
+SUBSCRIBER: it fired connecting->established (wrote 3/4) and never established->connected.
+ent_gate fails at predicate 2 (+0x30E8 != 4) on the peer's own stuck record - ONE ladder
+rung. Static first (route a), iterator hook 0x1417C53B0 only if static stalls (route b).
 VERDICT TRAIL (one line each; full text in FINDINGS):
-  20.255 p2-159 cancelled: rig crash + mac machine freeze -> DR watch RETIRED (3/3
-    boots abnormal, LESSONS U18); pubrest retained (plain detour) and delivered the
-    lever: message-driven publish (0x1416E6250) fires right after type=12
-    membership_replication, image carries per-member identities; restore is
-    obfuscated-direct (bypasses 0x1403CB340).
-  20.254 the write-back is real: p2-158 hit geometry proves a full-table restore
-    (dest=table) at landing through an obfuscated thunk; 20.246's "no writer" is
-    superseded in KIND (bulk SSE copy from obfuscated code).
-  20.253 the image is a staging snapshot: ctor PUBLISHES (direction corrected), gated
-    by the 20.220 authority predicate; 21 consumers; manager 0x140C21FE0 flattened.
-  20.252 the gate-byte writer captured live: bulk copier 0x1404DF6A0 (0xB24 x 0x80
-    SSE, .pdata gap) via 0x1403CB340 / pool ctor 0x1404F77D0 (image at [rsp+0x70]).
-  20.251 open question (3) answered: the cond5-gated receiver is REQUIRED to render
-    a peer (replication cluster single-entry; local loop self-only by design).
-Standing behind them: 20.250 c4 front dead (tracking cluster exonerated); 20.246
-cond5 closed as a wire front statically (bit4 never set: 384/384 dumps + 904 live);
-20.245 row lifecycle by-design; 20.242 tracking feed exists; 20.239 citizen advert
-works; 20.219 slot supply closed. THE USER'S FRAMING GOVERNS (20.238): unmodified
-retail rendered peers on server input alone - every missing writer is gated on server
-input the fork does not send. Full narrative: FINDINGS 20.238-20.258.
+  20.271-20.273: no activity type feeds the reservation subsystem - its input is the
+    SESSION-JOIN layer; the reservation record IS a connection entry (ladder named by
+    the binary's own strings); p2-163 named the failing check = predicate 2 (+0x30E8==4
+    "established"); the state writer is behind the obfuscated family (femu-proven).
+  20.255 message-driven publish lever | 20.254 write-back real (bulk SSE copy) |
+  20.253 staging snapshot ctor PUBLISHES | 20.252 gate-byte writer captured live |
+  20.251 cond5-gated receiver REQUIRED to render a peer. Behind them: 20.250 c4 front
+  dead; 20.246 cond5 closed as a wire front; 20.245 row lifecycle by-design; 20.219
+  slot supply closed. THE USER'S FRAMING GOVERNS (20.238): unmodified retail rendered
+  peers on server input alone - every missing writer is gated on server input the fork
+  does not send. Full narrative: FINDINGS 20.238-20.275.
 
-## DEPLOYED (2026-09-02 14:2x - p2-160 attempt 3 ran and delivered; see 20.258)
-   clients        BOTH: 3b4e5cfcda66df7d - pubrest with the p2-160 corrections (dump not
-                  gated on role; anchor from pgate's self record; 8 records scanned;
-                  baseline anchored; no stability gate; bytes= clamped) + wwatch RETIRED
-                  (install emits result=retired; no VEH/DR/suspend-sweep anywhere).
-                  Rollbacks: mac/rig .bak_p2d7_20260902_1426*; earlier chain 20260902_11*.
-   server exe     4f51581cbd3561c7 - RUNNING, UNCHANGED through p2-160 (p2-154 deploy).
-                  A build carrying membership_peer_row_flags (default 0) is STAGED, NOT
-                  deployed: RE_build/staged/sunrise-server.exe.p2-161-rowflags
-                  (1e7cefc6f9c4af25). 20.258 makes it low-value; do not deploy for it.
-   images         p2-160 staging pair (solo + peer, complete, PROVENANCE.txt inside):
-                  RE_output/dumps/p2-160_staging_images/. THE positive reference.
-   dumps          p2-146 and p2-150 (rig, verified-paired, PROVENANCE.txt inside).
-   index          RE_output/logindex/p2160c.db (p2-160 attempt 3); p2150.db (p2-150).
-   capture        RE_scripts/capture_gameplay_plane.sh. BOOT HYGIENE: deploy client DLLs
-                  BEFORE the user boots (a running process never re-reads its image);
-                  restart the server with reset_lobby_claims.sh backgrounded; logindex/logq.
-                  AND: replay a probe's trigger over the PREVIOUS boot's recorded lines
-                  before deploying it (p2-160 cost 3 launch cycles for want of this).
+## DEPLOYED (2026-09-02 23:5x - p2-162 W1 build deployed; boots NOT yet run)
+   clients        BOTH: acb81df8478143bf - W1 + ent_pass fall-through hook (mac deployed
+                  and literal-verified; rig DEPLOYED-OK acb81df8478143bf via ssh 23:58).
+                  Rollbacks: *.bak_p2d7_20260902_2356* (mac) / ..._235842 (rig); earlier
+                  chain 20260902_14*.
+   server exe     b10c7c205b75f547 - W1 server: roster_peer_participation setting
+                  (DEFAULT OFF = bit-identical body), --sensor-auth-peer-test as the
+                  harness's 8th gate, PASS. RUNNING, listeners verified. Rollback:
+                  *.bak_p2d6_<stamp> in RE_output/s1_accept.
+   NST            --sensor-auth-peer-test: off path byte-identical to pre-change encoder
+                  (frozen fixture), peer path = local key then peer key 315 bits apart,
+                  +224 bits (one participation body). Frozen in-tree test, runs in wine.
+   settings       PAIRED BOOT RAN (2026-09-02 ~23:5x-00:2x): state.activity.
+                  roster_peer_participation=true LIVE; backup settings.json.bak_w1_20260903_000338.
+                  RESULT (p2-162): EMISSION PROVEN (type-5 body 556->584 B = +28, both
+                  connections); digestion clean (no reject/freeze); type-13/38 = 0;
+                  ent_gate/ent_pass/ent_reg ALL 0 - THE GUARD WAS NEVER REACHED because
+                  cond5 never passes without the poke (20.230). The tree's (b)/(c) split
+                  is UNOBSERVABLE without the poke - the pre-named tree missed this.
+                  Registration invariant HELD (memidx_alloc 8 mac / 7 rig) - no entity.
+                  The 43 "failed to create 'player_broadcast'" lines = known pb_create
+                  load-burst churn (p2-160 boots 41-46; solo control today 0). ARCHIVE:
+                  RE_output/logs/20260903_002841_p2_162_paired (rig log unreachable).
+   next boot      p2-164 (2026-09-03) WIDE-NET: notifier never fired (0/16,740);
+                  peer rec=2 born WITH mask=0x0020, climbed 1/1->3/4, mask cleared to
+                  0x0000 exactly at the stall. 20.274 R3(b)/R4 CORRECTED by 20.275
+                  (re-read of p2164.db): predicate 1 WAS satisfiable during the climb;
+                  the empty-slot-blob suspect is demoted. FRONT = 20.272 R5's
+                  channel-mirror subscriber (fired connecting->established, never
+                  established->connected). Builds MATCHED 540d61a2; gate_poke armed
+                  (revert after); notifier_hook=true mac / absent rig (20.274 R1).
+   images/dumps   p2-160 staging pair (RE_output/dumps/p2-160_staging_images/,
+                  PROVENANCE.txt inside) remains the positive reference; p2-146/p2-150
+                  dumps still on disk.
+   index          RE_output/logindex/p2161b.db newest; new boots index to p2162*.db.
 
 ## WHERE WE ARE
 Session/membership/identity: DONE. Slot supply CLOSED (20.219); row lifecycle
@@ -66,24 +66,23 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
 (20.252/20.254); write-back conduit MESSAGE-FED (20.255); DR watch RETIRED
 (U18). Peer rendering remains the wall.
 
-## NEXT (per 20.260/20.261 - ALL OFFLINE; two more fronts closed WITH MECHANISM)
-  CLOSED THIS SESSION, properly (by construction, not by null observation):
-   - the local creation loop 0x1413086E0. Gate 2 (`cmp [rdi+0x818],[rsp+0x68]`) asks
-     "is this member MINE?"; member[+0x818] is the OWNER machine id and the peer's copy
-     correctly holds the peer's own (symmetric, both machines, 3 boots - 20.261 R2).
-     DO NOT try to make a peer pass it: that would build a locally-owned duplicate, not a
-     replicated peer, and the server cannot coherently express it anyway.
-   - cond5 / +0x38 (20.259, forced set, nothing constructed).
-  THE WHOLE REMAINING QUESTION: HOW IS THE REPLICATION RECEIVER ENTERED? Peer entities
-  must come from the replication path (20.221 cluster / 20.223 receiver group), not the
-  local loop. 20.251 says that receiver is cond5-gated and REQUIRED; 20.259 says cond5
-  forced changes nothing. 20.260 R2 makes the "local loop is self-only" half solid, so
-  the tension is entirely in the second half. Re-read 20.251's basis FIRST.
-  LEAD, unexamined: a large asymmetry in a supposedly symmetric session - the mac iterates
-  the rig's member record 60,560x in p2-150 while the rig iterates the mac's only 12x
-  (20.261 R4). Nobody has asked why.
+## NEXT (per 20.275 - ALL OFFLINE first)
+  THE WHOLE REMAINING QUESTION (20.272 R4/R5, restored by 20.275): the subscriber that
+  mirrors the peer channel's state machine into the reservation record fired on
+  connecting->established (wrote 3/4 into rec) and NEVER on established->connected
+  (channel reached connected t=289575 p2-163; record stuck 3/4). ent_gate bails at
+  predicate 2 (+0x30E8 != 4) on the peer's own record - bail-3 excluded, mask was set
+  during the climb (20.275 R1). ONE ladder rung.
+  ROUTE (a) STATIC FIRST: find the mirror subscriber - anchor on the channel-object
+  state field the log formatter reads (0x1416CD880 / 0x1416BBA70), cross the 13 external
+  accessor users of 20.273 R1; also name who writes the mask word +0x3112 (it cleared
+  exactly at the stall - 20.275 R2; not in 20.273's LEA census - pointer/bulk write).
+  ROUTE (b) ONE BOOT if (a) stalls: the 20.273 R4 iterator hook 0x1417C53B0
+  (pdata-exact, detour-safe, read-only) + resv change-gate widened to +0x3112.
+  DO NOT: build on 20.274's slot-blob suspect (demoted 20.275); hook 0x1417FFA20.
   ALSO OPEN: 20.256 R4a (the router's case-12 -> 0x1416E6250 link was never walked).
- SETTINGS NOW: mac client gate_poke REVERTED TO 0. pool_c4_mark_push TRUE and HARMLESS.
+ SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
+ pool_c4_mark_push TRUE and HARMLESS.
  DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
  TOOL DEBT: reset_lobby_claims.sh cries wolf; c4query derefs before dedupe.
 

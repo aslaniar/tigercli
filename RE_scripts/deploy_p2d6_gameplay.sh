@@ -76,7 +76,7 @@ python3 "$root/RE_scripts/restamp_build_data.py" "$cache" "$candidate" --apply \
 
 echo "== 4. harness gates on the candidate =="
 cd "$accept" || die "no $accept"
-for flag in --s1-test --cache-check --equip-diff --selection-version-test --membership-sweep-test --membership-wire-test --local-account-test; do
+for flag in --s1-test --cache-check --equip-diff --selection-version-test --membership-sweep-test --membership-wire-test --local-account-test --sensor-auth-peer-test; do
   out="$("$wine" "$candidate" "$flag" 2>&1)"; rc=$?
   echo "   $flag rc=$rc"
   [[ -n "$out" ]] && echo "$out" | tail -6
