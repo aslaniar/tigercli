@@ -65,10 +65,9 @@ VERDICT TRAIL (full text in FINDINGS):
    index          RE_output/logindex/p2161b.db newest; new boots index to p2162*.db.
 
 ## WHERE WE ARE
-Session/membership/identity: DONE. Slot supply CLOSED (20.219); row lifecycle
-CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
-(20.252/20.254); write-back conduit MESSAGE-FED (20.255); DR watch RETIRED
-(U18). Peer rendering remains the wall.
+Session/membership/identity DONE; slot supply, row lifecycle, contactable byte,
+gate-byte writer, staging publish lever all CLOSED (mechanism in FINDINGS). Peer
+rendering = the wall, now decomposed into the four-wall stack W1-W4 (see NEXT).
 
 ## NEXT (per 20.277 - OFFLINE first; the boot is fix-verification, not exploration)
   TWO STACKED WALLS, both server-side (20.277):
