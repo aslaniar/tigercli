@@ -85,12 +85,16 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
         fork's membership payload landed and the row was marked _established; the record
         never mirrored the channel's established->connected (t=330639). The record's
         final rung for rec=0 came from the JOIN/initial-updates flow, not the channel.
-  OFFLINE SEQUENCE: (1) pin the guard's EXACT blob source from ent_gate 0x141703910's
-  disassembly (which table/offset the 86-byte memcmp reads - do not assume +0x14);
-  (2) read the fork's two composition paths (Sunrise/src/server: participant-slot blob
-  vs published NetAddr) and diff byte layouts against rec=0's known-good pair;
-  (3) server-side fix: compose the slot identity from the same published NetAddr;
-  (4) ONE boot as fix verification (ent_pass>0 is the success line).
+  OFFLINE STEPS DONE (20.278): (1) the guard's compared blob is slot+0x142 (caller
+  0x141702595 passes r9=slot+0x142; 20.274's "+0x14" was a dropped-digit error) and it
+  is ALL-ZERO in every slot of both p2-160 staging images; no direct writer exists
+  (cursor-composed from a body field the fork's encoder never sends). (2) Server source
+  of record = RE_build/Sunrise-fork-inventory (NOT the empty top-level Sunrise/);
+  composition lives in middleware/bap/activity_message/ (replicate_membership.h,
+  activity_membership_member_writer.cpp); the t12 schema identity node is anchored in
+  activity-schema-global-table.md. NEXT: schema-walk the t12 identity node, extend the
+  fork's member writer to emit the peer's transport identity, THEN one verification
+  boot (success = ent_pass>0, zero new hooks required).
   DO NOT: hook the notifier; resume wide-net instrument sets; assume +0x14.
   ALSO OPEN: 20.256 R4a (the router's case-12 -> 0x1416E6250 link was never walked).
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
