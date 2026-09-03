@@ -18,18 +18,15 @@ wrong format -> predicate 1 can never select the peer's record) and W-B (record 
 3/4 + mask cleared on membership arrival -> predicate 2 would fail anyway). NEXT: pin
 the guard's exact blob source from its disassembly, then read the fork's two composition
 paths and diff against rec=0's known-good pair; boot only as fix verification.
-VERDICT TRAIL (one line each; full text in FINDINGS):
-  20.271-20.273: no activity type feeds the reservation subsystem - its input is the
-    SESSION-JOIN layer; the reservation record IS a connection entry (ladder named by
-    the binary's own strings); p2-163 named the failing check = predicate 2 (+0x30E8==4
-    "established"); the state writer is behind the obfuscated family (femu-proven).
-  20.255 message-driven publish lever | 20.254 write-back real (bulk SSE copy) |
-  20.253 staging snapshot ctor PUBLISHES | 20.252 gate-byte writer captured live |
-  20.251 cond5-gated receiver REQUIRED to render a peer. Behind them: 20.250 c4 front
-  dead; 20.246 cond5 closed as a wire front; 20.245 row lifecycle by-design; 20.219
-  slot supply closed. THE USER'S FRAMING GOVERNS (20.238): unmodified retail rendered
-  peers on server input alone - every missing writer is gated on server input the fork
-  does not send. Full narrative: FINDINGS 20.238-20.275.
+VERDICT TRAIL (full text in FINDINGS):
+  20.279 red-team: chain holds; required mask bit 7/6 not 5; old boot unwinnable.
+  20.278 guard blob = slot+0x142, all-zero, cursor-composed. 20.277 log re-read:
+  channel COMPLETED, record stalled pre-completion, mask cleared on membership arrival.
+  20.276 ladder writer map (setter 0x1416D82A0 + connected-rung 0x1416BCFC0; record
+  embeds connection obj at rec+0xA8). 20.271-273: reservation input = session-join
+  layer; failing check = predicate 2. 20.252-255: gate-byte writer, staging publish
+  lever. 20.238 USER'S FRAMING GOVERNS: every missing writer is gated on server input
+  the fork does not send. Full narrative: FINDINGS 20.238-20.279.
 
 ## DEPLOYED (2026-09-02 23:5x - p2-162 W1 build deployed; boots NOT yet run)
    clients        BOTH: acb81df8478143bf - W1 + ent_pass fall-through hook (mac deployed
