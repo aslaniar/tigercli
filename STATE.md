@@ -85,16 +85,18 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
         fork's membership payload landed and the row was marked _established; the record
         never mirrored the channel's established->connected (t=330639). The record's
         final rung for rec=0 came from the JOIN/initial-updates flow, not the channel.
-  OFFLINE STEPS DONE (20.278): (1) the guard's compared blob is slot+0x142 (caller
-  0x141702595 passes r9=slot+0x142; 20.274's "+0x14" was a dropped-digit error) and it
-  is ALL-ZERO in every slot of both p2-160 staging images; no direct writer exists
-  (cursor-composed from a body field the fork's encoder never sends). (2) Server source
-  of record = RE_build/Sunrise-fork-inventory (NOT the empty top-level Sunrise/);
-  composition lives in middleware/bap/activity_message/ (replicate_membership.h,
-  activity_membership_member_writer.cpp); the t12 schema identity node is anchored in
-  activity-schema-global-table.md. NEXT: schema-walk the t12 identity node, extend the
-  fork's member writer to emit the peer's transport identity, THEN one verification
-  boot (success = ent_pass>0, zero new hooks required).
+  RED-TEAM VERDICT IN (20.279): the static chain holds, but (a) the required mask bit
+  is 7 MAC / 6 RIG (per-remote-slot+6), NOT 5 - rec2 never carried the guard's bit;
+  (b) the boot as gated was unwinnable (4 stacked walls; ent_pass>0 needs an unnamed
+  cascade); (c) the informative bail-3 outcome is unobservable with the current emit
+  budget; (d) the boot silently depends on the gate_poke. FOUR PREREQUISITE OFFLINE
+  ITEMS before any encoder code: (i) pin dword[[container+8]+8] at runtime (bit 7/6);
+  (ii) log full 86-byte reservation identities; (iii) schema-walk the t12 identity node
+  AND exclude the 0x808086F8 family; (iv) hunt the +0x3112 SET path - if not fed by the
+  same composer as +0x142, the fix as designed cannot work and must not run. The
+  verification boot (when it runs) needs: first-seen-key/per-slot emit gating on the
+  leave probes, poke pre-named + reverted, solo control first, outcome tree (0)/(a)-(d)
+  per 20.279 R3.
   DO NOT: hook the notifier; resume wide-net instrument sets; assume +0x14.
   ALSO OPEN: 20.256 R4a (the router's case-12 -> 0x1416E6250 link was never walked).
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
