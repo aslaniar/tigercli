@@ -97,6 +97,12 @@ CLOSED (20.245); contactable byte DEAD (20.250); gate-byte writer FOUND
   verification boot (when it runs) needs: first-seen-key/per-slot emit gating on the
   leave probes, poke pre-named + reverted, solo control first, outcome tree (0)/(a)-(d)
   per 20.279 R3.
+  CONSOLIDATED IMPLEMENTATION SPEC WRITTEN: RE_output/claims/BOOT_IMPL_peer-rendering-walls.md
+  (the four-wall stack W1-W4, the prerequisite items (i)-(iv), the fork + probe changes,
+  the boot protocol, and the pre-named outcome tree 0/L/a-e with fail-loud mechanisms).
+  Execution order: prerequisites (i)-(iv) offline -> encoder + probe changes -> solo
+  control -> paired verification boot. Nothing in the encoder ships before (iii) names
+  the field and (iv) settles the cascade question.
   DO NOT: hook the notifier; resume wide-net instrument sets; assume +0x14.
   ALSO OPEN: 20.256 R4a (the router's case-12 -> 0x1416E6250 link was never walked).
  SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
