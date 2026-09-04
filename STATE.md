@@ -52,9 +52,18 @@ four-wall stack: W1 CLOSED and W3 DOWN (20.284), W4 instruments proven. W2 is
 UNMEASURED behind cond5, which is now the front - see NEXT.
 
 ## NEXT
-  THE FRONT: make cond5 pass WITHOUT a client write. Everything behind it is blocked and
-  no boot can measure W2 until it opens. Start from 20.230 (cond5's writer) and the
-  gate-byte writer map (20.252-20.255). This is design work, not a boot.
+  THE FRONT: make cond5 pass WITHOUT a client write. 20.285 read the whole chain: cond5 is
+  a PURE DATA READ (six instructions, no second path), so only the byte can change the
+  outcome, and nothing computes it - it arrives in a wholesale image copy. THE ONE UNRUN
+  EXPERIMENT: hook the copier 0x1403CB340 and log the restore SOURCE's gate bytes
+  (designed at 20.254 R3; cancelled with p2-159 only because the DR watch riding along
+  crashed both machines - that watch is retired at compile time now, and this probe is a
+  plain detour). Build that next.
+  KNOW BEFORE RESUMING (20.285 R4): a passing gate CONSTRUCTS NOTHING. Its return feeds one
+  AND-accumulator whose only consumer is a diagnostic string builder. The goal survives
+  because the guard CLAIMS as a side effect (card -> find-or-create -> stops the disown
+  sweep). The probe's old "would-construct" label was never verified and is corrected.
+  Also: the walk SKIPS SELF, so the local player is not a control for it.
   THEN: W2 (the peer's mask bit) becomes measurable, and the cascade thesis of 20.280
   gets its first end-to-end test.
   THEN: entity construction - untested; levers are 20.208 R6 (world_population -> type-7
