@@ -4,75 +4,56 @@ STATUS: live (2026-09-03). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-03 18:0x PDT. *** 20.284 (p2-167): W1 IS CLOSED. The admission guard's
-86-byte field now holds the peer's real endpoint - 1,559 samples carrying the RIG's
-address inside the MAC's participant slot, which the mac has no local way to compose, so
-the bytes are conclusively ours. It was an off-by-one FIELD INDEX, never a dropped
-payload: the card had been landing one 86-byte array early (slot+0xEC), and moving the
-presence index 10->11 shifted the whole blob by exactly one array with its internal
-geometry preserved (+8 into the array, second copy +0x1E). W3 is DOWN (peer reservation
-record reached 4/5 by resv call 11). The race fix works: the rig's card published after
-3/8 bounded waits, where the old accounting would have withdrawn the peer row for good.
-*** W2 IS UNMEASURED, NOT "THE LAST WALL" ***: ent_gate=0 - the guard was never invoked,
-so nothing read the card and the cascade thesis remains untested end to end. THE FRONT IS
-NOW UPSTREAM OF W2: what makes cond5 pass on the SERVER's terms (20.230's question, never
-answered; the only known opener is the client-side poke, which cannot ship). After that:
-W2, then entity construction - never tested, and the 09-02 postmortem argues that is where
-the front actually lives.
+Updated: 2026-09-03 19:3x PDT. *** 20.286: W2 IS ANSWERED AND IT IS NOT A BIT THAT CAN BE
+SET. The guard's required bit is STAMPED AT RECORD CREATION from the container the record is
+born into. Records carrying it never climb the state ladder; records that climb never carry
+it - and on the rig the SAME peer identity sits in BOTH populations at once (one with the
+bit, stuck at the bottom; one climbing, without it). p2-170 ran the guard 1,190 times
+against a correct card and the peer's bit never moved off 0. No claim, climb or poke can
+grant it. THE FRONT IS RECORD CREATION: what determines the container a peer's reservation
+record is created in, and can the server influence it. Whether that is the same question as
+entity construction is NOT asserted - both are creation questions; scope the next session as
+CREATION (record + entity) rather than assume a boundary.
+EARLIER TODAY: W1 CLOSED and W3 DOWN (20.284). Three real server defects fixed - the peer
+card was sourced from the region's activity-host descriptor (same address both directions),
+landed one 86-byte array early, and a race meant one of two players never got sent one.
 VERDICT TRAIL (full text in FINDINGS):
-  20.284 W1 closed, W3 down, W2 unmeasured; rig drop = transport reset (10054), NOT our
-  body (888 bodies accepted, zero decode failures); the peer key changing to a machine-id
-  form is a SYMPTOM of a dying session (one boot only) and the fail-closed refusal is
-  correct - a widening was written and reverted (R7). 20.283 the card DOES reach the
-  slot, one array early; the server had been sourcing it from the region's activity-host
-  descriptor (same address both directions) - fixed to echo the peer's own connect-time
-  bytes. RETRACTED in 20.283 R0: there was no boot at 2026-09-03 16:44 (that archive is
-  p2-165 still running; the widened DLL was staged 6 s after it), and 20.282's "compose hop
-  does not carry it" - it always carried them, into the neighbouring field.
-  20.280 the three 86-byte arrays + full mask machinery. 20.238 USER'S FRAMING GOVERNS.
+  20.286 W2 birth-set, front = record creation; retracts my p2-170 "the claim sticks"
+  (the field read as `mask` IS the guard's word - a different bit was retained, not a claim).
+  20.285 cond5 is a pure data read with no second path; the walk SKIPS SELF; a passing gate
+  CONSTRUCTS NOTHING (its return feeds a diagnostic string) - it claims as a side effect.
+  20.284 W1 closed: the guard's field holds the peer's real endpoint, 1,559 samples.
+  20.283 the card reaches the slot one array early; RETRACTS the "compose hop drops it"
+  reading and the phantom 16:44 boot. 20.238 USER'S FRAMING GOVERNS.
 
-## DEPLOYED (2026-09-03 - p2-167 ran on these; R7 fix built but NOT deployed)
-   clients        BOTH 0ff6911ff5a654ae - slot_dump widened + liveness line. Rollbacks
-                  *.bak_p2d7_20260903_174656 (mac) / _174709 (rig).
-   server         d7a7dc9be138b412 RAN p2-167 and its BEHAVIOUR IS CURRENT - the R7
-                  widening was reverted, so the rebuilt exe is behaviourally identical.
-                  Nothing is owed to the next run.
+## DEPLOYED (2026-09-03 - p2-171 ran on these; nothing is owed to the next run)
+   clients        BOTH a96a6a70f578fc40 - resv_rec answers W2 on one line
+                  (reqA/setA/reqB/setB). Rollbacks .bak_p2d7_20260903_1911*.
+   server         6f018fcd42d309a4 - 8/8 harness gates rc=0.
    settings       server membership_peer_transport_identity=true,
-                  roster_peer_participation=true, peer_retry_cap=2 (the wait cap is
-                  separate by design). Clients gate_poke=0 BOTH (verified on disk);
-                  gate_wwatch DR/VEH/suspend retired at COMPILE TIME.
-   archives       p2-167 RE_output/logs/20260903_175317_p2-167 (all three logs);
-                  p2-166 .../20260903_173450_p2-166. Briefs BOOT_BRIEF_p2-166/167 (both
-                  GATE PASS).
+                  roster_peer_participation=true. Clients gate_poke=0 BOTH (armed only for
+                  p2-170/p2-171, reverted and read back after each). gate_wwatch
+                  DR/VEH/suspend retired at COMPILE TIME.
+   archives       p2-170 .../20260903_190455_p2-170, p2-171 .../20260903_191821_p2-171
+                  (logindex p2170.db / p2171.db). Briefs p2-166/167/168/170/171, all GATE PASS.
 
 ## WHERE WE ARE
-Session/membership/identity DONE; slot supply, row lifecycle, contactable byte,
-gate-byte writer, staging publish lever all CLOSED (mechanism in FINDINGS). Of the
-four-wall stack: W1 CLOSED and W3 DOWN (20.284), W4 instruments proven. W2 is
-UNMEASURED behind cond5, which is now the front - see NEXT.
+Session/membership/identity/transport all DONE. Of the four-wall stack: W1 CLOSED, W3 DOWN,
+W4 instruments proven, and W2 DISSOLVED rather than passed - it was never a settable bit.
+Everything fixed to date concerns a peer record's CONTENTS. Nothing yet touches how that
+record is CREATED, which is where the remaining blocker lives.
 
-## NEXT
-  THE FRONT: make cond5 pass WITHOUT a client write. 20.285 read the whole chain: cond5 is
-  a PURE DATA READ (six instructions, no second path), so only the byte can change the
-  outcome, and nothing computes it - it arrives in a wholesale image copy. THE ONE UNRUN
-  EXPERIMENT: hook the copier 0x1403CB340 and log the restore SOURCE's gate bytes
-  (designed at 20.254 R3; cancelled with p2-159 only because the DR watch riding along
-  crashed both machines - that watch is retired at compile time now, and this probe is a
-  plain detour). Build that next.
-  KNOW BEFORE RESUMING (20.285 R4): a passing gate CONSTRUCTS NOTHING. Its return feeds one
-  AND-accumulator whose only consumer is a diagnostic string builder. The goal survives
-  because the guard CLAIMS as a side effect (card -> find-or-create -> stops the disown
-  sweep). The probe's old "would-construct" label was never verified and is corrected.
-  Also: the walk SKIPS SELF, so the local player is not a control for it.
-  THEN: W2 (the peer's mask bit) becomes measurable, and the cascade thesis of 20.280
-  gets its first end-to-end test.
-  THEN: entity construction - untested; levers are 20.208 R6 (world_population -> type-7
-  sobject + type-52 epoch) and 20.213 R1 (lease size fired the attempt on type-12 pushes).
-  OPEN (do NOT close by loosening the key test): why does the published peer identity
-  change to a machine-id form while a session is failing? Read the roster/foreign-member
-  path (20.284 R7).
-  BEFORE THE NEXT PAIRED RUN: relaunch BOTH clients (a staged DLL that is never loaded
-  cost a whole cycle - 20.283 R0).
+## NEXT (handoff: HANDOFF_2026-09-03_CREATION.md)
+  THE ONE QUESTION: what determines the container a peer's reservation record is created in?
+  The guard's bit is birth-set from that container, so this is the only reachable lever.
+  Start from 20.286 R3's two-population evidence, then the record creator.
+  DO NOT: spend boots poking cond5 (20.286 R4 - nothing downstream of cond5 reaches a
+  birth-set bit); or plan "make the guard claim it so the bit follows" (p2-170 tested that).
+  THEN/ALONGSIDE: entity construction. Levers 20.208 R6 (world_population -> type-7 sobject
+  + type-52 epoch) and 20.213 R1 (lease size fired the attempt on type-12 pushes), both
+  untested. Treat creation as ONE front until evidence splits it.
+  PARKED: the gate-byte provenance (20.285 R6 / 20.286 R4) - the copier is ruled out as its
+  source by direct instrumentation over three boots.
 
  pool_c4_mark_push TRUE and HARMLESS.
  DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
