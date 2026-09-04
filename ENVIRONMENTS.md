@@ -114,6 +114,14 @@ Both cost minutes and look like a crash. Neither is one.
    old server, an interrupt leaves NO server running at all - which then looks like the
    overnight "marionberry" symptom (20.98). Launch it as a background job instead, and
    verify with a separate short call (lsof + /lobby + nat probe).
+2b. **TWO ControlMasters on one socket path (2026-09-03).** Every rig ssh hangs - even
+   `echo` - and it reads as "the rig log is broken". It is entirely local: `ps -ax | grep
+   cm-rig` showed two `ssh -M -S ~/.ssh/cm-rig` masters, one past its 8h ControlPersist
+   window. Killing a large in-flight transfer over the shared connection is what wedges it.
+   FIX: kill both masters, `rm ~/.ssh/cm-rig`, reopen (password needed, so the USER runs
+   it). The log was intact at 12.4 MB the whole time. DIAGNOSE LOCALLY FIRST - `ps` and
+   `ls` cannot hang; another ssh probe can.
+
 2. **ssh over the ControlMaster.** `RE_scripts/deploy_client_dll.sh rig` prints
    `deployed to rig OK` and then hangs holding the multiplexed connection open. The
    deploy IS complete at that point - the script's own hash+literal asserts have already

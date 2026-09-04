@@ -1,107 +1,70 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-01). Verdict + deployed + next + reading order only.
+STATUS: live (2026-09-03). Verdict + deployed + next + reading order only.
 FINDINGS holds the dated entry stack; front detail lives in FRONT_*.md and the
 HANDOFF; operational facts live in ENVIRONMENTS.md.
 
-Updated: 2026-09-03 2x:xx PDT. *** 20.277 (p2-164 LOG RE-READ, no boot): the peer
-channel COMPLETED to connected (t=330639, "WITHOUT RELAY") - transport exonerated. The
-peer's reservation record stalled at 3/4 BEFORE that and its mask cleared at t=328727,
-the exact moment the fork's membership payload landed (peer row _established). Every
-LOGGED ent_gate evaluation (25 of 898; emit budget) predates the peer record and bailed
-predicate 2 on a non-peer record; bail-5 ret is record-independent (cannot say which
-record matched). The fork composes TWO DIFFERENT identity byte-sets: the participant
-slot blob (session bytes, +0x14 in the 0x2AC0 table, matches the ingress payload tail)
-and the reservation record's NetAddr identity ({IP,port,flags}) - the peer's endpoint
-bytes appear in only the latter. FRONT = two stacked server-side walls: W-A (slot blob
-wrong format -> predicate 1 can never select the peer's record) and W-B (record stalls
-3/4 + mask cleared on membership arrival -> predicate 2 would fail anyway). NEXT: pin
-the guard's exact blob source from its disassembly, then read the fork's two composition
-paths and diff against rec=0's known-good pair; boot only as fix verification.
+Updated: 2026-09-03 18:0x PDT. *** 20.284 (p2-167): W1 IS CLOSED. The admission guard's
+86-byte field now holds the peer's real endpoint - 1,559 samples carrying the RIG's
+address inside the MAC's participant slot, which the mac has no local way to compose, so
+the bytes are conclusively ours. It was an off-by-one FIELD INDEX, never a dropped
+payload: the card had been landing one 86-byte array early (slot+0xEC), and moving the
+presence index 10->11 shifted the whole blob by exactly one array with its internal
+geometry preserved (+8 into the array, second copy +0x1E). W3 is DOWN (peer reservation
+record reached 4/5 by resv call 11). The race fix works: the rig's card published after
+3/8 bounded waits, where the old accounting would have withdrawn the peer row for good.
+*** W2 IS UNMEASURED, NOT "THE LAST WALL" ***: ent_gate=0 - the guard was never invoked,
+so nothing read the card and the cascade thesis remains untested end to end. THE FRONT IS
+NOW UPSTREAM OF W2: what makes cond5 pass on the SERVER's terms (20.230's question, never
+answered; the only known opener is the client-side poke, which cannot ship). After that:
+W2, then entity construction - never tested, and the 09-02 postmortem argues that is where
+the front actually lives.
 VERDICT TRAIL (full text in FINDINGS):
-  20.279 red-team: chain holds; required mask bit 7/6 not 5; old boot unwinnable.
-  20.278 guard blob = slot+0x142, all-zero, cursor-composed. 20.277 log re-read:
-  channel COMPLETED, record stalled pre-completion, mask cleared on membership arrival.
-  20.276 ladder writer map (setter 0x1416D82A0 + connected-rung 0x1416BCFC0; record
-  embeds connection obj at rec+0xA8). 20.271-273: reservation input = session-join
-  layer; failing check = predicate 2. 20.252-255: gate-byte writer, staging publish
-  lever. 20.238 USER'S FRAMING GOVERNS: every missing writer is gated on server input
-  the fork does not send. Full narrative: FINDINGS 20.238-20.279.
+  20.284 W1 closed, W3 down, W2 unmeasured; rig drop = transport reset (10054), NOT our
+  body (888 bodies accepted, zero decode failures); the peer key changing to a machine-id
+  form is a SYMPTOM of a dying session (one boot only) and the fail-closed refusal is
+  correct - a widening was written and reverted (R7). 20.283 the card DOES reach the
+  slot, one array early; the server had been sourcing it from the region's activity-host
+  descriptor (same address both directions) - fixed to echo the peer's own connect-time
+  bytes. RETRACTED in 20.283 R0: there was no boot at 2026-09-03 16:44 (that archive is
+  p2-165 still running; the widened DLL was staged 6 s after it), and 20.282's "compose hop
+  does not carry it" - it always carried them, into the neighbouring field.
+  20.280 the three 86-byte arrays + full mask machinery. 20.238 USER'S FRAMING GOVERNS.
 
-## DEPLOYED (2026-09-02 23:5x - p2-162 W1 build deployed; boots NOT yet run)
-   clients        BOTH: acb81df8478143bf - W1 + ent_pass fall-through hook (mac deployed
-                  and literal-verified; rig DEPLOYED-OK acb81df8478143bf via ssh 23:58).
-                  Rollbacks: *.bak_p2d7_20260902_2356* (mac) / ..._235842 (rig); earlier
-                  chain 20260902_14*.
-   server exe     b10c7c205b75f547 - W1 server: roster_peer_participation setting
-                  (DEFAULT OFF = bit-identical body), --sensor-auth-peer-test as the
-                  harness's 8th gate, PASS. RUNNING, listeners verified. Rollback:
-                  *.bak_p2d6_<stamp> in RE_output/s1_accept.
-   NST            --sensor-auth-peer-test: off path byte-identical to pre-change encoder
-                  (frozen fixture), peer path = local key then peer key 315 bits apart,
-                  +224 bits (one participation body). Frozen in-tree test, runs in wine.
-   settings       PAIRED BOOT RAN (2026-09-02 ~23:5x-00:2x): state.activity.
-                  roster_peer_participation=true LIVE; backup settings.json.bak_w1_20260903_000338.
-                  RESULT (p2-162): EMISSION PROVEN (type-5 body 556->584 B = +28, both
-                  connections); digestion clean (no reject/freeze); type-13/38 = 0;
-                  ent_gate/ent_pass/ent_reg ALL 0 - THE GUARD WAS NEVER REACHED because
-                  cond5 never passes without the poke (20.230). The tree's (b)/(c) split
-                  is UNOBSERVABLE without the poke - the pre-named tree missed this.
-                  Registration invariant HELD (memidx_alloc 8 mac / 7 rig) - no entity.
-                  The 43 "failed to create 'player_broadcast'" lines = known pb_create
-                  load-burst churn (p2-160 boots 41-46; solo control today 0). ARCHIVE:
-                  RE_output/logs/20260903_002841_p2_162_paired (rig log unreachable).
-   next boot      p2-164 (2026-09-03) WIDE-NET: notifier never fired (0/16,740);
-                  peer rec=2 born WITH mask=0x0020, climbed 1/1->3/4, mask cleared to
-                  0x0000 exactly at the stall. 20.274 R3(b)/R4 CORRECTED by 20.275
-                  (re-read of p2164.db): predicate 1 WAS satisfiable during the climb;
-                  the empty-slot-blob suspect is demoted. FRONT = 20.272 R5's
-                  channel-mirror subscriber (fired connecting->established, never
-                  established->connected). Builds MATCHED 540d61a2; gate_poke armed
-                  (revert after); notifier_hook=true mac / absent rig (20.274 R1).
-   images/dumps   p2-160 staging pair (RE_output/dumps/p2-160_staging_images/,
-                  PROVENANCE.txt inside) remains the positive reference; p2-146/p2-150
-                  dumps still on disk.
-   index          RE_output/logindex/p2161b.db newest; new boots index to p2162*.db.
+## DEPLOYED (2026-09-03 - p2-167 ran on these; R7 fix built but NOT deployed)
+   clients        BOTH 0ff6911ff5a654ae - slot_dump widened + liveness line. Rollbacks
+                  *.bak_p2d7_20260903_174656 (mac) / _174709 (rig).
+   server         d7a7dc9be138b412 RAN p2-167 and its BEHAVIOUR IS CURRENT - the R7
+                  widening was reverted, so the rebuilt exe is behaviourally identical.
+                  Nothing is owed to the next run.
+   settings       server membership_peer_transport_identity=true,
+                  roster_peer_participation=true, peer_retry_cap=2 (the wait cap is
+                  separate by design). Clients gate_poke=0 BOTH (verified on disk);
+                  gate_wwatch DR/VEH/suspend retired at COMPILE TIME.
+   archives       p2-167 RE_output/logs/20260903_175317_p2-167 (all three logs);
+                  p2-166 .../20260903_173450_p2-166. Briefs BOOT_BRIEF_p2-166/167 (both
+                  GATE PASS).
 
 ## WHERE WE ARE
 Session/membership/identity DONE; slot supply, row lifecycle, contactable byte,
-gate-byte writer, staging publish lever all CLOSED (mechanism in FINDINGS). Peer
-rendering = the wall, now decomposed into the four-wall stack W1-W4 (see NEXT).
+gate-byte writer, staging publish lever all CLOSED (mechanism in FINDINGS). Of the
+four-wall stack: W1 CLOSED and W3 DOWN (20.284), W4 instruments proven. W2 is
+UNMEASURED behind cond5, which is now the front - see NEXT.
 
-## NEXT (implementation spec: RE_output/claims/BOOT_IMPL_peer-rendering-walls.md)
-  Four-wall stack to a rendered peer, all server-side (20.275-20.279 + red team):
-   W1 identity: guard compares slot+0x142 (86 B) - all-zero, cursor-composed from a
-      body field the fork never sends. Fix = emit the peer's transport identity there.
-   W2 mask: guard requires bit (remote-slot+6) = 7 MAC / 6 RIG; rec2 never carried it.
-   W3 record stall: peer rec stuck 3/4; predicates 2+3 demand 4/5; the final rung
-      comes from the session-join flow, not the channel.
-   W4 instruments: first-seen-key emit gating on the leave probes (else the
-      informative bail-3 outcome is invisible - the p2-164 lesson).
-  PREREQUISITES (iii)+(iv) DONE (20.280): the identity field is NAMED - the t12 member
-  row's 0x808086B2 fields [10]/[11]/[12] (three presence-flagged 86-byte arrays, node
-  0x80807C82), landing at slot+0x142/+0x198/+0x1EE (guard arg4 = field 10, arg5 = field
-  12); 0x808086F8 excluded. Mask machinery mapped end-to-end: the record embeds THREE
-  connection objects (states +0x1D18/+0x1DC0/+0x30E8 - predicate 2's field is obj C);
-  the guard tests word rec+0x3112 (birth-set: bit = container-at-creation+6); the claim
-  (0x1417C08F0 find-or-create -> 0x1417C3480/0x1417C43C0) sets rec+0x3114 + flags; the
-  admission SWEEP (0x1417021C0 family = the probed 'ptable') DISOWNS any record no slot
-  claims by the 86-byte compare - that is the t=328727 clear; rec1's immunity = the
-  blank slots claiming the blank record. CASCADE: mechanically credible (fill the blob
-  -> stop the disown, disown rec1, arm the claim); residual pins = which word gets bit
-  7 (existing vs re-born record) + the exact 86 bytes - both ride the probe rebuild.
-  p2-165 RAN (20.282): the field traveled encode->send->DECODE (the client's ingress
-  parser consumed it - no reject/freeze) but the entry->slot compose hop drops it
-  (slot+0x142 zero everywhere; sweep disowned both peer records as predicted). W4
-  probes ALL proven (first-seen-key caught the peer-slot eval; gatebit pinned bitreq=7
-  mac/6 rig; full 86-byte cards captured - the reservation identity IS write_net_addr's
-  shape). The mac's black screen froze its evaluation right after the digest. NEXT
-  BOOT: probes widened + deployed (8edaf9685e751d32) - entry dump 0x600 (the old SEH
-  buffer truncated at 0xE8, the peer row's identity sat past it) + slot_dump (each
-  populated slot's first 0x300 bytes) will show where the 86 bytes go client-side.
-  Server setting stays ON; pokes reverted post-boot; relaunch clients for the next run.
+## NEXT
+  THE FRONT: make cond5 pass WITHOUT a client write. Everything behind it is blocked and
+  no boot can measure W2 until it opens. Start from 20.230 (cond5's writer) and the
+  gate-byte writer map (20.252-20.255). This is design work, not a boot.
+  THEN: W2 (the peer's mask bit) becomes measurable, and the cascade thesis of 20.280
+  gets its first end-to-end test.
+  THEN: entity construction - untested; levers are 20.208 R6 (world_population -> type-7
+  sobject + type-52 epoch) and 20.213 R1 (lease size fired the attempt on type-12 pushes).
+  OPEN (do NOT close by loosening the key test): why does the published peer identity
+  change to a machine-id form while a session is failing? Read the roster/foreign-member
+  path (20.284 R7).
+  BEFORE THE NEXT PAIRED RUN: relaunch BOTH clients (a staged DLL that is never loaded
+  cost a whole cycle - 20.283 R0).
 
- SETTINGS NOW: mac client gate_poke REVERTED TO 0 (both clients, post-162b).
  pool_c4_mark_push TRUE and HARMLESS.
  DO NOT MARK SELF (20.249). DO NOT RAISE the retry cap (20.247 R8).
  TOOL DEBT: reset_lobby_claims.sh cries wolf; c4query derefs before dedupe.
@@ -141,9 +104,9 @@ rendering = the wall, now decomposed into the four-wall stack W1-W4 (see NEXT).
  PARKED: mac black screen | rx-decode | reason hunts | posse fabrication.
 
 ## READ FIRST (any session taking over)
-  0. FINDINGS 20.238-20.257 (the verdict stack; 20.252-20.256 = the
-     gate-byte writer, staging layer, type-12 lever; 20.257 = femu lane). BOOT BRIEFS
-     p2-158/p2-159 carry the watch-era discipline; postmortem 09-02 (U18).
+  0. FINDINGS 20.283-20.284 FIRST (W1 closed, the two retractions, the front's move to
+     cond5), then 20.238-20.257 for the verdict stack it rests on (20.252-20.256 =
+     gate-byte writer, staging layer, type-12 lever). Postmortem 09-02 (U18).
   1. AGENTS.md conditional triggers; boot work loads LESSONS pre-boot checklist
      and runs gate_boot.py on the brief.
   2. ENVIRONMENTS.md before ANY deploy/capture/settings edit (trap 18: settings
