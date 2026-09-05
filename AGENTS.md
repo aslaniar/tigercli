@@ -33,6 +33,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | ENVIRONMENTS.md | deep env layer | touching deploys/tooling/Ghidra/cross-machine ops |
 | FINDINGS_2026-08-*.md | append-only archive | when cited by STATE/lessons/index |
 | FRONT_public-host-chain.md | live front page | working road C (server as group host) - the chain L1-L9 with marks |
+| FRONT_chain-to-a-moving-guardian.md | live front page (2026-09-04) | THE FORWARD WALK from the last working link to a peer guardian RENDERED AND MOVING. Carries the client-sourced convention list, the one measured wall (participant+0x38 bit 4 has NEVER been set, any record, any boot), the local-player asymmetry, the three structures not to conflate, and 5 ranked theories each with its refutation. Reduces the front to ONE static question: what writes bit 4 of participant_record+0x38 |
 | FRONT_e2e-stack.md | live front page | the END-TO-END map: the layers that WORK, and the appearance gap. NOTE: its region-B-as-appearance-candidate line is SUPERSEDED by 20.202 |
 | NIGHT_RUNNER.md | live manual | running the function-map night lanes (reconcile/night_pull/funcq/beacons/femu) |
 | HANDOFF_2026-09-03_CREATION.md | SUPERSEDED by 20.291 (front parked) | its PROVEN list (W1 closed, W3 down, cond5 a pure read, the walk skips self) stands and is still the right starting evidence; its QUESTION and its image/mask road are parked. Read FINDINGS 20.291 first |

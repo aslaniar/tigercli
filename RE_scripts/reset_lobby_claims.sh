@@ -10,7 +10,8 @@
 # runs, not just after a solo boot.
 set -uo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-host="192.168.1.164"
+host="$(/usr/bin/python3 -c "import json;print(json.load(open('$root/RE_output/s1_accept/Sunrise/settings.json'))['server']['bind_address'])" 2>/dev/null)"
+[ -n "$host" ] || { echo "ABORT: cannot derive server host from settings.json" >&2; exit 1; }
 
 before="$(curl -s -m 5 "http://$host:8099/lobby" | wc -l | tr -d ' ')"
 echo "claims before: $before"

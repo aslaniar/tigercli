@@ -25,6 +25,8 @@ bash "$(dirname "${BASH_SOURCE[0]}")/log_archive.sh" --label auto || true
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SRV_HOST="$(/usr/bin/python3 -c "import json;print(json.load(open('$root/RE_output/s1_accept/Sunrise/settings.json'))['server']['bind_address'])" 2>/dev/null)"
+[ -n "$SRV_HOST" ] || { echo "ABORT: cannot derive server host from settings.json" >&2; exit 1; }
 accept="$root/RE_output/s1_accept"
 cache="$accept/Sunrise/cache/build_data.bin"
 candidate="$accept/sunrise-server.exe.NEW_candidate"
@@ -98,14 +100,14 @@ echo "   exe  $(shasum -a 256 "$live" | cut -c1-16)"
 echo "== 6. relaunching =="
 nohup bash "$root/mac-port/launch-server-macos.sh" > "$root/mac-port/launch.log" 2>&1 &
 for _ in $(seq 1 40); do
-  curl -s -m 2 "http://192.168.1.164:8099/ladder" >/dev/null 2>&1 && break
+  curl -s -m 2 "http://${SRV_HOST}:8099/ladder" >/dev/null 2>&1 && break
   sleep 0.5
 done
 
 echo
 echo "== VERIFY =="
 echo "-- ladder --"
-curl -s -m 3 "http://192.168.1.164:8099/ladder" | head -c 300; echo
+curl -s -m 3 "http://${SRV_HOST}:8099/ladder" | head -c 300; echo
 echo "-- listeners (UDP 30976 is the new one) --"
 netstat -an 2>/dev/null | grep -E '\.(30975|30976|8099|8443|3074|3075)\b' | head
 echo "-- gameplay lines from this boot --"

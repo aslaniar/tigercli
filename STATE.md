@@ -1,80 +1,107 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-04 19:57 PDT, session close). Verdict + deployed + next only.
-Full text: FINDINGS (20.292-20.297 are today's stack); ops facts in ENVIRONMENTS.md.
+STATUS: live (2026-09-04 23:15 PDT, session close). Verdict + deployed + next only.
+Full text: FINDINGS (20.299 is today's close; 20.292-20.298 the stack under it).
+Ops facts (network move, grep hazard, BOM trap) in ENVIRONMENTS.md.
 
-*** 20.297 (session close): THE TRANSITION RUN - a participant transition (mac leave +
-re-enter; fresh type-7 push consumed on BOTH machines) produced ZERO receiver activity
-(ent_recv/header/create = 0) - outcome (c). STRUCTURAL FIND: the NEVER-STICKS CHURN
-(pb_create N times on the same slot, identical args, ~16 ticks) is the client's GENERAL
-signature for "a record the creation loop engages but cannot complete" - measured long
-before the crafted rows (20.211 R3's 50x player_broadcast). In 20.53 a create STUCK once
-and rendered. The variable is the ROW'S CONTENT SHAPE. The mac's re-entry hang
-reproduces the crafted-record hang's empty-manager spin exactly (mgr pool=0x0).
-NEXT: the 20.53 ROW BISECTION - settings-only, no rebuilds, readout in the logs. ***
-*** 20.296: THE RECEIVER IS CONVERTED, NOT CONSTRUCTED - installer 0x1416CACD0's four
-callers are ALL mask-table-driven reconcile/release paths (the claim sweep's family; it
-reads the 20.292 container/table anchors directly). 20.223's zero instances = no
-participant transition had ever occurred in a dumped session. The C3 crafted-self
-program RETIRED (user decision): the ceiling is a self-owned record; its durable yield
-is "the client READS the row's character field" (20.295: V-1 non-loaded character HUNG
-the instantiation, V-2 active character landed clean). ***
-*** 20.294: THE WIRE->IMAGE ROAD CLOSED - the fork's own carrier (svc-9 type 17,
-eventType 17) was consumed IDENTICALLY to eventType-7 (sobj_decode, same caller/slot);
-the image plane never reached. eventType is not the routing key. 20.292's structural
-map stands (the resolver object contains the mask table at +0x6C38; masks at
-container+0x5FE80/84; the obfuscated region's `mov eax,0x6c38` = the anchor offset).
-20.290 corrected: p2-172 DID run (its client defect was real, parked). image_set's
-"fed only by the handler" premise FALSE (the publish path writes a SOID into the cache
-- any future image_set reading must name caller_rva first). ***
+*** 20.299 (session close): P2-177 SOLO HUSK LANE - THE HUSK DID NOT FIRE ON ANY OF
+THREE TRIGGERS (landing / orbit round-trip / character switch). H4 NEGATIVE: it has NO
+KNOWN TRIGGER, and that must be solved before the lane is briefed again. 3,774 creates
+COMPLETED solo with ent_recv AND ent_header at ZERO throughout - corroborating 20.296's
+remote-only receiver behaviourally for the first time. Solo re-entry was CLEAN where
+20.297's paired re-entry hung forever: the differing variable is the PEER RECORD.
+MY INSTRUMENT DEFECT: the brief's decisive read could never have executed - pgate is
+gated on participant-table events, not creation (16 samples all run vs 3,774 creates;
+ZERO during the character switch). Any gate-byte observation needs a probe fired from
+the CREATION path = a rebuild. publish_player_profile=FALSE is now the LEADING
+BLACK-SCREEN SUSPECT (false: black 2/2; true: clean 3/3) - inverting 20.298 R4's
+"no established cause". ***
+
+*** 20.298: P2-176 RUN A - THE FIRST ATTRIBUTED FOREIGN-PEER
+MEASUREMENT. On the rig, the creation loop engaged a record PROVEN to be the mac's
+(rec=0x1FED8C24EC0 owner=0x34B6F79FCF627275 x 11,491; rig's own key is
+0x846C8338F7D022E6) and CREATED NOTHING - pb_create's 2 calls are a different caller
+and kind. The in-world session SUSTAINED its peer row (60 peer=1, no withdrawal; the
+two withdrawals are on region=-1 sibling links) and every advert carried a citizen.
+So with the post-20.53 extras OFF the loop still does not complete: THE EXTRAS
+(transport identity, profile block) ARE EXONERATED AS THE BREAKING FIELD. The wall is
+the record's CLAIM STATE, not the row's content - where 20.219's front already points.
+Neither machine produced a visual (mac black-screened in-world; rig hung in
+initial_slice_set_loading) - the LOG half is the deliverable. ***
+
+*** RETRACTIONS THIS SESSION (both mine or inherited, both load-bearing):
+  - 20.297 R2's outcome (c) is REOPENED: p2-175's peer row was permanently withdrawn
+    after 2 unacked bodies; 104 of 128 peer-available snapshots sent NOTHING. It was a
+    STARVED measurement, not a negative. `wire_snapshot peer=N` logs havePeer
+    ("available"), NOT publishPeer ("sent") - the trap that hid it.
+  - "the empty-manager spin" is NOT a hang signature. mgr_sync ROTATES managers and one
+    is empty every pass (rig: 11,492 healthy vs 11,492 empty - a dead-even split).
+    20.297 R1's "same empty manager 0x46EF040" carries a healthy pool here. pool=0x0
+    diagnoses nothing. THE MAC'S BLACK SCREEN HAS NO ESTABLISHED CAUSE. ***
 
 VERDICT TRAIL (one line each; full text in FINDINGS):
-  20.297 transition run outcome (c) + never-sticks = general signature + the bisection
-    plan. 20.296 receiver = converted, not constructed; C3 retired (user).
-  20.295 p2-174: reads the character field; knob is SOLO-ONLY (paired displaces real
-    peer rows); 20.64-freeze did not recur; no black screen (16:0x run).
-  20.294 p2-173: eventType not the routing key; wire->image CLOSED at the queue
-    interior; 20.290 corrected; image_set premise FALSE.
-  20.293 carrier named (svc-9/type-17 = the fork's existing family). 20.292 R7 YES
-    (resolver contains the mask table) - structure, not a road.
-  20.290 corrected (p2-172 ran); 20.289 revert rules stand; 20.284-20.288 stand.
+  20.298 run A: extras exonerated, wall = claim state; 2 retractions; grep-wrapper
+    defect; stale variant comment; retry-cap permanence named.
+  20.297 transition run - R2 REOPENED (starved); R3's never-sticks framing stands.
+  20.296 receiver = converted, not constructed; C3 retired (user).
+  20.295 p2-174: the client READS the row's character field; knob is SOLO-ONLY.
+  20.294 eventType not the routing key; wire->image CLOSED at the queue interior.
 
-## DEPLOYED (2026-09-04 19:36 - server LIVE; clients p2-171 both)
-   server    3f0496a9ebcf744c (crafted-row knobs + carrier knob wired). Settings:
-             world_population=true, membership_self_peer_row=FALSE (knob retired),
-             same_region_advert=true, pool_c4_mark_push=false, reseed off, transport
-             identity ON, roster participation ON. gate_poke=0 clients.
-   clients   BOTH p2-171 a96a6a70f578fc40 (rolled back 12:40, hashes asserted). The
-             2e91f94-lineage builds are RETIRED (crash at Tower instantiation - the
-             parked p2-172 defect) until a hook-depth audit.
-   rollback  p2-171 exe .bak_p2d6_20260903_210009 + PAIRED build_data.bin; settings
-             .bak_p2-173_pre. Logs: RE_output/logs/20260904_195444_p2-175-transition
-             (indexed p2175_{mac,server,rig}.db).
+## DEPLOYED (2026-09-04 22:0x - server LIVE on the NEW address; clients p2-171 both)
+   NETWORK   *** THE MAC MOVED TO ETHERNET: 192.168.1.7 (was WiFi 192.168.1.164). ***
+             Server bind/relay/advertised/transport, the mac client host, and the rig
+             client host+config_url ALL repointed. reset_lobby_claims.sh and
+             deploy_p2d6_gameplay.sh now DERIVE the host from settings.json.
+             If the DHCP lease moves, this breaks again - a reservation would fix it.
+   server    3f0496a9ebcf744c UNCHANGED (no rebuild since p2-175). Settings:
+             transport_identity=FALSE, publish_player_profile=FALSE, peer_row_flags=0,
+             reseed=0, sweep=false (pin 0 = packedMasks = the default),
+             same_region_advert=TRUE, self_peer_row=false, c4_mark_push=false,
+             world_population=true, peer_retry_cap=10 (echoed at startup).
+   clients   BOTH p2-171 a96a6a70f578fc40 (hashes asserted both machines this run).
+   rollback  settings .bak_p2-176_pre (pre-run-A knobs) and .bak_pre_ethernet_move
+             (pre-address). Rig client settings .bak_pre_ethernet_move ON THE RIG.
+   logs      RE_output/logs/20260904_220846_p2-176-runA (the run), plus
+             ..._203945_p2-176-aborted-network and ..._215841_p2-176-attempt2-macspin.
 
-## NEXT (the bisection ladder leads; each run = settings flip + restart + one solo
-##       mac launch; readout = pb_create sticks vs churns, in the logs)
-  1. RUN A - MINIMAL ROW: transport identity OFF, publish_player_profile OFF,
-     peer_row_flags 0, mask variant off, reseed off -> the 20.53 shape, fresh revision.
-     Sticks+clone -> bisect the extras ON one at a time until the churn returns (the
-     breaking field is NAMED). Sticks, no clone -> presentation layer. Churns even
-     minimal -> compare a FIRST-ENTRY boot (today's churn appeared only on RE-entry).
-  2. After the bisection: if a field fix makes the churn stick, retest the receiver
-     conversion with a claimed peer record + transition (20.296 R2's open question).
-  3. DOC/AUDIT: `negative_audit.py` over the corpus. 4. The trailing-sweep re-run rider
-     (20.53's voided trailing verdicts) on the first boot with a genuinely foreign peer.
-  5. TOOL DEBT: no mac-side dump tooling (the receiver check on the mac is
-     unanswerable); ssh control socket reopens with: ssh -M -S ~/.ssh/cm-rig
-     -o ControlPersist=8h -N -f rasla@192.168.1.136. logindex/logq need
-     /usr/bin/python3. Launch the server from the REPO ROOT only (relative paths).
-  DO NOT: emit against the image; poke cond5; chase the queue interior statically
-  (eventType measured not-routing); re-enable the crafted knob for paired runs
-  (displaces real peer rows); unanchored disassembly; launch from the wrong cwd.
+## NEXT - ONE REBUILD UNBLOCKS BOTH LANES. Nothing else is measurable until it ships.
+  *** THE REBUILD (4 changes, one build, no new fronts) ***
+   R1 clear `peerWithdrawn` on acknowledgement (activity_membership_push.cpp:384 block).
+      Prereq for ANY sustained-peer-row run; without it every finite cap latches off and
+      cap 0 reproduces the p2(111) body storm. (20.298 R7)
+   R2 log session-id <-> member-key together. Right now "which session is the rig's" is
+      INFERRED; one line closes it and it gates every attribution claim. (20.298 R2)
+   R3 a GATE-BYTE PROBE FIRED FROM THE CREATION PATH (pb_create/ent_make), not from the
+      participant walk. Without it f38 cannot be observed when it matters. (20.299 R2)
+   R4 definition.h:117's stale variant comment (pin=4 is all_mask, "it froze"). (20.298 R6)
+   GATE BEFORE DEPLOY: verify_hook_rvas.py on R3's new hook; replay R3's trigger over the
+   p2-177 log as a fixture BEFORE booting (the rule POSTMORTEM_2026-09-01 yielded and
+   that 20.299 R2 broke).
+
+  AFTER THE REBUILD, in order:
+   1. PAIRED, sustained row: re-run p2-176 run A's contract with R1 live. The claim-state
+      wall (FRONT_chain-to-a-moving-guardian.md) becomes measurable for the first time.
+   2. THE ONE STATIC QUESTION, still unanswered and boot-free: WHAT WRITES BIT 4 OF
+      participant_record+0x38? Approaches in the front page (constructor first; callers.py
+      out from 0x1404DD470 / 0x141703910; dump_search for any nonzero +0x38 anywhere).
+      NOTE: field_xref.py 0x38 is the WRONG tool (offset ubiquitous, disp8 not disp32,
+      its `ff /x` hits are indirect CALLs misclassified as RMW).
+   3. BLACK SCREEN: confirm the suspect cheaply - set publish_player_profile=FALSE solo
+      and see whether the screen goes black. One flip, one solo launch. If it does, the
+      husk's trigger may be downstream of it and the husk lane reopens with a trigger.
+   4. HUSK LANE: BLOCKED on a trigger (20.299 R1) AND on R3. Do not brief it before both.
+
+  DO NOT: re-brief the husk without a trigger and a creation-path probe; read a duplicate
+  participant record as a husk (20.299 R3e - user visual refuted it); read `wire_snapshot
+  peer=N` as "a row was sent" (it is havePeer); read pool=0x0 as a hang; trust a recursive
+  `grep` under RE_build/ or RE_output/ (use /usr/bin/grep); write rig configs with
+  PowerShell Set-Content -Encoding UTF8 (BOM); modify the client.
 
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
-  - No live client before a DLL deploy; server reverts restore the PAIRED
-    build_data.bin; every hook RVA through verify_hook_rvas.py.
-  - ANCHOR EVERY DISASSEMBLY (pdata_bounds first); search RELOCATED, not static.
-  - Census before filter; solo control before paired unless explicitly waived.
-  - logindex/logq need /usr/bin/python3; capture liveness needs a probe packet.
+  - Check the INPUT GATE before reading any result (withdrawals, peer bodies actually
+    sent) - 20.297 R2 died of this.
+  - Before a probe's field enters a conclusion, read the code that PRODUCES it.
+  - ANCHOR EVERY DISASSEMBLY; census before filter; solo control before paired.
+  - logindex/logq need /usr/bin/python3; launch the server from the REPO ROOT.

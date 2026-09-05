@@ -241,3 +241,72 @@ THE PROCEDURE for changing a client setting:
    hashes. Editing in place over ssh hides formatting damage.
 5. Parse the result once with a JSON reader to confirm validity - reading is safe, it is
    WRITING through a serialiser that breaks it.
+
+## [Mac-current] TRAP 19 - `grep` IS SHADOWED AND LIES BY OMISSION (2026-09-04, hard)
+
+In the Claude Code shell `grep` is a FUNCTION (see the shell snapshot under
+~/.claude/shell-snapshots/) that routes to `ugrep` via the claude binary with
+`--ignore-files --hidden -I`. Two silent consequences, both hit in one session:
+
+  - `--ignore-files` HONOURS .gitignore. This repo's .gitignore:13-14 excludes
+    `RE_build/` and `RE_output/` - THE ENTIRE SERVER SOURCE TREE AND THE ENTIRE
+    EVIDENCE CORPUS. A recursive grep from the repo root cannot see either.
+  - `-I` skips files it guesses are binary. The capture logs trip that guess
+    (`file RE_output/captures/.../server.log` -> "core file (Xenix)"), so
+    `/usr/bin/grep -ic peer` returns 95 on a file the wrapped grep reports as EMPTY.
+
+Both failures return exit 0 with no message. A null result from `grep` in this shell
+is therefore NOT evidence - it is the U13 case with a new mechanism. It produced two
+false claims on 2026-09-04 before it was caught ("the knob is not in the repo"; "the
+20.53 capture has no variant= lines" - it has 53).
+
+RULE: use `/usr/bin/grep` for anything under RE_build/ or RE_output/, and for any log.
+`RE_scripts/loggrep.sh` calls bare `grep -an` and INHERITS this - prefer logindex/logq.
+negative_audit.py does NOT cover this class (it checks declared encodings, not whether
+the search tool could see the files).
+
+## [BOTH MACHINES] THE SERVER ADDRESS IS NOT A CONSTANT (2026-09-04)
+
+Forcing ethernet on the mac retired the WiFi address the server was BOUND to
+(192.168.1.164 -> 192.168.1.7 on en13) and cost two launches. Symptoms are NOT
+obviously network-shaped: the rig throws Destiny's CENTIPEDE (its BAP dial times out
+after 10 s), and the mac - if it was already connected - black-screens and then throws
+WEASEL. Check `ifconfig | grep <bound address>` BEFORE blaming code.
+
+EVERYTHING that must move together (six config fields + the tooling):
+  server settings.json : /server/bind_address, /server/relay_address,
+                         /server/gameplay/advertised_address,
+                         /server/gameplay/transport_address
+  mac client           : /client/external_server/host
+                         (its config_url is loopback - leave it)
+  rig client           : /client/external_server/host AND /client/external_server/
+                         config_url (the rig's config_url points AT the server)
+  peer_subnet (192.168.1.0) is unchanged while the /24 is the same.
+
+reset_lobby_claims.sh and deploy_p2d6_gameplay.sh now DERIVE the host from the server's
+settings.json instead of hardcoding it (they each carried a stale 192.168.1.164 copy).
+The server binds the ADDRESS, not 0.0.0.0, so it is NOT on loopback - a client
+config_url of https://127.0.0.1:8443 will not reach it from the mac either.
+STANDING RISK: 192.168.1.7 is DHCP. A lease change reproduces this whole incident; a
+router reservation for en13 is the permanent fix.
+
+## [RIG] TRAP 18b - POWERSHELL Set-Content -Encoding UTF8 WRITES A BOM (2026-09-04)
+
+The sibling of TRAP 18, same failure surface. Windows PowerShell 5.1's
+`Set-Content -Encoding UTF8` prepends EF BB BF. The Sunrise shim's settings parser
+rejects the file and the game refuses to launch with "problem verifying game files'
+integrity" - which reads like a corrupted install, not a config edit. Cost one launch.
+
+WRITE a rig config with:
+    $enc = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($path, $text, $enc)
+VERIFY byte 0 is 123 (`{`):
+    ([System.IO.File]::ReadAllBytes($path))[0]
+
+TRAP 18 ADDENDUM - THE CONTROL THAT PROVES A SAFE EDIT: when a parse/dump cycle has
+already happened, do not guess whether it damaged the file. Rebuild the intended result
+from the BACKUP with a pure text edit and `cmp` it against the written file:
+    sed 's/OLD/NEW/' settings.json.bak_X > /tmp/control.json && cmp /tmp/control.json settings.json
+Identical = the round-trip was lossless (the file was already in that exact style).
+Different = restore from the control. This turned an "did I just break it" panic into a
+one-command answer on 2026-09-04.
