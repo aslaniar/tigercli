@@ -1,6 +1,8 @@
 # Plan: boot-gate v3 + verdict v2 (deterministic fixes for the nine
 # empty-mask-loop mechanisms) - 2026-08-31
 
+STATUS: live (2026-09-05). WAVE 0+1 SHIPPED - see the implementation status
+block at the bottom and FINDINGS 20.307.
 Source: POSTMORTEM_2026-08-31_THE-EMPTY-MASK-LOOP.md (~8 boots on a non-
 blocker; root cause: a return code read as a state). Companion to
 enforcement-layer.md (the four interception points; this adds the BEFORE-BOOT
@@ -122,3 +124,20 @@ The pin is over: this plan is the pen session's next work item.
 - bootstrap_check surfaces a "definitive instrument" sentence from the
   corpus (the 0x141711D10 allocator probe is the known live example)
 - all negative tests run before positive ones (they must fail on purpose)
+
+## IMPLEMENTATION STATUS (2026-09-05, 20.307 - waves 0+1 of the consolidated
+## backlog; full test record in 20.307 R5)
+SHIPPED: pre-commit hook INSTALLED (core.hooksPath set); the T1.1 grep shadow
+fixed (loggrep pinned, sgrep.sh new, bootstrap_search PROOF in
+bootstrap_check.sh); gate_boot v3 brief-tie fields ENFORCED (PRIOR ART +
+DEAD-END AUDIT conditional, STATE READERS rejecting 'inferred from', EFFECT
+CLAIM, ABANDON OUTCOME, WIDE NET, FIX SURFACE/U18 SERVER-SIDE GAP, and - when
+INSTRUMENTS are declared - READOUT TRIGGER, OBSERVER BUDGET, CALL FREQUENCY,
+HOOK COUNT == verify_hook_rvas count, INSTRUMENT LIVENESS in SOURCE files);
+the outcome ledger (RE_output/map/boot_outcomes.jsonl + boot_outcome.py) with
+the third-branch counter in gate_boot; the unbuilt-instrument grep; the
+registry tree-direction + router-file checks; the brief template carries all
+gated fields. Acceptance lines 1, 2, 4, 5 above: PROVEN.
+STILL PENDING FROM THIS PLAN: boot_verdict v2 per-arm table (line 3);
+logq truncation flag (implementation set #6); preflight.py + instruments.json
+(enforcement-layer plan - Wave 2). Fixture: RE_output/map/boot_brief_v3_selftest.md.

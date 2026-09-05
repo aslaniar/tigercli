@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# REGISTRY: caps: session-bootstrap, doc-budgets
+# REGISTRY: caps: session-bootstrap, doc-budgets, search-proof, instrument-specs
 # bootstrap_check.sh - session-start instrument (2026-08-26, DOC GOVERNANCE).
 # Prints the doc-budget report, STATE header pointer, newest findings headlines,
 # index liveness. Emits on the BORING path too (L13): a clean run prints
@@ -33,6 +33,45 @@ for f in AGENTS.md LESSONS.md ENVIRONMENTS.md TOOLS.md HANDOFF_*.md; do
     echo "MISSING $f (no STATUS line in first 5 lines)"
   fi
 done
+
+echo
+echo "== SEARCH-TOOL PROOF (T1.1: a blind grep returns exit 0 EMPTY - prove the tool sees the corpus) =="
+arch=$(ls -td RE_output/logs/*/ 2>/dev/null | head -1)
+if [ -z "$arch" ]; then
+  echo "LOUD    no boot archives under RE_output/logs - cannot prove the search tool; grep a known capture by hand"
+else
+  probe=""; probe_lit=""; probe_n=""
+  for f in "$arch"*_sunrise.log; do
+    [ -f "$f" ] || continue
+    for lit in "Adding player" "ev=" "stage="; do
+      n=$(/usr/bin/grep -ac -- "$lit" "$f")
+      if [ "$n" -gt 0 ]; then probe="$f"; probe_lit="$lit"; probe_n="$n"; break 2; fi
+    done
+  done
+  if [ -z "$probe" ]; then
+    echo "LOUD    no known literal found in $arch - verify the search tool by hand before trusting any scan"
+  else
+    shadow_n=$(grep -ac -- "$probe_lit" "$probe" 2>/dev/null)
+    [ -n "$shadow_n" ] || shadow_n=0
+    if [ "$shadow_n" -eq "$probe_n" ]; then
+      echo "ok      search tool clean: bare 'grep' sees $probe_n hits of \"$probe_lit\" in $(basename "$arch") (== /usr/bin/grep)"
+    else
+      echo "LOUD    SEARCH TOOL BLIND: bare 'grep' returned $shadow_n but /usr/bin/grep returns $probe_n for \"$probe_lit\""
+      echo "        in $probe - the ugrep wrapper honours .gitignore/-I (TRAP 19). Use /usr/bin/grep or RE_scripts/sgrep.sh"
+      echo "        for anything under RE_build/ or RE_output/, and treat every prior bare-grep NULL as unproven."
+    fi
+  fi
+fi
+
+echo
+echo "== SPECIFIED INSTRUMENTS - CHECK IF BUILT (empty-mask #8: the definitive probe, named and never built) =="
+spec=$(/usr/bin/grep -rn -iE "definitive instrument|the instrument that would|instrument that would" RE_output/claims/*.md 2>/dev/null)
+if [ -n "$spec" ]; then
+  echo "$spec" | sed 's/^/  SPECIFIED /'
+  echo "  ^ these name an instrument in writing. Build it or retire the sentence before booting around it."
+else
+  echo "ok      no unbuilt-instrument sentences in the claims corpus"
+fi
 
 echo
 echo "== SCAN-NEGATIVE HYGIENE (20.209 R2 class: a scan's coverage limit is not a world-fact) =="
