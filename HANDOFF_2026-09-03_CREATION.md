@@ -1,7 +1,15 @@
 # HANDOFF 2026-09-03 — THE CREATION FRONT
 
-STATUS: live (2026-09-03). Supersedes HANDOFF_2026-08-31_GATE-FEEDERS.md for front
+STATUS: SUPERSEDED 2026-09-03 23:0x PDT by FINDINGS 20.291 - the image/mask-delivery
+front this handoff points at is PARKED (its premise is unevidenced; the message is not
+fork-emittable). Its PROVEN list (W1/W3/cond5/walk-skips-self) still stands and is still
+the right starting evidence. Read 20.291 before acting on anything below.
+STATUS (original): live (2026-09-03). Supersedes HANDOFF_2026-08-31_GATE-FEEDERS.md for front
 selection; that file's gate table and elimination list remain readable history.
+**20.287 CORRECTION (same day): the "birth-set" framing below is superseded — the required
+bit OR-accumulates at CLAIM time, and the front is now "deliver the participant image so
+the sweep's claim arms for the peer's slot." Read FINDINGS 20.287 before anything below;
+its measurements (populations disjoint, setA/setB=0 on the peer) all stand.**
 
 ## THE ONE-PARAGRAPH VERSION
 

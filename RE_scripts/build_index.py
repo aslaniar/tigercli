@@ -38,7 +38,10 @@ RUN_ROOT = ROOT  # rebound by --root in main(); used for relative display paths
 ENTRY_RE = re.compile(r"^## (\d+\.\d+[a-z]?)[ \t]+(.*)$")
 # continuation heading lines that belong to the previous entry's header block
 TS_RE = re.compile(r"\((20\d{2}-\d{2}-\d{2}[^\n)]*\))")
-VALID_TS = re.compile(r"^20\d{2}-08")
+VALID_TS = re.compile(r"^20(?:2[5-9]|[3-9]\d)-\d{2}")  # project era (2025+).
+# WAS ^20\d{2}-08 - August-only, which silently rejected EVERY September+
+# timestamp and dumped the whole 09-xx stack into the lint list (20.291 R12).
+# Intent is only to exclude Bungie-era dates quoted in source material.
 LINK_PATTERNS = [
     re.compile(r"supersed\w*\s+(?:entry\s+)?(\d+\.\d+[a-z]?)", re.I),
     re.compile(r"(?:corrects|corrected\s+by|correction\s+(?:to|of))\s+(\d+\.\d+[a-z]?)", re.I),

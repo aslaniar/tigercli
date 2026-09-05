@@ -61,6 +61,15 @@ FACTS = [
 #    of 20.246 R1-R4) - all three are now behind the dynamic front (20.246 R7).
 WAIVERS = [
     ("FINDINGS_2026-08-25.md",
+     "0x1416E73A0 has ZERO references of any kind in the unpacked binary",
+     "RETRACTED by 20.291 R1 - the pointer IS in the static file at offset "
+     "0x1C9E308; the scan searched the STATIC VA instead of the RUNTIME-RELOCATED "
+     "form (stale base 0x7FF6AF7F0000). Dead claim kept for history"),
+    ("FINDINGS_2026-08-25.md",
+     '20.288 R3: "0x1416E73A0 has ZERO references of any kind',
+     "the flag hits the RETRACTION text itself (20.291 R1 quoting 20.288 R3) - "
+     "same shape as the 12357 waiver"),
+    ("FINDINGS_2026-08-25.md",
      "source mismatch with zero references",
      "not a scan-negative: 'zero references' = refcount-zero RETIRE in "
      "group_host_sessions logic"),

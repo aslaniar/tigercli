@@ -30,8 +30,8 @@ against" rule.
 | Tool | For | Oracle/self-test |
 |---|---|---|
 | RE_scripts/pe_reader.py | PE section map VA->file offset; imported by 8+ scripts | basis of every oracle below passing [caps: pe-parse, section-map, pdata-bounds, static-read] |
-| RE_scripts/xref_scan.py lo hi | GENERAL xref scanner: rip-relative code refs (BOTH .text sections) + --ptrs data-pointer mode (vtables/callback tables) | `--self-test`: getter 0x1404DC070 -> table 0x141F91AD0 (re-verified PASS 08-31 post-fix); pen's hand-read ref 0x140B47D22 now found |
-| RE_scripts/disasm_fn.py va | disassemble one function to heuristic end | output correctness = manual spot vs Ghidra project |
+| RE_scripts/xref_scan.py lo hi | **TRAP (20.291 R9.3): its `[unknown]` hits are UNJUDGED CANDIDATES, not references** - `mov qword [rcx+0xC00],0` was reported as a ref into the dispatch table because the immediate parsed as a rip-relative displacement; the tool says "judge by context" and that must actually be done. GENERAL xref scanner: rip-relative code refs (BOTH .text sections) + --ptrs data-pointer mode (vtables/callback tables) | `--self-test`: getter 0x1404DC070 -> table 0x141F91AD0 (re-verified PASS 08-31 post-fix); pen's hand-read ref 0x140B47D22 now found |
+| RE_scripts/disasm_fn.py va | disassemble one function to heuristic end. **TRAP (20.291 R6): ANCHOR FIRST.** Passing an address that is not a function start produces a plausible-looking but FALSE instruction stream - the participant-image format spec was retracted because 0x1404f4740 is +0x40 inside 0x1404F4700 and the invented decode contained a `mov ebx,0x6c38` that is nowhere in the binary. Run pdata_bounds.py on every address before disassembling it | output correctness = manual spot vs Ghidra project |
 | RE_scripts/lane_svc43_disasm_range.py a b | LINEAR disassembly of a VA range, no early stop | n/a - use for raw ranges |
 | RE_scripts/needle_scan.py | byte-pattern needle search across loaded image | run twice, stable output [caps: needle-search, dump-sweep] |
 | RE_scripts/hash_table_dump.py / hashtable_xref_scan.py | hash->ptr table dump + refs into it (the generalized form is xref_scan.py) | known-entry check |
