@@ -1,10 +1,23 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-04 23:15 PDT, session close). Verdict + deployed + next only.
-Full text: FINDINGS (20.299 is today's close; 20.292-20.298 the stack under it).
+STATUS: live (2026-09-05 11:4x PDT). Verdict + deployed + next only.
+Full text: FINDINGS (20.300 is newest; 20.292-20.299 under it). Session failures:
+docs/postmortems/POSTMORTEM_2026-09-05_THE-REBUILD.md (4 launches lost, 3 to my defects).
 Ops facts (network move, grep hazard, BOM trap) in ENVIRONMENTS.md.
 
-*** 20.299 (session close): P2-177 SOLO HUSK LANE - THE HUSK DID NOT FIRE ON ANY OF
+*** 20.300 (p2-178): THE CREATE IS NEVER ATTEMPTED FOR A FOREIGN RECORD. The rig's loop
+ran 15,745 times, its gates ran 300k-580k times, and memidx_alloc/idx_publish/pb_create
+fired TWICE all session - neither for the peer. So the wall is NOT "builds and fails"; it
+is a BAIL BETWEEN GATE EVALUATION AND ALLOCATION, upstream of creation. This CORRECTS
+20.298's framing. First gate-byte reading ever taken AT a creation call: the mac's record
+in the rig's table reads maskA=1, f38=0x00. DELIVERY VOLUME ELIMINATED (11 peer bodies vs
+2 - identical hang, identical counts). Attribution is now DIRECT (rig = session ...108).
+The rig hang is PRE-EXISTING (identical on the old client). MY R1 RE-ARM DID NOT FIRE:
+threshold 8 was unreachable - exactly one ack follows a withdrawal, because the client
+never acks a peer-bearing body. Ack-counting cannot drive a re-arm; a different trigger
+(time or revision churn) is needed. ***
+
+*** 20.299: P2-177 SOLO HUSK LANE - THE HUSK DID NOT FIRE ON ANY OF
 THREE TRIGGERS (landing / orbit round-trip / character switch). H4 NEGATIVE: it has NO
 KNOWN TRIGGER, and that must be solved before the lane is briefed again. 3,774 creates
 COMPLETED solo with ent_recv AND ent_header at ZERO throughout - corroborating 20.296's
@@ -64,38 +77,31 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
    logs      RE_output/logs/20260904_220846_p2-176-runA (the run), plus
              ..._203945_p2-176-aborted-network and ..._215841_p2-176-attempt2-macspin.
 
-## NEXT - ONE REBUILD UNBLOCKS BOTH LANES. Nothing else is measurable until it ships.
-  *** THE REBUILD (4 changes, one build, no new fronts) ***
-   R1 clear `peerWithdrawn` on acknowledgement (activity_membership_push.cpp:384 block).
-      Prereq for ANY sustained-peer-row run; without it every finite cap latches off and
-      cap 0 reproduces the p2(111) body storm. (20.298 R7)
-   R2 log session-id <-> member-key together. Right now "which session is the rig's" is
-      INFERRED; one line closes it and it gates every attribution claim. (20.298 R2)
-   R3 a GATE-BYTE PROBE FIRED FROM THE CREATION PATH (pb_create/ent_make), not from the
-      participant walk. Without it f38 cannot be observed when it matters. (20.299 R2)
-   R4 definition.h:117's stale variant comment (pin=4 is all_mask, "it froze"). (20.298 R6)
-   GATE BEFORE DEPLOY: verify_hook_rvas.py on R3's new hook; replay R3's trigger over the
-   p2-177 log as a fixture BEFORE booting (the rule POSTMORTEM_2026-09-01 yielded and
-   that 20.299 R2 broke).
+## NEXT - the front moved UPSTREAM of creation. No boot is needed for the top item.
+  1. *** THE STATIC QUESTION, still unanswered, still free: WHAT WRITES BIT 4 OF
+     participant_record+0x38? *** If nothing in the binary writes it, the cond5 theory is
+     dead and FRONT_chain-to-a-moving-guardian.md gets rewritten. Approaches, best first:
+     the 0x2AC0-stride record's CONSTRUCTOR (a constructor names its own flags);
+     callers.py out from the readers 0x1404DD470 / guard 0x141703910; dump_search for any
+     nonzero +0x38 anywhere in dump_p2146.dmp. NOT field_xref 0x38 (offset ubiquitous,
+     disp8 not disp32, its ff/x hits are indirect CALLs misclassified as RMW).
+  2. NEW AND BETTER-POSED (20.300 R1): WHERE DOES THE LOOP BAIL? It reaches its gates
+     (gate1 301,904 calls, returning 0x1) but reaches memidx_alloc only twice. The bail
+     sits between gate evaluation and allocation. Static: read create_loop 0x13086E0's
+     body between the gate calls and the allocator call.
+  3. THE RE-ARM NEEDS A DIFFERENT TRIGGER (20.300 R5). Ack-counting cannot work - the
+     ack signal carries no information about the peer. Consider elapsed time or revision
+     churn. Do NOT just lower the threshold to 1: that re-arms on the solo body's ack,
+     which is what the original sticky flag deliberately avoided.
+  4. OPEN DEBT: the image_set hang is WORKED AROUND, NOT UNDERSTOOD (hook disabled; front
+     parked). If it was the game function and not our detour, the condition still exists.
+  5. The rig's initial_slice_set_loading hang is pre-existing and now the single biggest
+     blocker to any paired visual. Likely the SAME event as the never-completing loop.
 
-  AFTER THE REBUILD, in order:
-   1. PAIRED, sustained row: re-run p2-176 run A's contract with R1 live. The claim-state
-      wall (FRONT_chain-to-a-moving-guardian.md) becomes measurable for the first time.
-   2. THE ONE STATIC QUESTION, still unanswered and boot-free: WHAT WRITES BIT 4 OF
-      participant_record+0x38? Approaches in the front page (constructor first; callers.py
-      out from 0x1404DD470 / 0x141703910; dump_search for any nonzero +0x38 anywhere).
-      NOTE: field_xref.py 0x38 is the WRONG tool (offset ubiquitous, disp8 not disp32,
-      its `ff /x` hits are indirect CALLs misclassified as RMW).
-   3. BLACK SCREEN: confirm the suspect cheaply - set publish_player_profile=FALSE solo
-      and see whether the screen goes black. One flip, one solo launch. If it does, the
-      husk's trigger may be downstream of it and the husk lane reopens with a trigger.
-   4. HUSK LANE: BLOCKED on a trigger (20.299 R1) AND on R3. Do not brief it before both.
-
-  DO NOT: re-brief the husk without a trigger and a creation-path probe; read a duplicate
-  participant record as a husk (20.299 R3e - user visual refuted it); read `wire_snapshot
-  peer=N` as "a row was sent" (it is havePeer); read pool=0x0 as a hang; trust a recursive
-  `grep` under RE_build/ or RE_output/ (use /usr/bin/grep); write rig configs with
-  PowerShell Set-Content -Encoding UTF8 (BOM); modify the client.
+  DO NOT: read "the loop churns" as "creates are attempted" (20.300 R1); tune the re-arm
+  threshold and re-boot; ship a build change without replaying its own trigger over a
+  recorded log (3 of 4 changes in the last build skipped it - see the postmortem);
+  trust recursive `grep` under RE_build/ or RE_output/ (use /usr/bin/grep); modify client.
 
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
