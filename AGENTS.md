@@ -48,6 +48,7 @@ AGENTS.md) - never in any tool-private memory store. That rule never drifts.
 | docs/handoffs/HANDOFF_2026-08-28_L9-RENDER.md | superseded by ADMISSION | historical: the L9 render front |
 | docs/handoffs/HANDOFF_2026-08-27_ROAD-C.md | superseded by L9-RENDER | historical: how road C was opened and closed |
 | docs/handoffs/HANDOFF_2026-08-27_LAYER-SHIFT.md | superseded by ROAD-C | historical context for the scope shift |
+| docs/TOOLING_AUDIT_2026-09-05.md | live | INSTRUMENT DEFECTS, ranked by (silence x cost). READ BEFORE TRUSTING A TOOL'S NULL RESULT or refining the harness. Tier 1 = tools that returned a confident WRONG answer (the shadowed `grep`; needle_scan's hardcoded path; field_xref labelling indirect CALLs as writes; verify_hook_rvas checking declarations not installations). Tier 2 = gates that PASSED when they should have failed (gate_boot cannot tell if a brief's decisive read is possible; nothing enforces a prior-art check). Plus 5 missing instruments - the trigger-replay harness is the top one |
 | RE_output/claims/lane-brief-template.md | lane contract | spawning any lane |
 | INCIDENT_2026-08-25_false-loops.md | closed incident | failure/silence investigation |
 | POSTMORTEM_2026-08-31_THE-EMPTY-MASK-LOOP.md | closed postmortem | HOW ~8 BOOTS WENT TO A NON-BLOCKER: a return code read as a state, and 8 more mechanisms. Written for a workflow-fixing session; read before briefing any multi-boot front |

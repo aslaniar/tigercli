@@ -1,12 +1,14 @@
 # POSTMORTEM - THE REBUILD SESSION: FOUR LAUNCHES LOST, THREE TO ME
 
-STATUS: closed (2026-09-05). Covers 2026-09-04 evening through 2026-09-05 midday:
+STATUS: closed (2026-09-05, updated after 20.301). Covers 2026-09-04 evening
+through 2026-09-05 midday:
 the p2-176/177/178 arc, the 4-change rebuild, and every failure in between.
 Read BEFORE writing or changing a client hook, and before shipping any build.
 
 ## THE TALLY, STATED PLAINLY
 
 Launches consumed: ~9. Launches that produced a measurement: 3.
+Boots briefed against a front the corpus had already closed: 2 (see FAILURE 5).
 Of the 6 lost: 2 to environment (network move), 1 pre-existing (rig hang), and
 3 TO DEFECTS I INTRODUCED OR SHIPPED. That ratio is the subject of this document.
 
@@ -72,9 +74,46 @@ is unknown. If the hang was in the game function rather than our detour, disabli
 hook removes the observation, not the hang. Recorded in the source with re-enable
 conditions. THIS IS OPEN DEBT, not a fixed bug.
 
-## THE PATTERN ACROSS ALL FOUR
+## FAILURE 5 - THE BIGGEST ONE: I RE-MEASURED A FRONT THAT WAS ALREADY CLOSED
+## (cost: 3 findings, 2 paired boots, one whole analysis document)
 
-Every one is the same shape: A CHANGE SHIPPED WITHOUT ITS OWN NEGATIVE TEST.
+20.260 (2026-09-02, NO BOOT SPENT) had already read the creation loop, measured its
+gate 2 on BOTH machines across THREE boots, and concluded verbatim:
+    "The loop is not the peer path and never could be."
+20.221 R2 had said it first: "0x1413086E0 is the LOCAL-PLAYER build path... the whole
+'why doesn't the loop create the peer' framing is answered: IT IS NOT SUPPOSED TO."
+
+I then spent 20.298, 20.299 and 20.300 measuring that same loop in increasing detail,
+briefed two paired boots around it (p2-176, p2-178), and wrote
+FRONT_chain-to-a-moving-guardian.md on top of it - a 237-line analysis whose central
+premise ("the wall is the claim state, gated by participant+0x38") was refuted by the
+corpus before I opened the file. 20.301 retracts it.
+
+WHY IT HAPPENED, precisely:
+  - I entered the front through STATE's headline and the most recent findings (20.292+)
+    and reasoned FORWARD from there. The refutation lived ~2,000 lines earlier in the
+    same file, under a finding number I never looked at.
+  - `bash RE_scripts/q.sh <term>` exists for exactly this - one-name recall over the
+    indexes - and I did not run it once. Not for "0x818", not for "creation loop", not
+    for "0x1413086E0". The tool that would have surfaced 20.260 in one command was in
+    the router I had read that morning.
+  - The user's own instinct ("you're likely looking at the wrong thing") was the trigger
+    that finally sent me to the source. That should not be the mechanism.
+  - NOTHING IN THE WORKFLOW FORCED A PRIOR-ART CHECK. gate_boot.py enforces brief
+    SECTIONS; nothing enforces "has this question already been answered".
+
+WHAT IT COST vs WHAT IT BOUGHT: the boots were not worthless - they produced the first
+ATTRIBUTED foreign-peer measurement, eliminated delivery volume, and closed the
+attribution gap. But every one of those was framed against a wall that does not exist,
+and the framing is what a reader inherits.
+
+THE RULE: BEFORE OPENING OR RE-OPENING A FRONT, RUN q.sh ON ITS CENTRAL ADDRESS AND ITS
+CENTRAL NOUN, AND READ EVERY HIT. A front is not "open" because the newest findings talk
+about it; it is open because nothing in the corpus closes it.
+
+## THE PATTERN ACROSS ALL FIVE
+
+Failures 1-4 are one shape: A CHANGE SHIPPED WITHOUT ITS OWN NEGATIVE TEST.
   - the BOM: no byte-0 check after writing
   - the array: no check that the guard would have failed before the fix
   - the re-arm: no replay of its trigger over recorded data
@@ -113,7 +152,13 @@ conclusion published before the producing code was read.
    (the receive path is remote-only) and refuted the other half (it is ONE create loop),
    which is more useful than agreement.
 
-## THE ONE-LINE LESSON
+Failure 5 is a different and more expensive shape: WORK STARTED WITHOUT A PRIOR-ART
+CHECK. It cost more than the other four combined, and no gate in this project would
+have caught it.
 
-Ship no change without the test that would have caught it failing - and when a build
-carries four changes, that means four tests, not one.
+## THE TWO ONE-LINE LESSONS
+
+1. Ship no change without the test that would have caught it failing - and when a build
+   carries four changes, that means four tests, not one.
+2. Open no front without running q.sh on its central address and its central noun. The
+   corpus answering a question is worth more than any boot measuring it again.
