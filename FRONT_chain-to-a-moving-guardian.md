@@ -1,5 +1,16 @@
 # FRONT - THE CHAIN FROM WHAT WORKS TO A MOVING GUARDIAN
 
+STATUS: *** PREMISE RETRACTED 2026-09-05 by FINDINGS 20.301. *** This page was built on
+"the creation loop fails to build the peer, gated by cond5 / participant+0x38". BOTH
+halves are wrong: the creation loop NEVER READS that byte (cond5 belongs to the
+reconcile/release sweep), and the loop is SELF-ONLY BY CONSTRUCTION - settled at 20.260
+(2026-09-02) and 20.221 R2 before this page was written. It is not the peer path and
+never could be. The +0x38 writer hunt is CANCELLED.
+WHAT SURVIVES: the client-sourced convention list, the local-vs-remote asymmetry note,
+the husk section, and the three-structures warning. WHAT REPLACES IT: peers must ARRIVE
+by SERVER-MEDIATED replication on the gameplay plane (UDP 30976) - the receive cluster
+logs zero because nothing ever sends it a peer entity (20.301 R5). Read 20.301 first.
+Original header follows.
 STATUS: live (2026-09-04 23:xx, opened after 20.298). A forward walk from the last
 fully-working link to the end goal: a peer's guardian RENDERED and MOVING IN SYNC on
 both clients. Theories are labelled with the CONVENTION that motivates them and the
