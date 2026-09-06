@@ -1,6 +1,31 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-06 03:3x PDT). Verdict + deployed + next only.
+STATUS: live (2026-09-06 ~15:10 PDT). Verdict + deployed + next only.
+Full text: FINDINGS (the evening arc banked in
+HANDOFF_2026-09-06_EVENING-CHANNEL.md - READ THAT FIRST; session failures:
+docs/postmortems/POSTMORTEM_2026-09-06_THE-BLIND-GUARD.md - FOUR instrument
+defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
+
+*** p2-192/193/194 (the evening's front): THE SESSION-TO-CONNECTION
+## BINDING SOLVED TO THE SECOND CHECK. VERIFIED CHAIN: (1) the join gate walks
+## the container of the packet's OWN connection ([ctx+0x28], disasm-verified)
+## - the fork's relays now go on the ENGINE association
+## (relay_join_engine_channel=true, wire-proven channel=engine); (2) the gate's
+## LOOKUP MATCHES (key=forkSession vs blob=forkSession, match=1, measured
+## twice, p2-193a/b); (3) the gate STILL refused - the found-path carries a
+## SECOND check: [found_slot+0x1AEF8] must be 6..9 (the session-state window;
+## 6=LIVE HOSTED) or the identical "unknown session" refusal text fires
+## (the join gate's disasm). THE REMAINING AMBIGUITY: the matched slot's
+## +0x1AEF8 value vs the sessstate probe's state=6 reading - one instrument
+## (the walker's leave-probe) from resolution. NEXT: the bisect (572ca7c2 on
+## both machines = the proven-landing pair), then the walk-return readout ONE
+## verified change at a time. THE MAC'S LANDING BROKE ON 3d95a375/d5ed2ae3
+## (the last two builds) - the mac has 572ca7c2 restored; the rig is on
+## d5ed2ae3. THE SESSION'S OWN DEBT: four instrument defects shipped under
+## boot pressure (guard / hash / dual detour / hot-path cost) - all documented
+## in the postmortem; the user took the machine back ("the dog doesn't clean
+## up its own mess" - restore the playable state first, debug with gates).
+
 Full text: FINDINGS (20.309 is newest; 20.292-20.308 under it). Session failures:
 docs/postmortems/POSTMORTEM_2026-09-05_THE-REBUILD.md (4 launches lost, 3 to my defects).
 Ops facts (network move, grep hazard, BOM trap) in ENVIRONMENTS.md. Instrument
@@ -179,30 +204,22 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
   20.295 p2-174: the client READS the row's character field; knob is SOLO-ONLY.
   20.294 eventType not the routing key; wire->image CLOSED at the queue interior.
 
-## DEPLOYED (2026-09-06 00:1x - after p2-189; the wide binding instruments)
-   NETWORK   the mac is on ETHERNET 192.168.1.7 (its join identity caches the
-             stale .164 in the first pair - the decoder now accepts either);
-             the rig 192.168.1.136. Server bind/relay/advertised/transport
-             derive from settings.json.
-   server    4b94d56a063c9534: the identity-decoder fix (either-pair selfcheck,
-             p2-188) + the retarget mechanism (arm 3 pending) + the machine-id
-             table; settings relay_join_target_identity=false (byte-verbatim;
-             arm 3 = the next flip).
-             Settings: relay_peer_join=true, duty 30000, retry_cap=10,
-             transport_identity=true, profile=true, world_population=true
-             (carrier 17), self_peer_row=false, sweep=false.
-   clients   BOTH 307586da4bb7e0ac (the p2-189 build: 64 targets — binder1/
-             binder2/cof_index/cof_soid/walk_map/apply_stamp + the widened
-             sesscmp; preflight PASS 13/0/0; instruments.json recorded).
-   rollback  client .bak_p2d7_20260906_001746 (mac) / _001800 (rig);
-             settings .bak_p2-188_retarget; server build in
-             RE_build/Sunrise-fork-inventory/build (git-uncommitted tree).
-   logs      RE_output/captures/<stamp>_p2-188b (both landings archived);
-             RE_output/logs/20260905_2338xx archives per deploy;
-             .../20260905_220623_p2-187-sesscmp and earlier p2-18x archives
-             (logq BROKEN until merge_timeline is fixed; raw grep -a stands).
-   dumps     RE_output/dumps/p2-180-transition (rig-side only; pulls corrupt 2/2
-             - scan rig-side), p2-179-hang (same).
+## DEPLOYED (2026-09-06 ~15:10 - the banked state after the evening arc)
+   NETWORK   mac 192.168.1.7 (ethernet; identity caches the stale .164 -
+             the decoder accepts either); rig 192.168.1.136.
+   server    acbb62af4a3ca133 RUNNING (settings relay_join_engine_channel=true,
+             relay_peer_join=true, relay_join_target_identity=false (the
+             verbatim key is the measured match), retry_cap=10, duty 30000;
+             backup .bak_p2-192_dtls).
+   clients   mac 572ca7c2fc02ada3 RESTORED (the proven-landing build;
+             d5ed2ae3f12e42fb saved as .bak_d5ed2ae3_150906).
+             rig d5ed2ae3f12e42fb (backs: .bak_p2d7_20260906_144204=5313eb03).
+             BISECT FIRST: 572ca7c2 on both = the proven-landing pair.
+   server bak .bak_p2d6_<14:0x stamp>; client baks on both machines hold the
+             evening's builds (572ca7c2/3d95a375/0687f/5313eb03 lineage).
+   logs      RE_output/logs/<today's stamps>; the auto-archives + the p2-190
+             baseline archive (RE_output/logs/20260906_114917).
+
 
 ## NEXT - THE SESSION-TO-CONNECTION BINDING (20.318..20.320, the measured blocker):
 ##  the join's lookup walks 6 machine-context slots bound to SMALL-INDEX sessions

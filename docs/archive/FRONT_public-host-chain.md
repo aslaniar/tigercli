@@ -1,7 +1,10 @@
 # FRONT: the public-host chain - what must be true for two clients to share one host
 
-STATUS: live (2026-08-27 ~1x:xx, opened by the road-C decision). Owns the detail
-behind STATE's "road C" line. Supersedes nothing; retires when link L4 closes.
+STATUS: SUPERSEDED 2026-09-06 by FRONT_peer-render-chain.md (the project's tracking
+chart). Opened 2026-08-27 by the road-C decision; road 3's client-host premise was
+made moot by 20.311 (the sessions already exist; the blocker is the connection-layer
+join delivery, not host election). The L1-L9 chain and its marks stand as the record
+of what road C proved; nothing here is a live front.
 
 Road C = the SERVER is the group-session host, both clients join IT, and the host
 publishes one membership snapshot naming both. Chosen over A (peer-native Steam

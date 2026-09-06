@@ -1,6 +1,6 @@
 # FRONT — THE PEER-RENDER CHAIN (pinned chart; update after every boot or static verdict)
 
-STATUS: live (2026-09-06, after p2-189). This is the project's tracking chart.
+STATUS: live (2026-09-06, after p2-194b + the evening decode). This is the project's tracking chart.
 Update protocol: after every boot or static finding, re-mark the rows and bump
 the STATUS date. Each row's fact must carry its evidence token. The user reads
 this instead of re-deriving session narratives.
@@ -13,91 +13,118 @@ this instead of re-deriving session narratives.
 | 2 | Client builds the peer's record; identity byte-exact | DONE | verified-by-log/dump (20.309) |
 | 3 | Live hosted session exists (machinery precondition) | DONE | verified-by-execution (p2-182: state 6, sids 0/1, BOTH machines) |
 | 4 | Peer's records enter the session candidate list | RUNNING | verified-by-log (p2-182: add_candidates from 0x141769CFC, per session) |
-| 5 | **JOIN REQUEST arrives on the connection layer** | 🟡 **everything up to the lookup DONE (delivery ✓, version gate ✓, record ✓, walker decoded ✓, retarget mechanism ✓). p2-189 MEASURED (both machines): the gate's walked six slots are bound to SMALL-INDEX sessions {0,-1,1,-1,-1,2}, one NAMED BY THE MACHINE'S OWN JOINID (binder2's stack args = the joinId; binder ctx pointers = the walked slots; cof chain captured). The relayed join's key must equal the RECIPIENT'S JOINID = retarget ARM 3 (the fork holds the live value; the rewrite machinery is built). The session-apply is NOT the landing blob's writer (open site). sesscmp caller-discrimination works; per-caller budgets = the one instrument fix. Parameters road closed; connect-family = pure transport (id 8 dropped OOB). Next: arm 3 boot + the binder-trigger correlation** | verified-by-execution (p2-183..189) + verified-by-reading (20.319/20.320) |
+| 5 | **JOIN REQUEST passes the connection-layer gate** | 🟡 **TWO OF THREE CHECKS PASS. (1) THE CHANNEL IS FIXED: the join gate (0x1416E0460) loads the walker's container from [ctx+0x28] of the packet's OWN connection (disasm-verified), so the relay must ride the association whose connection object holds the bound sessions - the ENGINE association, not the OOB datagram whose container is nearly empty. relay_join_engine_channel=true, SHIPPED, channel=engine wire-proven. (2) THE LOOKUP MATCHES: on the engine channel the relayed join's key (the verbatim fork sessionId) matched a walked slot's blob, match=1, MEASURED TWICE (p2-193a/b, gate-chain caller 0x17944FA). (3) THE GATE STILL REFUSES - and the found-path carries a SECOND check the decode had missed until 09-06: [found_slot+0x1AEF8] must be in {6,7,8,9} (the session-state window, 6 = LIVE HOSTED) or the SAME 'unknown session' refusal text fires (0x1416E04B6: add ecx,-6 / cmp ecx,3 / ja -> the not-found refuse block). THE AMBIGUITY: walk_map read the matched slot (slot2) at st=6 - INSIDE the passing window - while join_processor (hooked at the gate's own found-path callee 0x1417806C0) stayed at calls=0. Either (a) +0x1AEF8 differs at the refusal walk from the landing walk, or (b) the matched walks were another consumer of the shared walker and the gate's own walk missed. ONE INSTRUMENT SEPARATES THEM: the walker's LEAVE probe (its return value = the gate's own lookup decision, attributed)** | verified-by-execution (p2-192a, p2-193a/b) + verified-by-reading (the join gate's full disasm) |
 | 6 | Reserve -> admit -> adoption completes for the peer | DECODED, waits on 5 | verified-by-reading (20.108 end-to-end) |
 | 7 | Ladder climbs to connected (4,5) | DECODED, unproven | verified-by-reading (establishment-decode.md; gate = ladder==5) |
 | 8 | Guard + receiver object | DECODED, unobserved | verified-by-reading (20.279/20.287; receiver zero in every measured state) |
 | 9 | Entity message encodes + sends | SPEC-COMPLETE, 1 unknown | verified-by-femu (contract + payloads; outer wire type open, 20.303 R4) |
 | 10 | Entity renders and moves | NOT YET | the last link; positive control = the local player (20.53) |
 
-## HOW TO READ ROW 5 (the front, after p2-189)
+## HOW TO READ ROW 5 (after the evening of 2026-09-06)
 
-p2-183 delivered the join bytes OOB (the join's native channel) and the
-client's own join gate RAN. p2-184 measured the gate's first check (the
-"nonce" = the PROTOCOL VERSION — passes). p2-186's identity fix at +152 is
-hash-valid and stays. p2-187 measured the lookup's one-qword compare LIVE.
-20.319 (static) decoded the gate's walker completely and CLOSED the
-parameters road (OOB id 38 = the default stub = silent drop). p2-188/188b
-proved the retarget mechanism live (arm 1's value refuted; the identity
-decoder fixed and proven). 20.320's decode identified the BINDERS as the
-binding chokepoints; p2-189's six new instruments captured them live on
-BOTH machines: the gate's walked six slots are bound to small-index
-sessions {0, -1, 1, -1, -1, 2}, one named by THE MACHINE'S OWN JOINID
-(binder2's stack args, byte-exact vs each machine's admit line), and the
-binder context pointers match the walked slots exactly. THE CONSEQUENCE:
-the relayed join's sessionId must equal the RECIPIENT'S CURRENT JOINID —
-retarget arm 3, the first arm whose key value is proven inside the gate's
-walked records on both machines.
+The front moved further on 09-06 than in the prior week, and the remaining
+wall is ONE READOUT wide. Read it as three checks in series:
 
-## WHAT EACH ROW 5+ SUCCESS LOOKS LIKE (updated at p2-189 close)
+  CHANNEL   the relayed join must arrive on the connection whose [ctx+0x28]
+            container holds the bound sessions. DONE - the engine association
+            (relay_join_engine_channel=true; channel=engine on the wire).
+  LOOKUP    the walker must find a slot whose identity blob equals the join's
+            sessionId. DONE - match=1, measured twice (p2-193a/b), verbatim
+            key, gate-chain caller 0x17944FA.
+  STATE     the found slot's [+0x1AEF8] must be 6..9. UNRESOLVED - the field
+            read 6 on the matched slot at the LANDING walk, yet the processor
+            never ran. This is the whole of row 5's remaining wall.
+
+DO NOT RE-WALK (each was closed by measurement, not by argument):
+  - the retarget VALUE arms (1 = join machine id, 2 = real account key,
+    3 = recipient's joinId) - all three refused, and p2-190c refuted arm 3 by
+    DIRECT measurement of the walked blobs, not just by the refusal line. The
+    verbatim fork sessionId is the key that MATCHES; the value question is
+    settled.
+  - the blob-stamp timing theory (retracted - the container was the variable,
+    not the stamp).
+  - the connect-family handshake (ids 5/6/7/9): PURE TRANSPORT, a 62-slot
+    address-matched connection table; no session binding rides it.
+  - the parameters/OOB-plane road (id 38 = a bare `ret`, a silent drop).
+  - the +0x818 / +0x38-bit-4 hunts and the creation-loop framing (all dead).
+
+THE INSTRUMENT DEBT THAT GATES THE READOUT: the walk-return probe has been
+shipped three times and broken a client twice (duplicate-RVA install froze the
+rig; hot-path read cost stalled the mac's landing). Its four defects and the
+rules they yielded (R1-R8) are in POSTMORTEM_2026-09-06_THE-BLIND-GUARD.md and
+docs/ENFORCEMENT.md. The next version must cost the walker's hot path nothing
+outside the join window.
+
+## WHAT EACH ROW 5+ SUCCESS LOOKS LIKE (updated 2026-09-06, after p2-194b)
 
   join_type0a enter line                 = DONE (p2-183, mac)
-  nonce gate passes                      = DONE (p2-184: 0xA4F8 == 0xA4F8)
-  identity published hash-valid          = DONE (p2-186: +152, both joins completed)
-  the lookup's compare measured live     = DONE (p2-187: key = sessionId)
-  the gate's walked map measured         = DONE (p2-189: walk_map, both
-                                           machines: {0,-1,1,-1,-1,2})
-  the binding events attributed          = DONE (p2-189: binder ctx = the
-                                           walked slots; the key = the
-                                           machine's own joinId)
-  caller-discriminated sess_cmp          = DONE (works; per-caller sub-
-                                           budgets = the one instrument fix)
-  the relayed join matches a walked slot = THE CURRENT BLOCKER -> arm 3
-                                           (sessionId := recipient's
-                                           current joinId; one server value
-                                           change, machinery built)
-  join_processor enter                   = the lookup must pass first
-  join_reserve from 0x14178EA73 (NOT the self-reserve sites) = the join flow
-  admit enter from the join-handler caller                    = the flow runs
-  resv mask gains the container bit + rec leaves (3,4)        = ADOPTION
-  ladder reaches (4,5)                                        = establishment
-  receiver vptr non-zero / ent_recv fires                     = the entity road
+  nonce gate passes (it is the protocol
+    version check, not a nonce)          = DONE (p2-184: 0xA4F8 == 0xA4F8)
+  identity published hash-valid          = DONE (p2-186: offset +152, both
+                                            joins completed)
+  the lookup's compare measured live     = DONE (p2-187: the key IS the
+                                            join's sessionId)
+  the gate's walked map measured         = DONE (p2-189: {0,-1,1,-1,-1,2},
+                                            identical on both machines)
+  the gate's own compare chain visible   = DONE (p2-190c: the alignment fix -
+                                            callers 0x17944FA / 0x1794520)
+  the relay lands on the right channel   = DONE (p2-192a: channel=engine)
+  the relayed join MATCHES a walked slot = DONE (p2-193a/b: match=1, twice)
+  --------------------------------------------------------------------
+  the walker's RETURN attributed         = THE CURRENT BLOCKER - the leave
+    (MISS / FOUND-LIVE / FOUND-STATE-OUT)  probe on 0x14177A0B0, armed by the
+                                            join packet so the hot path pays
+                                            nothing outside the window
+  join_processor enter                   = the state check must pass first
+  join_reserve from 0x14178EA73
+    (NOT the self-reserve sites)         = the join flow is running
+  admit enter from the join-handler      = the flow completes
+  resv mask gains the container bit
+    and the record leaves (3,4)          = ADOPTION (row 6)
+  ladder reaches (4,5)                   = ESTABLISHMENT (row 7)
+  receiver vptr non-zero / ent_recv fires = the entity road opens (rows 8-9)
 
-## THE CURRENT BLOCKER (p2-189's measured facts)
+## WHAT THE LEAVE READOUT DECIDES (pre-named, all three branches)
 
-- The gate's walked six slots are bound to SMALL-INDEX sessions {0,-1,1,
-  -1,-1,2} — walk_map captured at the relayed join's refusal, identical on
-  both machines.
-- One of the walked records is NAMED BY THE MACHINE'S OWN JOINID: binder2's
-  stack args carry it verbatim on both machines (mac 0x59ED107102C1F335 /
-  rig 0x587CDBAF44D4D2AB — each matching its own admit line exactly), and
-  cof_soid granted the index (2) for that key. p2-187's census separately
-  measured a record whose blob = the machine's joinId (key=joinId vs
-  blob=joinId, match=1).
-- THEREFORE: retarget arm 3 — the relayed join's sessionId := the
-  recipient's current joinId (the fork holds the live value on every
-  admitted row; the membership machinery refuses updates that do not echo
-  it). Arm 1 (machine id) dead; arm 2 (the real account key) fallback.
-- The connect-family handshake (ids 5/6/7/9) is PURE TRANSPORT (a 62-slot
-  connection table, 0x41F0 stride, address-matched; channel/sequence
-  negotiation only) — no session binding rides it, and OOB id 8 (establish)
-  is silently dropped. The binding happens in the two BINDER functions;
-  the runtime trigger is inside the VM-obfuscated ring (the correlation
-  question for the next capture).
-- The session-apply is NOT the landing-session blob's writer (apply_stamp
-  fired once, early, into a static config object) — the copier walk is the
-  remaining suspect for that open site.
-- The mac's parked render-black recurrence: the client stays alive,
-  segment 2 reaches region-forced and never fade_release (sharper marker
-  than previously recorded); the rig spawned fine on the identical build.
-- The game's own refusal is greppable in every future boot:
+  MISS             -> the gate's walk uses a DIFFERENT container than the rich
+                      one; attribute via the container-id lines (live since
+                      p2-191) and the fix moves back to delivery.
+  FOUND-LIVE       -> the state check passes and the refusal comes from DEEPER
+                      than the decode reaches; next decode = 0x1417806C0's own
+                      body (capacity vs [pkt+8], flags [pkt+4]).
+  FOUND-STATE-OUT  -> the fork-side fix is making the forkSession-named session
+                      reach state 6+; p2-182 proved sessions reach 6 organically,
+                      so this is a sequencing problem, not a missing mechanism.
+
+## THE CURRENT BLOCKER (measured facts, 2026-09-06 evening)
+
+- The join gate 0x1416E0460, read line by line: (1) word[pkt+0] vs
+  0x1416C1260() - the protocol version, PASSES; (2) call 0x14177A0B0 with
+  rcx = [rdi+0x28] (mov rcx,[rdi+0x28] at 0x1416E04A4, call at 0x1416E04AC) -
+  the walker over the ARRIVING CONNECTION's six session slots; (3) on a hit,
+  0x1416E04B6: add ecx,-6 / cmp ecx,3 / ja 0x1416E04D7 - the state window,
+  branching into the SAME refuse block as not-found, which is why both
+  failures print identical text; (4) otherwise call 0x1417806C0, the processor.
+- The walker's 35 consumers all sit in the connection-layer receive region
+  (0x1416CD300..0x1416E13DA) plus 0x14175B8F0; the receive pump climbs into the
+  VM-obfuscated ring, which is where the framing/reachability question ends.
+- The gate's identity blobs are at [rec+0x57C] (bit 4 of [rec+4] set) or
+  [rec+0x94E] - DELIBERATELY UNALIGNED fields, which is what blinded the
+  observer for five boots.
+- The session binders bind slot objects' [+0x1C7C0] through the init-time
+  context manager 0x14175E520 plus the VMP ring; container objects are
+  per-connection and DIFFER between the client's associations - that fact is
+  the whole reason the channel mattered.
+- The landing-session blob's writer is still an OPEN SITE: apply_stamp proved
+  the session apply is NOT it (one firing, early, into a static config
+  object); the copier walk 0x1416E2350 is the remaining suspect.
+- The game prints its own refusal, greppable in every boot:
   "networking:messages:join-request: received message for an unknown session
-  ... sending back a refusal" (the session field renders as two reversed
-  dword groups — decode before comparing).
-- THE NEXT DECODE: the connect-family handlers (OOB ids 5/6/7/9 ->
-  0x1417D3010/0x1417D4590/0x1417D27B0/0x1417D1A90) — what binds sessions
-  into the receiving connection's context. Arm 2 (the real account key as
-  the retarget value) is the fallback fix, not the next move.
+  ... sending back a refusal" - the session field renders as two reversed
+  dword groups, so decode before comparing.
+- PARKED DEBT, now causally interesting: the mac's co-presence render-black
+  (client stays alive, segment 2 reaches region-forced and never fade_release;
+  the rig's connection event is its sharpest trigger correlation).
 
 ## FAIL MODES BANKED (all resolved, with their resolutions)
 
