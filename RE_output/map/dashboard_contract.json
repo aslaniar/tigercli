@@ -2,6 +2,11 @@
   "front": "the peer-adoption condition: the membership conversation that makes the client believe a peer is present (push -> include/pace -> gain), which precedes any creation attempt",
   "updated": "2026-09-06",
   "note": "edit this file when the front moves; the dashboard renders whatever is declared and flags it stale when STATE.md has newer verdicts",
+  "bootflow": {
+    "order": ["character_select", "slice_set", "profile_setup", "composition",
+              "orbit_handoff", "join_ready", "owner_slot", "region",
+              "world_step", "spawn_hold", "fade_release"]
+  },
   "counters": [
     {"name": "peer rows included", "why": "the peer's row was included in a membership body the client received", "source": "server", "match": "stage=membership_peer result=included"},
     {"name": "peer rows paced", "why": "the duty-cycle is pacing peer-row pushes (the landing fix)", "source": "server", "match": "stage=membership_peer result=paced"},

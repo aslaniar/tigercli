@@ -65,10 +65,17 @@ SSH_OPTS = ["-o", "ControlPath=" + os.path.expanduser("~/.ssh/cm-rig"),
 ADMIN = "http://192.168.1.7:8099"
 ADMIN_LOOPBACK = "http://127.0.0.1:8099"
 
-# boot-cycle stages in the order the client first walks them; the LANE is
-# drawn from the OBSERVED first-seen order of the current segment (never from
-# this list), this list only names the restart trigger
+# boot-cycle stages in the order the client first walks them (corpus-derived,
+# p2-175..179 archives); the LANE renders this pinned pipeline for every boot
+# (all stages visible: reached / current / not-yet), and the session can
+# correct the order in dashboard_contract.json ("bootflow.order") without
+# touching code. Stages outside this list append dynamically so nothing hides.
+DEFAULT_BOOTFLOW_ORDER = ["character_select", "slice_set", "profile_setup",
+                          "composition", "orbit_handoff", "join_ready",
+                          "owner_slot", "region", "world_step", "spawn_hold",
+                          "fade_release"]
 RESTART_STAGE = "character_select"
+_bootflow_order = list(DEFAULT_BOOTFLOW_ORDER)  # rebound by the contract file
 LATE_STAGES = {"orbit_handoff", "join_ready", "owner_slot", "region",
                "world_step", "spawn_hold", "fade_release"}
 
@@ -204,22 +211,26 @@ class SegmentScanner:
         self.stages.append((t, stg))
         self.segment_stages.add(stg)
 
-    def summary(self, now_t=None, source_age=None):
+    def summary(self, now_t=None, source_age=None, order=None):
+        """Render the PINNED pipeline: every known stage is always visible
+        (reached / current / not-yet), so the lane never re-shuffles mid-boot
+        and a segment reset never hides stages. Unknown stages append."""
+        order = order or DEFAULT_BOOTFLOW_ORDER
+        first_seen = {}
+        for t, s in self.stages:
+            if s not in first_seen:
+                first_seen[s] = t
         current = self.stages[-1][1] if self.stages else None
-        cur_t = self.stages[-1][0] if self.stages else None
+        cur_t = first_seen.get(current)
         dwell = None
         if current and cur_t is not None and now_t is not None:
             dwell = now_t - cur_t
-        first_seen = []
-        for _t, s in self.stages:
-            if s not in first_seen:
-                first_seen.append(s)
-        return {"lane": [{"stage": s,
-                          "t": next((t for t, st2 in self.stages if st2 == s),
-                                    None)} for s in first_seen],
-                "current": current, "dwell_ms": dwell,
-                "bootflow_last_t": self.last_t,
-                "stale": source_age}
+        lane = [{"stage": s, "t": first_seen.get(s)} for s in order]
+        for s in first_seen:  # stages outside the pinned list append
+            if s not in order:
+                lane.append({"stage": s, "t": first_seen[s]})
+        return {"lane": lane, "current": current, "dwell_ms": dwell,
+                "bootflow_last_t": self.last_t, "stale": source_age}
 
 
 _file_scanners = {name: SegmentScanner(name) for name in ("mac", "server")}
@@ -368,9 +379,13 @@ def contract_stale(cfg):
 
 
 def bind_contract():
+    global _bootflow_order
     cfg = load_contract()
     if not cfg:
         return None
+    order = (cfg.get("bootflow") or {}).get("order")
+    if isinstance(order, list) and len(order) >= 2:
+        _bootflow_order = order
     pats = {src: [] for src in ("mac", "server", "rig")}
     for c in cfg.get("counters", []):
         src = c.get("source", "server")
@@ -487,8 +502,10 @@ def api_now():
             if r.get("attached") == "0"]
     out = {
         "server": st, "identity": identity(),
-        "lanes": {"mac": sc_mac.summary(now_t["mac"], age["mac"]),
-                  "rig": sc_rig.summary(now_t["rig"]),
+        "lanes": {"mac": sc_mac.summary(now_t["mac"], age["mac"],
+                                        order=_bootflow_order),
+                  "rig": sc_rig.summary(now_t["rig"],
+                                        order=_bootflow_order),
                   "segment": {"mac": len(sc_mac.stages),
                               "rig": len(sc_rig.stages)}},
         "contract": {"declared": bool(cfg), "front": (cfg or {}).get("front"),
@@ -572,7 +589,9 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 .lane .who { font-weight:bold; }
 .lane .stages { display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-top:3px; }
 .st { padding:1px 7px; border-radius:4px; border:1px solid var(--edge); font-size:11px; }
-.st.done { color:var(--dim); } .st.cur { color:#fff; background:#1f6feb; border-color:#1f6feb; }
+.st.done { color:var(--fg); background:#1c2430; border-color:#39414d; }
+.st.off { color:#555f6e; border-color:#232a33; background:transparent; opacity:.75; }
+.st.cur { color:#fff; background:#1f6feb; border-color:#1f6feb; }
 .st.stuck { color:var(--err); border-color:var(--err); }
 .counters { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; }
 .cnt { border:1px solid var(--edge); border-radius:6px; padding:8px; text-align:center; }
@@ -708,19 +727,25 @@ function warnShape(raw){ return raw.replace(/t=\d+/g,"t=N").replace(/\d{6,}/g,"N
 
 function renderLane(name, bf, fresh){
   var wrap = el("div","lane");
-  var label = name + (fresh ? "" : "  (last boot - source idle)");
-  var who = el("div"); who.appendChild(el("span","who src-"+name, label));
-  if (bf.current) who.appendChild(el("span","muted", "  now: "+bf.current));
+  var who = el("div");
+  who.appendChild(el("span","who src-"+name, name + (fresh ? "" : "  (last boot - source idle)")));
+  if (bf.current){
+    who.appendChild(el("span","muted","  now: "+bf.current
+      + (bf.dwell_ms!==null ? " ("+Math.round(bf.dwell_ms/1000)+"s)" : "")));
+  }
   wrap.appendChild(who);
   var row = el("div","stages");
-  if (!bf.lane.length){ row.appendChild(el("span","muted","no bootflow in this segment yet")); }
-  bf.lane.forEach(function(st, i){
-    var isCur = st.stage===bf.current;
+  // PINNED pipeline: every stage always renders (reached / current / not-yet)
+  // so the lane never re-shuffles mid-boot - the de-render/re-render bug
+  bf.lane.forEach(function(st){
+    var reached = st.t !== null && st.t !== undefined;
+    var isCur = st.stage === bf.current;
     var stuck = isCur && fresh && bf.dwell_ms!==null && bf.dwell_ms>120000;
-    var cls = "st "+(isCur ? (stuck ? "stuck" : "cur") : "done");
+    var cls = "st " + (isCur ? (stuck ? "stuck" : "cur") : (reached ? "done" : "off"));
     var txt = st.stage + (isCur && bf.dwell_ms!==null ? " ("+Math.round(bf.dwell_ms/1000)+"s)" : "");
-    row.appendChild(el("span",cls,txt));
-    if (i < bf.lane.length-1) row.appendChild(el("span","muted","-"));
+    var sp = el("span",cls,txt);
+    if (reached) sp.title = "entered t="+st.t;
+    row.appendChild(sp);
   });
   wrap.appendChild(row);
   return wrap;
