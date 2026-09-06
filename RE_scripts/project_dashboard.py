@@ -554,18 +554,6 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
   <span id="alignedchip" class="chip dim">clocks: per-source (not aligned)</span>
   <span id="clock" class="chip dim"></span>
 </div>
-<div class="grid">
-  <div class="panel"><h2>Bootflow lanes <span class="muted" id="lanehost"></span></h2><div id="lanes" class="muted">...</div></div>
-  <div class="panel"><h2>Contract <span class="muted" id="contractmeta"></span></h2>
-       <div id="contractfront" class="muted"></div><div id="contract" class="muted">...</div></div>
-  <div class="panel"><h2>Wire census <span class="muted">(type= counts this boot)</span></h2><div id="census" class="muted">...</div></div>
-</div>
-<div class="grid">
-  <div class="panel"><h2>Instruments</h2><div id="instruments" class="muted">...</div></div>
-  <div class="panel"><h2>Pairing</h2><div id="pairing" class="muted">...</div></div>
-  <div class="panel"><h2>Warnings <span class="muted">(deduped by shape)</span></h2><div id="warns" class="muted">...</div>
-       <div id="health" class="muted" style="margin-top:8px"></div></div>
-</div>
 <div class="panel">
   <h2>Live logs
     <span class="controls" style="float:right">
@@ -580,6 +568,18 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
     </span>
   </h2>
   <div id="logbox"></div>
+</div>
+<div class="grid">
+  <div class="panel"><h2>Bootflow lanes <span class="muted" id="lanehost"></span></h2><div id="lanes" class="muted">...</div></div>
+  <div class="panel"><h2>Contract <span class="muted" id="contractmeta"></span></h2>
+       <div id="contractfront" class="muted"></div><div id="contract" class="muted">...</div></div>
+  <div class="panel"><h2>Wire census <span class="muted">(type= counts this boot)</span></h2><div id="census" class="muted">...</div></div>
+</div>
+<div class="grid">
+  <div class="panel"><h2>Instruments</h2><div id="instruments" class="muted">...</div></div>
+  <div class="panel"><h2>Pairing</h2><div id="pairing" class="muted">...</div></div>
+  <div class="panel"><h2>Warnings <span class="muted">(deduped by shape)</span></h2><div id="warns" class="muted">...</div>
+       <div id="health" class="muted" style="margin-top:8px"></div></div>
 </div>
 <script>
 "use strict";
@@ -772,7 +772,10 @@ function pollTail(){
         if (!sd.lines.length && !sd.error) kids.push(el("div","muted","  (no lines match)"));
       });
       box.replaceChildren.apply(box, kids);   // one atomic swap - no blink
-      if (document.getElementById("follow").checked) box.scrollTop = box.scrollHeight;
+      if (document.getElementById("follow").checked){
+        SUPPRESS_SCROLL = true;
+        box.scrollTop = box.scrollHeight;
+      }
       var ages = [];
       for (var s in d.sources){ var sd=d.sources[s]; ages.push(s+": "+(sd.error?"ERR":(sd.age===null?"?":sd.age+"s"))); }
       document.getElementById("srcages").textContent = ages.join(" | ");
@@ -794,6 +797,17 @@ function pollHealth(){
 document.getElementById("filter").addEventListener("input", pollTail);
 document.getElementById("levelsel").addEventListener("change", pollTail);
 document.getElementById("nlinesel").addEventListener("change", pollTail);
+// scrolling up = the user wants history: drop out of follow automatically
+// (and re-engage when they return to the bottom). The suppress flag keeps
+// the programmatic follow-scroll from being read as a user scroll.
+var SUPPRESS_SCROLL = false;
+box.addEventListener("scroll", function(){
+  if (SUPPRESS_SCROLL){ SUPPRESS_SCROLL = false; return; }
+  var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  var follow = document.getElementById("follow");
+  if (!atBottom && follow.checked) follow.checked = false;
+  else if (atBottom && !follow.checked) follow.checked = true;
+});
 setInterval(function(){ if(document.getElementById("follow").checked) pollTail(); pollNow(); }, 2000);
 setInterval(pollHealth, 60000);
 pollTail(); pollNow(); pollHealth();
