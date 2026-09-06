@@ -571,7 +571,11 @@ class Rig(object):
         except (AttributeError, unicorn.UcError):
             pass
 
-    def call(self, addr, args, max_insn=MAX_INSN_DEFAULT, wmem=None):
+    def call(self, addr, args, max_insn=MAX_INSN_DEFAULT, wmem=None,
+             stack_args=None):
+        """stack_args (2026-09-06, femu_decode): 5th+ MS-x64 args, pushed as
+        [ret, pad, pad, pad, pad, arg5, ...] per the ent-cluster calling
+        convention (femu_ent_header_final.py's call5). None = unchanged."""
         res = EmuResult()
         self.last_result = res
         self.trace.clear()
@@ -584,7 +588,12 @@ class Rig(object):
             for a, data in wmem:
                 self.write_vm(a, data)
         rsp = self.stack_top
-        self.write_vm(rsp, struct.pack("<Q", RET_MAGIC))
+        if stack_args:
+            frame = [RET_MAGIC, 0, 0, 0, 0] + [a & 0xFFFFFFFFFFFFFFFF
+                                               for a in stack_args]
+            self.write_vm(rsp, struct.pack("<%dQ" % len(frame), *frame))
+        else:
+            self.write_vm(rsp, struct.pack("<Q", RET_MAGIC))
         self.uc.reg_write(UC_X86_REG_RSP, rsp)
         try:
             self.uc.emu_start(addr, RET_MAGIC, 0, max_insn)

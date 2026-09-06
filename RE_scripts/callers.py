@@ -51,6 +51,11 @@ def owner_of(pe, table, begins, site):
     hops, cur = 0, (begin, end, unwind)
     while hops < 8:
         info = pe.read(BASE + cur[2], 4)
+        if info is None:
+            # unwind RVA unreadable in the file image (struct_view's first
+            # real-data run hit this on a .pdata entry whose unwind bytes are
+            # not in any raw section) - degrade loudly, never crash
+            return "NO-PDATA-ENTRY (unwind RVA 0x%X unreadable)" % cur[2]
         flags = (info[0] >> 3) & 0x1F
         if not flags & 0x4:
             break
