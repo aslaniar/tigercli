@@ -61,6 +61,19 @@ def main() -> int:
         for e in t.entries:
             if e.rva and e.name:
                 table_entry_vas.add(IMAGE_BASE + e.rva)
+    # CROSS-TABLE duplicate-RVA reject (09-06 BLIND-GUARD DEFECT 4: walk_leave
+    # shipped as a second row on walk_map's RVA - dual detours on one function
+    # start froze the rig client; the per-table check above cannot see it)
+    from hook_targets import duplicate_rva_problems, raw_lines_around
+    dup_probs = duplicate_rva_problems(
+        tables, raw_reader=lambda path, lineno: raw_lines_around(path, lineno))
+    # (a second, waiver-BLIND call used to overwrite the result on the next line -
+    #  a leftover from before DUAL-OK: support landed, which made this tool the only
+    #  one of the three that could never honor a waiver. hook_targets and
+    #  probe_audit both pass the raw_reader.)
+    for p in dup_probs:
+        print(f"  ** {p}")
+    table_bad += len(dup_probs)
     print(f"TARGETS TABLE: {n_entries - table_bad}/{n_entries} entries verified, "
           f"{table_bad} bad")
 
