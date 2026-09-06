@@ -33,11 +33,18 @@ defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 ## until the setter returns true; "THE CLIENT CYCLES STAGES 0..5 ONLY". p2-195
 ## matches it exactly - the fork's session is parked at the TOP of that range.
 ## Full text: RE_output/claims/connection-layer-join-delivery.md sections 11-13.
-## PARKED DEBT RECURRED, now sharper: the mac's render-black happened on a SOLO
-## landing this boot (rig not yet up), segment 2 reaches `region result=forced
-## native=0 answer=1` and never fade_release; the client stays alive and keeps
-## logging; a subclass swap did NOT fix it. Previously correlated with the rig's
-## connection event - that correlation is now REFUTED as necessary. ***
+## PARKED DEBT - AND IT IS TWO DISTINCT FAILURES, NOT ONE (user, 2026-09-06):
+##   VARIANT A (SOLO, never-spawn): the mac never spawns in at all; a subclass
+##     swap does NOT fix it. Segment 2 reaches `region result=forced native=0
+##     answer=1` and never fade_release; the client stays alive and keeps
+##     logging. THIS BOOT (p2-195) was variant A.
+##   VARIANT B (CO-PRESENCE, post-spawn): the mac is ALREADY spawned and moving
+##     when the screen goes black, and it is triggered by the RIG launching to
+##     the tower. This is the variant the rig-connection correlation belongs to,
+##     and that correlation STANDS.
+## Do not merge these two in any future note: they differ in when they strike
+## (before vs after spawn), in whether a subclass swap helps, and in whether a
+## second machine is required at all. ***
 
 *** 2026-09-06 LATE (STATIC, NO BOOT): ROW 5'S WALL IS NAMED - THE MATCHED
 ## SLOT IS SLOT5 AND ITS STATE IS 4, NOT 6. The join gate was disassembled to

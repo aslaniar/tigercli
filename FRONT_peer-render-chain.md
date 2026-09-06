@@ -133,9 +133,17 @@ one walked container. Its addresses stand; its framing needs a pass.
   "networking:messages:join-request: received message for an unknown session
   ... sending back a refusal" - the session field renders as two reversed
   dword groups, so decode before comparing.
-- PARKED DEBT, now causally interesting: the mac's co-presence render-black
-  (client stays alive, segment 2 reaches region-forced and never fade_release;
-  the rig's connection event is its sharpest trigger correlation).
+- PARKED DEBT - TWO DISTINCT RENDER-BLACK FAILURES (user, 2026-09-06), never to
+  be merged into one note:
+    VARIANT A - SOLO, PRE-SPAWN: the mac never spawns in at all, and a subclass
+      swap does NOT fix it. Segment 2 reaches `region result=forced native=0
+      answer=1` and never fade_release; the client stays alive and keeps logging.
+      p2-195 was this variant, with the rig not yet up.
+    VARIANT B - CO-PRESENCE, POST-SPAWN: the mac is ALREADY spawned and moving
+      when the screen goes black, and the trigger is the RIG launching to the
+      tower. The rig-connection correlation belongs to B and STANDS.
+  They differ in when they strike (before vs after spawn), in whether a subclass
+  swap helps, and in whether a second machine is needed at all.
 
 ## FAIL MODES BANKED (all resolved, with their resolutions)
 
