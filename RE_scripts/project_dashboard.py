@@ -41,6 +41,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from collections import deque
 from datetime import datetime
@@ -145,6 +146,7 @@ class SegmentScanner:
     def __init__(self, name):
         self.name = name
         self.offset = 0
+        self.segment_seq = 0  # bumped on every segment reset (snapshot sync)
         self.stages = []            # (t, stage) for the current segment
         self.segment_stages = set()  # distinct stages seen this segment
         self.type_counts = {}
@@ -156,6 +158,7 @@ class SegmentScanner:
         self.contract_patterns = []  # [(name, pattern)] per source
 
     def reset(self, reason):
+        self.segment_seq += 1
         self.stages = []
         self.segment_stages = set()
         self.type_counts = {}
@@ -255,6 +258,49 @@ _rigbf_cache = {"ts": 0.0, "lines": []}
 _rig_tail_cache = {"ts": 0.0, "data": None}
 _rig_hostname = {"ts": 0.0, "name": None}
 _scanner_pid = {"server": None}
+_segments_dir = ROOT / "RE_output/dashboard/segments"
+_SNAPSHOT_CAP = 25 * 1024 * 1024  # keep segment snapshots bounded
+
+
+def snapshot_path(src):
+    return _segments_dir / f"{src}.log"
+
+
+def append_snapshot(src, text, reset_seq=None):
+    """Append freshly-read lines to the source's CURRENT-SEGMENT snapshot
+    (the file merge_timeline re-anchors over). A segment reset truncates the
+    snapshot: the new cycle starts clean. The reset lands mid-chunk, so the
+    boundary chunk is dropped (seconds of lines) - anchors re-form quickly
+    and the alternative is re-parsing the chunk byte-offset, not worth it."""
+    try:
+        _segments_dir.mkdir(parents=True, exist_ok=True)
+        p = snapshot_path(src)
+        if reset_seq is not None:
+            st = _snapshot_seq.setdefault(src, 0)
+            if reset_seq != st:
+                with open(p, "w", encoding="utf8") as fh:
+                    fh.write(text)
+                _snapshot_seq[src] = reset_seq
+                _snapshot_gen[src] = _snapshot_gen.get(src, 0) + 1
+                return
+        if p.exists() and p.stat().st_size > _SNAPSHOT_CAP:
+            with open(p, "rb") as fh:
+                fh.seek(-_SNAPSHOT_CAP // 2, 2)
+                keep = fh.read().decode("utf8", errors="replace")
+            with open(p, "w", encoding="utf8") as fh:
+                fh.write(keep)
+        with open(p, "a", encoding="utf8") as fh:
+            fh.write(text)
+    except OSError:
+        pass
+
+
+_snapshot_seq = {}
+_snapshot_gen = {}  # bumped on truncation/rewrite; drift validity keys on this
+
+
+def snapshot_gens():
+    return tuple(_snapshot_gen.get(s, 0) for s in ("mac", "server", "rig"))
 
 
 def file_now_t(path):
@@ -279,7 +325,8 @@ def source_age(path):
 
 
 def scan_file_source(name, path):
-    """Feed only the NEW bytes of an append-only log to its scanner."""
+    """Feed only the NEW bytes of an append-only log to its scanner, and
+    mirror them into the current-segment snapshot file."""
     sc = _file_scanners[name]
     try:
         size = path.stat().st_size
@@ -292,8 +339,11 @@ def scan_file_source(name, path):
         with open(path, "rb") as fh:
             fh.seek(sc.offset)
             chunk = fh.read(size - sc.offset).decode("utf8", errors="replace")
+        seq_before = sc.segment_seq
         sc.offset = size
         sc.feed(chunk)
+        append_snapshot(name, chunk,
+                        reset_seq=sc.segment_seq if sc.segment_seq != seq_before else None)
     return sc
 
 
@@ -584,11 +634,148 @@ def api_now():
         "ts": datetime.now().isoformat(timespec="seconds")}
     type_seen_save()
     return out
+# ----------------------------------------------------- live wire alignment
+
+_align_state = {"ts": 0.0, "sig": None, "running": False}
+
+
+def _snapshot_sig():
+    sig = []
+    for src in ("mac", "server", "rig"):
+        p = snapshot_path(src)
+        try:
+            st = p.stat()
+            sig.append((src, st.st_size, int(st.st_mtime)))
+        except OSError:
+            sig.append((src, -1, -1))
+    return tuple(sig)
+
+
+def refresh_rig_snapshot():
+    """The rig snapshot is a fetch (not append-only): rewrite it wholesale.
+    Gen bump only when the CONTENT actually changed (a static rig log must
+    not invalidate the drift every cycle)."""
+    d = rig_tail(4000)
+    if d["error"] and not d["lines"]:
+        return
+    try:
+        _segments_dir.mkdir(parents=True, exist_ok=True)
+        body = "\n".join(d["lines"]) + "\n"
+        p = snapshot_path("rig")
+        old = p.read_text(encoding="utf8") if p.exists() else ""
+        if old != body:
+            with open(p, "w", encoding="utf8") as fh:
+                fh.write(body)
+            _snapshot_gen["rig"] = _snapshot_gen.get("rig", 0) + 1
+    except OSError:
+        pass
+
+
+def maybe_realign(force=False):
+    """Re-run merge_timeline over the three current-segment snapshots when
+    any of them changed (background thread; the API only reads results)."""
+    now = time.time()
+    if _align_state["running"]:
+        return
+    if not force and now - _align_state["ts"] < 45:
+        return
+    refresh_rig_snapshot()
+    sig = _snapshot_sig()
+    if not force and sig == _align_state["sig"]:
+        _align_state["ts"] = now  # nothing changed; skip quietly
+        return
+    _align_state["running"] = True
+    try:
+        subprocess.run(
+            ["/usr/bin/python3", str(ROOT / "RE_scripts/merge_timeline.py"),
+             f"--server-log=server={SRV_LOG}",
+             f"--client-log=mac={snapshot_path('mac')}",
+             f"--client-log=rig={snapshot_path('rig')}",
+             "--out", str(ROOT / "RE_output/dashboard/merge")],
+            capture_output=True, text=True, timeout=420)
+        # record the segment generations this merge was computed over; the
+        # view is valid only while the generations still match (a reset or a
+        # NEW appends do NOT invalidate - clocks do not shift on appends)
+        meta = {"gens": list(snapshot_gens()), "computed": time.time()}
+        (ROOT / "RE_output/dashboard/merge.meta.json").write_text(
+            json.dumps(meta), encoding="utf8")
+        _align_state["sig"] = sig
+        _align_state["ts"] = time.time()
+    except Exception:
+        _align_state["ts"] = time.time()  # retry after the cadence
+    finally:
+        _align_state["running"] = False
+
+
+def alignment_view():
+    """@return (aligned, meta): the merged chronology is USABLE while the
+    segment generations are unchanged since the merge (appends are fine -
+    clock offsets only break on a segment RESET)."""
+    prefix = ROOT / "RE_output/dashboard/merge"
+    meta_p = Path(str(prefix) + ".meta.json")
+    jsonl = Path(str(prefix) + ".jsonl")
+    if not meta_p.exists() or not jsonl.exists():
+        return False, None
+    try:
+        m = json.loads(meta_p.read_text(encoding="utf8"))
+        if list(m.get("gens", [])) != list(snapshot_gens()):
+            return False, None
+        drift = json.loads(Path(str(prefix) + ".drift.json").read_text(encoding="utf8"))
+        offsets = {}
+        for s in drift.get("sources", []):
+            label = (s.get("source") or "?").split("/")[0]
+            offsets[label] = s.get("offset_ms")
+        if any(v is None for v in offsets.values()):
+            return False, None  # honest: a source with no anchor stays native
+        meta = {"reference": drift.get("reference"),
+                "generated": drift.get("generated_iso"),
+                "offsets": offsets,
+                "age_s": round(time.time() - m.get("computed", time.time()), 1)}
+        return True, meta
+    except Exception:
+        return False, None
+
+
+def read_merged_tail(n, flt, level):
+    """Last rows of the merged chronology (jsonl is unified-t sorted, so the
+    file tail IS the newest window)."""
+    p = ROOT / "RE_output/dashboard/merge.jsonl"
+    rows = []
+    try:
+        with open(p, "rb") as fh:
+            fh.seek(0, 2)
+            size = fh.tell()
+            fh.seek(max(0, size - n * 700))
+            for line in fh.read().decode("utf8", errors="replace").splitlines():
+                try:
+                    r = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                raw = r.get("raw", "")
+                if flt and flt not in raw.lower():
+                    continue
+                if level != "all" and f"level={level}" not in raw:
+                    continue
+                rows.append({"src": (r.get("source", "?") or "?").split("/")[0],
+                             "tu": r.get("unified_t_ms"),
+                             "t": r.get("t_native"), "line": raw.rstrip()})
+        rows = rows[-n:]
+    except OSError:
+        pass
+    return rows
+
+
 def api_tail(args):
     n = min(int(args.get("n", ["300"])[0]), 1200)
     flt = (args.get("filter", [""])[0] or "").lower()
     level = args.get("level", ["all"])[0]
     want = (args.get("sources", ["mac,rig,server"])[0] or "mac,rig,server").split(",")
+    aligned, meta = alignment_view()
+    if aligned:
+        rows = read_merged_tail(max(n * 4, 1200), flt, level)
+        rows = [r for r in rows if r["src"] in want][-n:]
+        return {"aligned": True, "rows": rows, "drift": meta,
+                "sources": {}, "ts": datetime.now().isoformat(timespec="seconds")}
     out = {}
     for src, path in (("mac", MAC_LOG), ("server", SRV_LOG)):
         if src not in want:
@@ -608,13 +795,8 @@ def api_tail(args):
             out[src]["lines"] = [l for l in out[src]["lines"]
                                  if f"level={level}" in l]
         out[src]["count"] = len(out[src]["lines"])
-    return {"sources": out, "aligned": False,
+    return {"sources": out, "aligned": False, "drift": meta,
             "ts": datetime.now().isoformat(timespec="seconds")}
-
-
-def parse_line(raw):
-    kv = dict(KV_RE.findall(raw))
-    return raw.rstrip()
 
 
 def warn_shape(raw):
@@ -755,13 +937,13 @@ function swapIfChanged(id, build){
   if (host.__sig !== sig){ host.__sig = sig; host.textContent = ""; while (tmp.firstChild) host.appendChild(tmp.firstChild); }
 }
 
-function fmtRow(src, raw){
+function fmtRow(src, raw, tu){
   var kv = {}, m, re=/\b([A-Za-z_][A-Za-z0-9_.-]*)=([^\s]+)/g;
   while ((m = re.exec(raw)) !== null) kv[m[1]] = m[2];
   var d = el("div","lr");
   d.appendChild(el("span","src-"+src, "["+src+"] "));
-  var tm = raw.match(/\bt=(\d+)/);
-  d.appendChild(el("span","muted", (tm ? "t="+tm[1]+" " : "")));
+  var tm = tu !== undefined && tu !== null ? String(tu) : (raw.match(/\bt=(\d+)/) || [])[1];
+  d.appendChild(el("span","muted", (tm ? "t="+tm+" " : "")));
   if(kv.level==="warn"||kv.level==="error") d.appendChild(el("span","f-lvl-"+kv.level, kv.level+" "));
   if(kv.ev) d.appendChild(el("span","f-ev","ev="+kv.ev+" "));
   if(kv.stage) d.appendChild(el("span","f-stage","stage="+kv.stage+" "));
@@ -944,19 +1126,23 @@ function pollTail(){
     if (srcs.length && srcs.length < 3) q += "&sources="+srcs.join(",");
     return fetch("/api/tail.json"+q).then(function(r){return r.json();}).then(function(d){
       var kids = [];
-      var shown = srcs.length ? srcs : [];
-      if (!shown.length){
-        kids.push(el("div","muted","all sources hidden - toggle one back on above"));
+      if (d.aligned){
+        d.rows.forEach(function(r){ kids.push(fmtRow(r.src, r.line, r.tu)); });
+        if (!d.rows.length) kids.push(el("div","muted","  (no lines match)"));
+        var dr = d.drift || {};
+        chipText("alignedchip", "clocks: ALIGNED (ref="+dr.reference+", computed "+dr.age_s+"s ago)", "ok");
+      } else {
+        ["mac","rig","server"].forEach(function(src){
+          var sd = d.sources[src];
+          if (!sd) return;
+          var head = el("div","blkhead src-"+src, src + (sd.error ? " - "+sd.error : " ("+sd.count+" lines)")
+            + (sd.age!==null && sd.age!==undefined ? "  last write "+sd.age+"s ago" : ""));
+          kids.push(head);
+          sd.lines.forEach(function(raw){ kids.push(fmtRow(src, raw)); });
+          if (!sd.lines.length && !sd.error) kids.push(el("div","muted","  (no lines match)"));
+        });
+        chipText("alignedchip", "clocks: per-source blocks (not aligned)", "warn");
       }
-      shown.forEach(function(src){
-        var sd = d.sources[src];
-        if (!sd) return;
-        var head = el("div","blkhead src-"+src, src + (sd.error ? " - "+sd.error : " ("+sd.count+" lines)")
-          + (sd.age!==null && sd.age!==undefined ? "  last write "+sd.age+"s ago" : ""));
-        kids.push(head);
-        sd.lines.forEach(function(raw){ kids.push(fmtRow(src, raw)); });
-        if (!sd.lines.length && !sd.error) kids.push(el("div","muted","  (no lines match)"));
-      });
       box.replaceChildren.apply(box, kids);   // one atomic swap - no blink
       if (document.getElementById("follow").checked){
         SUPPRESS_SCROLL = true;
@@ -964,7 +1150,8 @@ function pollTail(){
       }
       var ages = [];
       for (var s in d.sources){ var sd=d.sources[s]; ages.push(s+": "+(sd.error?"ERR":(sd.age===null?"?":sd.age+"s"))); }
-      document.getElementById("srcages").textContent = ages.join(" | ");
+      if (ages.length) document.getElementById("srcages").textContent = ages.join(" | ");
+      else document.getElementById("srcages").textContent = "merged timeline";
     });
   });
 }
@@ -1080,6 +1267,15 @@ def make_handler(port, lan):
     return HTTPServer((bind, port), H)
 
 
+def _align_loop():
+    while True:
+        try:
+            maybe_realign()
+        except Exception:
+            pass
+        time.sleep(15)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     ap.add_argument("--serve", action="store_true")
@@ -1092,6 +1288,7 @@ def main(argv=None):
     httpd = make_handler(args.port, args.lan)
     bind, port = httpd.server_address[:2]
     print(f"project dashboard: http://{bind}:{port}/  (Ctrl-C to stop; read-only)")
+    threading.Thread(target=_align_loop, daemon=True).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
