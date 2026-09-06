@@ -245,40 +245,47 @@ def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
                 continue
             matched.append((t_c, t_s - t_c, s))
             break
-    clusters = []  # {"rows": [(t_c, d, s)], "last": d}
-    # the consecutive-jump threshold is the SAME 10*slack bound as the
-    # internal-spread check: the server logs duplicate copies of each body
-    # (one per client) seconds apart, so a correct lock's deltas legitimately
-    # jitter by seconds row-to-row (observed live: +/-3.5s on the p2-181
-    # windows). A 400ms split shredded one real lock into sub-min_pairs
-    # fragments - the most expensive kind of false negative.
-    jump_limit = 10 * slack_ms
+    # 2026-09-06 (two-client era, per-LEN chains): a body type's push rate
+    # varies wildly (type 12 is rare, type 1 frequent), so the next len-match
+    # for a RARE type can be minutes after its tape row - a wild delta that
+    # shreds any single global cluster. So cluster PER LEN: each len's
+    # matched rows form their own chain (t_client, delta) clustered with the
+    # drift-RATE bound (consecutive rows may move up to 1s of offset per 1s
+    # of elapsed client time - a client stall follows that rule; a random
+    # mislock does not). The best chain (most rows) wins. A chain is
+    # single-size by construction, so min_distinct_sizes does not apply
+    # within it - the received-body-vs-sent-body pairing by size+delta is
+    # itself the anti-mislock guarantee.
+    by_len = {}
     for t_c, d, s in matched:
-        if clusters and abs(d - clusters[-1]["last"]) <= jump_limit:
-            c = clusters[-1]
-            c["rows"].append((t_c, d, s))
-            c["last"] = d
-        else:
-            clusters.append({"rows": [(t_c, d, s)], "last": d})
+        by_len.setdefault(s + size_delta, []).append((t_c, d, s))
     best = None
-    for c in clusters:
-        if len(c["rows"]) < min_pairs:
+    for _ln, rows in sorted(by_len.items()):
+        clusters = []  # {"rows": [(t_c, d, _s)], "last_t": t_c, "last_d": d}
+        for t_c, d, _s in rows:
+            if clusters:
+                c = clusters[-1]
+                dt = max(1, t_c - c["last_t"])
+                if abs(d - c["last_d"]) <= 400 + (dt / 1000.0) * 1000:
+                    c["rows"].append((t_c, d, _s))
+                    c["last_t"], c["last_d"] = t_c, d
+                    continue
+            clusters.append({"rows": [(t_c, d, _s)], "last_t": t_c,
+                             "last_d": d})
+        big = max(clusters, key=lambda c: len(c["rows"]), default=None)
+        if big is None or len(big["rows"]) < min_pairs:
             continue
-        ds = sorted(r[1] for r in c["rows"])
-        sizes = {r[2] for r in c["rows"]}
-        if len(sizes) < min_distinct_sizes:
-            continue
-        spread = ds[-1] - ds[0]
-        if spread > 10 * slack_ms:
-            continue
-        med = ds[len(ds) // 2]
-        robust = ds[(9 * len(ds)) // 10] - ds[len(ds) // 10]
-        cand = (ds, med, spread, robust, len(c["rows"]))
-        if best is None or cand[4] > best[4]:
+        cand = (len(big["rows"]), big["rows"])
+        if best is None or cand[0] > best[0]:
             best = cand
     if best is None:
         return None
-    ds, med, spread, robust, _n = best
+    rows = best[1]
+    ds = sorted(r[1] for r in rows)
+    recent = sorted(r[1] for r in rows[-max(1, len(rows) // 4):])
+    med = recent[len(recent) // 2]
+    spread = ds[-1] - ds[0]
+    robust = recent[-1] - recent[0]
     return ds, med, spread, robust
 
 
