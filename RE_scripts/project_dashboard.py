@@ -651,29 +651,163 @@ def _snapshot_sig():
     return tuple(sig)
 
 
-def refresh_rig_snapshot():
-    """The rig snapshot is a fetch (not append-only): rewrite it wholesale.
-    Gen bump only when the CONTENT actually changed (a static rig log must
-    not invalidate the drift every cycle)."""
-    d = rig_tail(4000)
-    if d["error"] and not d["lines"]:
-        return
+# per-source clock offsets, cached across merges: an offset is a property of
+# the CLIENT PROCESS CLOCK (segment), not of traffic - once anchored for the
+# current segment it stays valid until that segment resets, even when fresh
+# anchors stop flowing (idle Tower, client quit). Keyed by segment gen.
+_clock_offsets = {"mac": None, "server": None, "rig": None}  # {"offset": int, "gen": int}
+WINDOW_MS = 10 * 60 * 1000  # merge windows cover the last 10 wall-minutes
+
+
+def write_merge_window(src, cutoff_t):
+    """The merge window: snapshot lines with t >= cutoff_t (a bounded recent
+    window - the constant-k matcher cannot lock over full history)."""
+    p = snapshot_path(src)
+    out = snapshot_path(src).with_suffix(".window")
     try:
-        _segments_dir.mkdir(parents=True, exist_ok=True)
-        body = "\n".join(d["lines"]) + "\n"
-        p = snapshot_path("rig")
-        old = p.read_text(encoding="utf8") if p.exists() else ""
-        if old != body:
-            with open(p, "w", encoding="utf8") as fh:
-                fh.write(body)
-            _snapshot_gen["rig"] = _snapshot_gen.get("rig", 0) + 1
+        lines = []
+        with open(p, "rb") as fh:
+            fh.seek(0, 2)
+            size = fh.tell()
+            fh.seek(max(0, size - 32 * 1024 * 1024))
+            for raw in fh.read().decode("utf8", errors="replace").splitlines():
+                m = re.search(r"\bt=(\d+)", raw)
+                if m and int(m.group(1)) >= cutoff_t:
+                    lines.append(raw)
+        out.write_text("\n".join(lines) + "\n", encoding="utf8")
+        return out.exists() and out.stat().st_size > 0
+    except OSError:
+        return False
+
+
+def merge_cutoffs():
+    """Per-source cutoff t = now_t - WINDOW_MS in each source's own clock.
+    The SERVER's window must cover the CLIENTS' period, not just its own
+    last 10 minutes: when the clients have closed, their windows freeze at
+    the boot period while the server's clock keeps advancing - a server
+    window of 'its own last 10 min' would hold zero client-era pushes and
+    the anchors would never pair. So the server reaches back to the
+    earliest client-log mtime (its last write) minus the window."""
+    cut = {"mac": None, "server": None, "rig": None}
+    for src, path in (("mac", MAC_LOG), ("server", SRV_LOG)):
+        nt = file_now_t(path)
+        if nt is not None:
+            cut[src] = max(0, nt - WINDOW_MS)
+    try:
+        nt = file_now_t(snapshot_path("rig"))
+        if nt is not None:
+            cut["rig"] = max(0, nt - WINDOW_MS)
     except OSError:
         pass
+    # the server reaches back to its clients' period (see docstring)
+    try:
+        client_mt = min(p.stat().st_mtime for p in
+                        (MAC_LOG, snapshot_path("rig")) if p.exists())
+        srv_now_t = cut["server"]
+        srv_now_wall = SRV_LOG.stat().st_mtime
+        span_wall = max(0.0, srv_now_wall - (client_mt - 600))
+        if srv_now_t is not None:
+            cut["server"] = max(0, srv_now_t - int(span_wall * 1000) - 60000)
+    except OSError:
+        pass
+    return cut
+
+
+_rig_snap_state = {"size": None}
+
+
+def rig_remote_size():
+    try:
+        r = subprocess.run(
+            ["ssh"] + SSH_OPTS + [RIG_HOST,
+             f'powershell -NoProfile -Command "(Get-Item -LiteralPath \'{RIG_LOG}\').Length"'],
+            capture_output=True, text=True, timeout=15)
+        m = re.search(r"(\d+)\s*$", r.stdout.strip())
+        return int(m.group(1)) if m else None
+    except Exception:
+        return None
+
+
+def rig_read_range(start, end):
+    """Read [start, end) bytes of the rig log (byte-offset delta fetch; a
+    live client's log appends, so each cycle pulls only the new tail)."""
+    n = end - start
+    cmd = (f"$fs=[IO.File]::Open('{RIG_LOG}','Open','Read','ReadWrite');"
+           f"$fs.Seek({start},'Begin')|Out-Null;"
+           f"$b=New-Object byte[] {n};"
+           f"$null=$fs.Read($b,0,{n});"
+           f"[Text.Encoding]::UTF8.GetString($b);$fs.Close()")
+    try:
+        r = subprocess.run(
+            ["ssh"] + SSH_OPTS + [RIG_HOST,
+             'powershell -NoProfile -Command "' + cmd + '"'],
+            capture_output=True, text=True, timeout=90)
+        return r.stdout if r.returncode == 0 or r.stdout else None
+    except Exception:
+        return None
+
+
+def refresh_rig_snapshot():
+    """Append-only rig snapshot: first sight (or rotation) pulls the log's
+    last 20 MB wholesale (ONE gen bump); afterwards each cycle appends only
+    the byte delta - a live boot's constant appends must NOT invalidate the
+    clock alignment (only rotations do)."""
+    size = rig_remote_size()
+    if size is None:
+        return
+    _segments_dir.mkdir(parents=True, exist_ok=True)
+    p = snapshot_path("rig")
+    prev = _rig_snap_state["size"]
+    if prev is None or size < prev:
+        start = max(0, size - 20 * 1024 * 1024)
+        body = rig_read_range(start, size)
+        if body is None:
+            return
+        with open(p, "w", encoding="utf8") as fh:
+            fh.write(body)
+        _snapshot_gen["rig"] = _snapshot_gen.get("rig", 0) + 1
+        _rig_snap_state["size"] = size
+    elif size > prev:
+        body = rig_read_range(prev, size)
+        if body is None:
+            return
+        with open(p, "a", encoding="utf8") as fh:
+            fh.write(body)
+        _rig_snap_state["size"] = size
+        if p.stat().st_size > _SNAPSHOT_CAP:  # trim old lines only; clocks unaffected
+            with open(p, "rb") as fh:
+                fh.seek(-_SNAPSHOT_CAP // 2, 2)
+                keep = fh.read().decode("utf8", errors="replace")
+            with open(p, "w", encoding="utf8") as fh:
+                fh.write(keep)
 
 
 def maybe_realign(force=False):
-    """Re-run merge_timeline over the three current-segment snapshots when
-    any of them changed (background thread; the API only reads results)."""
+    """Re-run merge_timeline over bounded recent windows of the snapshots
+    when any of them changed (background thread; the API only reads results).
+    Per-source outcomes: anchored -> cache the offset for that segment gen;
+    native_null -> KEEP the cached offset (the clock did not change just
+    because traffic got quiet).
+    Cross-process lockfile: a manual run and the service thread must never
+    merge concurrently - a window rewrite during another run's read produces
+    empty parses (the 0-anchors race)."""
+    lock = ROOT / "RE_output/dashboard/align.lock"
+    try:
+        fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+    except FileExistsError:
+        return  # another process is aligning
+    try:
+        _maybe_realign_locked(force=force)
+    finally:
+        try:
+            os.unlink(str(lock))
+        except OSError:
+            pass
+
+
+def _maybe_realign_locked(force=False):
     now = time.time()
     if _align_state["running"]:
         return
@@ -684,18 +818,37 @@ def maybe_realign(force=False):
     if not force and sig == _align_state["sig"]:
         _align_state["ts"] = now  # nothing changed; skip quietly
         return
+    # bounded merge windows (the matcher cannot lock over full history)
+    cut = merge_cutoffs()
+    inputs = {}
+    for src in ("mac", "server", "rig"):
+        if write_merge_window(src, cut[src]):
+            inputs[src] = snapshot_path(src).with_suffix(".window")
+    if "server" not in inputs:
+        _align_state["ts"] = now
+        return  # nothing to anchor against
     _align_state["running"] = True
     try:
-        subprocess.run(
-            ["/usr/bin/python3", str(ROOT / "RE_scripts/merge_timeline.py"),
-             f"--server-log=server={SRV_LOG}",
-             f"--client-log=mac={snapshot_path('mac')}",
-             f"--client-log=rig={snapshot_path('rig')}",
-             "--out", str(ROOT / "RE_output/dashboard/merge")],
-            capture_output=True, text=True, timeout=420)
-        # record the segment generations this merge was computed over; the
-        # view is valid only while the generations still match (a reset or a
-        # NEW appends do NOT invalidate - clocks do not shift on appends)
+        cmd = ["/usr/bin/python3", str(ROOT / "RE_scripts/merge_timeline.py"),
+               f"--server-log=server={inputs['server']}"]
+        for src in ("mac", "rig"):
+            if src in inputs:
+                cmd.append(f"--client-log={src}={inputs[src]}")
+        subprocess.run(cmd, capture_output=True, text=True, timeout=420)
+        # cache per-source offsets for the CURRENT segment generation
+        try:
+            drift = json.loads((ROOT / "RE_output/dashboard/merge.drift.json")
+                               .read_text(encoding="utf8"))
+            for s in drift.get("sources", []):
+                label = (s.get("source") or "?").split("/")[0]
+                if label in _clock_offsets:
+                    gen = _snapshot_gen.get(label, 0)
+                    if s.get("offset_ms") is not None:
+                        _clock_offsets[label] = {"offset": s["offset_ms"],
+                                                 "gen": gen}
+                    # native_null: keep the cached offset (clock unchanged)
+        except Exception:
+            pass
         meta = {"gens": list(snapshot_gens()), "computed": time.time()}
         (ROOT / "RE_output/dashboard/merge.meta.json").write_text(
             json.dumps(meta), encoding="utf8")
@@ -708,32 +861,25 @@ def maybe_realign(force=False):
 
 
 def alignment_view():
-    """@return (aligned, meta): the merged chronology is USABLE while the
-    segment generations are unchanged since the merge (appends are fine -
-    clock offsets only break on a segment RESET)."""
-    prefix = ROOT / "RE_output/dashboard/merge"
-    meta_p = Path(str(prefix) + ".meta.json")
-    jsonl = Path(str(prefix) + ".jsonl")
-    if not meta_p.exists() or not jsonl.exists():
+    """@return (ok, meta): PARTIAL alignment - each source with a cached
+    clock offset for its CURRENT segment joins the merged stream; sources
+    without one (never anchored / reset) render as native blocks below it,
+    clearly marked. Requires server + at least one client anchored."""
+    jsonl = ROOT / "RE_output/dashboard/merge.jsonl"
+    if not jsonl.exists():
         return False, None
-    try:
-        m = json.loads(meta_p.read_text(encoding="utf8"))
-        if list(m.get("gens", [])) != list(snapshot_gens()):
-            return False, None
-        drift = json.loads(Path(str(prefix) + ".drift.json").read_text(encoding="utf8"))
-        offsets = {}
-        for s in drift.get("sources", []):
-            label = (s.get("source") or "?").split("/")[0]
-            offsets[label] = s.get("offset_ms")
-        if any(v is None for v in offsets.values()):
-            return False, None  # honest: a source with no anchor stays native
-        meta = {"reference": drift.get("reference"),
-                "generated": drift.get("generated_iso"),
-                "offsets": offsets,
-                "age_s": round(time.time() - m.get("computed", time.time()), 1)}
-        return True, meta
-    except Exception:
-        return False, None
+    offsets, unaligned = {}, []
+    for src in ("mac", "server", "rig"):
+        c = _clock_offsets[src]
+        if c is not None and c["gen"] == _snapshot_gen.get(src, 0):
+            offsets[src] = c["offset"]
+        else:
+            unaligned.append(src)
+    if "server" not in offsets or len(offsets) < 2:
+        return False, None  # a one-source "merge" is not a merge
+    meta = {"reference": "server", "offsets": offsets,
+            "unaligned": unaligned, "generated": None, "age_s": None}
+    return True, meta
 
 
 def read_merged_tail(n, flt, level):
@@ -774,8 +920,29 @@ def api_tail(args):
     if aligned:
         rows = read_merged_tail(max(n * 4, 1200), flt, level)
         rows = [r for r in rows if r["src"] in want][-n:]
+        # unaligned sources render as marked native blocks below the merge
+        out = {}
+        for src in (meta.get("unaligned") or []):
+            if src not in want:
+                continue
+            path = {"mac": MAC_LOG, "server": SRV_LOG}.get(src)
+            if src == "rig" or path is None:
+                r = rig_tail(n)
+                out[src] = {"lines": r["lines"], "age": 0.0 if r["lines"] else None,
+                            "error": r["error"], "unaligned": True}
+            else:
+                lines, age, err = tail_file(path, n)
+                out[src] = {"lines": [l for l in lines if "unavailable" not in l],
+                            "age": age, "error": err, "unaligned": True}
+        for src in out:
+            if flt:
+                out[src]["lines"] = [l for l in out[src]["lines"]
+                                     if flt in l.lower()]
+            if level != "all":
+                out[src]["lines"] = [l for l in out[src]["lines"]
+                                     if f"level={level}" in l]
         return {"aligned": True, "rows": rows, "drift": meta,
-                "sources": {}, "ts": datetime.now().isoformat(timespec="seconds")}
+                "sources": out, "ts": datetime.now().isoformat(timespec="seconds")}
     out = {}
     for src, path in (("mac", MAC_LOG), ("server", SRV_LOG)):
         if src not in want:
@@ -1128,9 +1295,17 @@ function pollTail(){
       var kids = [];
       if (d.aligned){
         d.rows.forEach(function(r){ kids.push(fmtRow(r.src, r.line, r.tu)); });
-        if (!d.rows.length) kids.push(el("div","muted","  (no lines match)"));
         var dr = d.drift || {};
-        chipText("alignedchip", "clocks: ALIGNED (ref="+dr.reference+", computed "+dr.age_s+"s ago)", "ok");
+        var una = dr.unaligned || [];
+        ["mac","rig","server"].forEach(function(src){
+          var sd = d.sources[src];
+          if (!sd || !sd.lines) return;
+          kids.push(el("div","blkhead warn", src + " - NOT ALIGNED (native clock; no wire anchors yet)"));
+          sd.lines.forEach(function(raw){ kids.push(fmtRow(src, raw)); });
+        });
+        if (!d.rows.length && !una.length) kids.push(el("div","muted","  (no lines match)"));
+        chipText("alignedchip", "clocks: ALIGNED (" + Object.keys(dr.offsets||{}).join("+")
+          + (una.length ? " | " + una.join("+") + " native" : "") + ")", "ok");
       } else {
         ["mac","rig","server"].forEach(function(src){
           var sd = d.sources[src];

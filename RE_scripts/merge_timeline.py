@@ -204,7 +204,7 @@ def typed_tapes(entries):
 
 
 def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
-                     min_pairs=5, min_distinct_sizes=5):
+                     min_pairs=5, min_distinct_sizes=3):
     """
     New-era pairing (client lines lack type=; server outnumbers client ~12:1
     because it logs pushes for every session/client). Monotone subsequence
@@ -212,7 +212,9 @@ def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
     (in time order) whose len == size + size_delta, accepting a candidate only
     if its time delta clusters with the running median. Guards against silent
     wrong locks: the matched set must cover >= min_distinct_sizes DISTINCT
-    sizes (a periodic-keepalive mislock matches mostly one size) and the final
+    sizes (a periodic-keepalive mislock matches mostly one size; 3 since
+    2026-09-06 - quiet two-client boots carry 3-4 distinct body sizes and the
+    tight-spread + running-median checks still guard the lock) and the final
     spread must be tight. Returns (deltas, med, spread, robust) or None.
     NOT a port of the old positional path; used only when type pairing fails.
     """
@@ -223,6 +225,7 @@ def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
     j = 0
     n_p = len(pushes)
     running = None
+    unmatched_tail = 0
     for t_c, _ty, s in tapes:
         if s is None:
             continue
@@ -230,6 +233,7 @@ def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
         while j < n_p and pushes[j][0] < t_c:
             j += 1
         k = j
+        matched = False
         while k < n_p:
             t_s, _ty2, ln = pushes[k]
             if ln != target:
@@ -241,7 +245,17 @@ def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
                 used_sizes.add(s)
                 running = sorted(deltas)[len(deltas) // 2]
                 j = k + 1
+                matched = True
             break
+        if not matched:
+            # 2026-09-06: the FRESHEST tape rows may legitimately have no
+            # matching server push yet (the server's own push log can lag or
+            # carry a different line shape late in a session - observed live
+            # on the p2-181 window). One unmatched tail row used to abort the
+            # whole lock, discarding ~150 good pairs. Skip it; the
+            # running-median cluster check still guards the matched set.
+            unmatched_tail += 1
+            continue
     if len(deltas) < min_pairs or len(used_sizes) < min_distinct_sizes:
         return None
     deltas.sort()
@@ -376,13 +390,23 @@ def solve_offset(src, ref):
     else:
         return None, drift  # no verified family for this combination
     got = align_newest_first(a_rows, b_rows)
+    sign = +1  # offset sign convention: med = t_src - t_ref for (a=src rows)
+    # 2026-09-06 (two-client era): the constant-k tail-shift scan is
+    # ASYMMETRIC - with the server outnumbering each client ~6:1 in the
+    # window, the (client-tapes, server-pushes) orientation cannot lock
+    # (the true pairing needs a shift that grows per row), while
+    # (pushes, tapes) locks. Try both; keep the better; negate the offset
+    # when the swapped orientation won (its med is t_push - t_tape).
+    got_swapped = align_newest_first(b_rows, a_rows)
+    if got_swapped is not None and (got is None or got_swapped[1] > got[1]):
+        got, sign = got_swapped, -1
     offset = None
     if got is not None:
         k, n, med, spread, robust, type_mode = got
         drift.update({"family": family, "anchor_k_tail_skip": k,
-                      "anchor_pairs": n, "offset_ms": med,
+                      "anchor_pairs": n, "offset_ms": sign * med,
                       "spread_ms": spread, "robust_spread_ms": robust})
-        offset = med
+        offset = sign * med
     elif family == "wire_tape_push":
         # new-era grammar: typeless client rows, ~12:1 server/client volume ->
         # positional pairing cannot apply; use the monotone size-window match.
