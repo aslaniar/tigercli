@@ -337,12 +337,31 @@ def main(argv):
                     out = subprocess.run(
                         [sys.executable, str(vr)],
                         capture_output=True, text=True, timeout=300)
+                    # T1.4: the TABLE count is the true "hooks installed"
+                    # number; the constants-scan count is the fallback.
+                    tm = re.search(r"TARGETS TABLE: (\d+)/(\d+) entries "
+                                   r"verified, (\d+) bad", out.stdout)
                     m2 = re.search(r"(\d+) hook RVAs checked, (\d+) bad", out.stdout)
-                    if not m2:
-                        warnings.append("could not parse verify_hook_rvas "
-                                        "output - run it directly and compare "
-                                        f"to HOOK COUNT {n_declared}")
-                    else:
+                    if tm:
+                        verified, declared, tbad = (int(tm.group(1)),
+                                                    int(tm.group(2)),
+                                                    int(tm.group(3)))
+                        if tbad:
+                            problems.append(
+                                f"hook TARGETS TABLE bad ({tbad} problem(s)): "
+                                "declared-size/initializer mismatch or null "
+                                "entry - run verify_hook_rvas.py directly "
+                                "(T1.4 / 09-05 FAILURE 2)")
+                        elif verified != n_declared:
+                            problems.append(
+                                f"HOOK COUNT MISMATCH: brief declares "
+                                f"{n_declared}, the install table verifies "
+                                f"{verified}/{declared} entries - the verifier "
+                                "silently skips rva==0 entries, so a "
+                                "value-initialised table entry shrinks the "
+                                "count (09-05 FAILURE 2: the RVA-0 login "
+                                "crash)")
+                    elif m2:
                         checked, bad = int(m2.group(1)), int(m2.group(2))
                         if checked != n_declared:
                             problems.append(
@@ -357,6 +376,10 @@ def main(argv):
                                 f"verify_hook_rvas FAIL ({bad} bad, "
                                 f"rc={out.returncode}) - run it directly for "
                                 "the offending RVAs")
+                    else:
+                        warnings.append("could not parse verify_hook_rvas "
+                                        "output - run it directly and compare "
+                                        f"to HOOK COUNT {n_declared}")
                 except subprocess.TimeoutExpired:
                     warnings.append("verify_hook_rvas timed out (300s) - run "
                                     "it directly and compare to HOOK COUNT "

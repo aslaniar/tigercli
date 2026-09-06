@@ -68,8 +68,34 @@ OPCODES = {
     0x84: ("test r/m8, r8", "read"),
     0x85: ("test r/m, r", "read"),
     0xFE: ("inc/dec r/m8", "RMW"),
-    0xFF: ("inc/dec/call r/m", "RMW"),
+    0xFF: ("inc/dec/call/jmp r/m", "RMW"),
 }
+
+# T1.3 (TOOLING_AUDIT): the 0xFF group is FOUR different instructions picked by
+# ModRM.reg - `ff /2` is `call qword [reg+d]`, a VTABLE DISPATCH, never a write.
+# Labeling it RMW nearly produced "nothing writes +0x38" from a scan that could
+# not have seen a writer. reg 0/1 = inc/dec (RMW); 2 = CALL; 3 = call far;
+# 4/5 = jmp; 6 = push. 0xFE only defines reg 0/1 (inc/dec r/m8).
+def ff_group(modrm):
+    reg = (modrm >> 3) & 7
+    if reg in (0, 1):
+        return ("inc/dec r/m", "RMW")
+    if reg == 2:
+        return ("call qword [r/m]", "CALL-INDIRECT")
+    if reg == 3:
+        return ("call far [m]", "CALL-INDIRECT")
+    if reg in (4, 5):
+        return ("jmp [r/m]", "JMP-INDIRECT")
+    if reg == 6:
+        return ("push [r/m]", "read")
+    return None
+
+
+def fe_group(modrm):
+    reg = (modrm >> 3) & 7
+    if reg in (0, 1):
+        return ("inc/dec r/m8", "RMW")
+    return None
 
 SIB_REGS = ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi"]
 
@@ -89,6 +115,16 @@ def classify(data, pos):
             continue
         op_at = modrm_at - 1
         op = data[op_at]
+        if op == 0xFF:
+            g = ff_group(modrm)
+            if g:
+                return (g[0], g[1], op_at)
+            continue
+        if op == 0xFE:
+            g = fe_group(modrm)
+            if g:
+                return (g[0], g[1], op_at)
+            continue
         if op == 0xB6 or op == 0xB7:
             if op_at >= 1 and data[op_at - 1] == 0x0F:
                 return ("movzx r, r/m8", "read", op_at - 1)
@@ -143,6 +179,16 @@ def classify8(data, pos):
                 names = {0xB6: "movzx r32, r/m8", 0xB7: "movzx r32, r/m16",
                          0xBE: "movsx r32, r/m8", 0xBF: "movsx r32, r/m16"}
                 return (names[op], "read", op_at - 1)
+            continue
+        if op == 0xFF:
+            g = ff_group(modrm)
+            if g:
+                return (g[0], g[1], op_at)
+            continue
+        if op == 0xFE:
+            g = fe_group(modrm)
+            if g:
+                return (g[0], g[1], op_at)
             continue
         if op in OPCODES:
             m, a = OPCODES[op]
@@ -303,6 +349,35 @@ def selftest():
         if not cond:
             ok = False
 
+    print("== ff/fe group split (T1.3: `ff /2` is a CALL, never a write) ==")
+    # synthetic encodings with the disp32 needle 0x38,0,0,0 placed at a known
+    # offset; classify() must walk back over the ModRM and name the group.
+    # A 0x90 pad byte leads the opcode: classify's guard needs room for a
+    # prefix byte before the opcode (modrm_at >= 2).
+    def syn(raw, disp_off):
+        d = bytes(raw)
+        c = classify(d, disp_off)
+        return c[1] if c else None
+
+    # 90 ff 97 38 00 00 00 = call qword [rdi+0x38] (modrm 0x97: mod=10 reg=010)
+    check("ff /2 (call [rdi+disp32]) -> CALL-INDIRECT",
+          syn([0x90, 0xFF, 0x97, 0x38, 0, 0, 0], 3) == "CALL-INDIRECT")
+    # 90 ff 87 38 00 00 00 = inc dword [rdi+0x38]  (modrm 0x87: mod=10 reg=000)
+    check("ff /0 (inc [rdi+disp32]) -> RMW",
+          syn([0x90, 0xFF, 0x87, 0x38, 0, 0, 0], 3) == "RMW")
+    # 90 fe 88 38 00 00 00 = dec dword [rax+0x38]  (modrm 0x88: mod=10 reg=001)
+    check("fe /1 (dec [rax+disp32]) -> RMW",
+          syn([0x90, 0xFE, 0x88, 0x38, 0, 0, 0], 3) == "RMW")
+    # 90 89 97 38 00 00 00 = mov [rdi+0x38], edx -> WRITE (dict path intact)
+    check("89 (mov r/m, r) -> WRITE",
+          syn([0x90, 0x89, 0x97, 0x38, 0, 0, 0], 3) == "WRITE")
+    # disp8 forms through classify8: 90 ff 57 38 = call qword [rdi+0x38]
+    d8 = bytes([0x90, 0xFF, 0x57, 0x38])
+    c8 = classify8(d8, 3)
+    check("ff /2 disp8 (call [rdi+0x38]) -> CALL-INDIRECT",
+          c8 is not None and c8[1] == "CALL-INDIRECT",
+          f"got {c8}")
+
     print("== disp32 (existing oracle) ==")
     cases = [
         (0x2c1, 0x140E23002, "read"),
@@ -372,19 +447,25 @@ def main(argv):
     for arg in argv:
         disp = int(arg, 16)
         hits = scan(pe, disp)
-        writes = [h for h in hits if h[1] in ("WRITE", "RMW")]
+        writes = [h for h in hits if h[1] == "WRITE"]
+        rmw = [h for h in hits if h[1] == "RMW"]
+        calls = [h for h in hits if h[1] == "CALL-INDIRECT"]
         print(f"\n=== field +{disp:#x}: {len(hits)} classified access(es), "
-              f"{len(writes)} write/RMW ===")
+              f"{len(writes)} write, {len(rmw)} inc/dec RMW, "
+              f"{len(calls)} CALL-INDIRECT (vtable dispatch - NOT writes, T1.3) ===")
         for va, access, mnem, raw in sorted(hits):
-            print(f"  {va:#012x}  {access:<5}  {mnem:<18} {raw}")
+            print(f"  {va:#012x}  {access:<13}  {mnem:<18} {raw}")
         if not hits:
             empty = True
             print("  NOTE: disp32 scans cannot see [base+index*scale] forms "
                   "(no disp bytes) or rip-relative forms — use --sib-scan / "
                   "xref_scan.py before concluding 'nobody touches this'.")
-            if disp <= 0x7F:
-                print("  NOTE: disp fits in disp8 range — also run "
-                      f"--disp8 {disp:#x} for mod=01 encodings.")
+        if disp <= 0x7F:
+            print(f"  DISP8 COVERAGE REQUIRED (T1.3): +{disp:#x} is normally "
+                  f"encoded disp8 (mod=01) — the disp32 scan above CANNOT be "
+                  f"the whole answer. Run: field_xref.py --disp8 {disp:#x} "
+                  "(the output must say how many were CONFIRMED before any "
+                  "'nobody writes this' conclusion).")
     return 1 if empty else 0
 
 

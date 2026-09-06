@@ -1,7 +1,7 @@
 # STATE - living snapshot
 
 STATUS: live (2026-09-05 1x:xx PDT). Verdict + deployed + next only.
-Full text: FINDINGS (20.307 is newest; 20.292-20.306 under it). Session failures:
+Full text: FINDINGS (20.308 is newest; 20.292-20.307 under it). Session failures:
 docs/postmortems/POSTMORTEM_2026-09-05_THE-REBUILD.md (4 launches lost, 3 to my defects).
 Ops facts (network move, grep hazard, BOM trap) in ENVIRONMENTS.md. Instrument
 defects: docs/TOOLING_AUDIT_2026-09-05.md.
@@ -11,8 +11,13 @@ PRIOR ART / STATE READERS / READOUT TRIGGER / EFFECT CLAIM / ABANDON+WIDE-NET / 
 SURFACE; instrument briefs also OBSERVER BUDGET / CALL FREQUENCY / HOOK COUNT /
 INSTRUMENT LIVENESS - template updated); record each boot's outcome at boot close via
 RE_scripts/boot_outcome.py (>=2 third-branches on a front refuse the next boot without
-MODEL REVIEW). Wave 2 next: replay_trigger.py (M1), preflight.py + instruments.json,
-boot_verdict v2 (docs/plans/boot-gate-v3.md + TOOLING_AUDIT shortest path).
+MODEL REVIEW). WAVE 2 SHIPPED (20.308): replay_trigger.py (the encoder's ship gate is
+runnable - replay its trigger over a recorded log), preflight.py + instruments.json
+(the world gate; "ready" = gate PASS + preflight PASS; run --record after every
+deploy), boot_verdict --sigtable (per-arm discriminator), hook_targets + the
+verify_hook_rvas T1.4 fix, field_xref T1.3, needle_scan T1.2. Wave 3 next: brief/
+lane-brief template completion, logq fixes, decision_log + idempotent destructive
+scripts (docs/plans/boot-gate-v3.md + TOOLING_AUDIT shortest path).
 
 *** 20.302 (STATIC + FEMU, NO BOOT): THE ENT_* RECEIVE CLUSTER IS DECODED. Four
 receive interfaces (0x141718510 ent_recv / 0x141718AE0 / 0x1417183C0 /
@@ -88,37 +93,32 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
    logs      RE_output/logs/20260904_220846_p2-176-runA (the run), plus
              ..._203945_p2-176-aborted-network and ..._215841_p2-176-attempt2-macspin.
 
-## NEXT - the front is GETTING THE RIG TO LAND (20.306), then the transition contract.
-  1. (offline) Census the archives: peer-body flow vs withdrawal vs the rig's load
-     stages + empty-manager spin onset in p2-176/178/179 vs p2-175 (H-land: churn
-     during load hollows the manager; stable bodies load fine).
-  2. (settings-only boot) retry_cap back to 2 -> rig should land on the CURRENT
-     stack (behavioral confirmation of 20.306 R2; isolates cap causality).
-  3. (fork code) LANDED-GATE: withhold peer rows until the client shows post-load
-     acks, then sustain - serves both the rig landing and the replication front's
-     sustained-row requirement; then the p2-179 transition contract is runnable.
+## NEXT - the front is GETTING THE RIG TO LAND (20.307 mechanism confirmed), then the
+##  transition contract.
+  1. (settings-only boot) retry_cap back to 2 -> quiet window -> the rig lands on
+     the CURRENT stack (behavioral confirmation of 20.306 R2 / 20.307 R3(a)).
+  2. (fork code) DUTY-CYCLE GATE (20.307 R4b): include the peer row at most once
+     every ~30s -> each re-landing completes AND the row is sustained at 30s
+     cadence (what the replication/transition front needs). Settings-gated,
+     default off, trigger replayed over p2-178's recorded included-timeline
+     before any boot ships it.
+  3. Then the p2-179 transition contract (receiver vptr scan on a REAL
+     transition) is runnable with a sustained row.
   4. The entity-message encoder stays spec-complete except the outer wire type
-     (20.303 R4); contract + payloads done (20.302/20.304 - guardian payload =
-     8 raw bytes). The establishment-ladder decode (20.305 R5, minus the BABOON
-     evidence) remains the parallel static front.
+     (20.303 R4); contract + payloads done (20.302/20.304).
   5. TOOL DEBT: tar-over-ssh corrupted the 6.7 GB dump pull deterministically
-     (+7249 B, identical wrong hash twice; 20.305 R4). The rig-side generated-
-     script scan (_rig_vptr_scan.py pattern) is the workaround and the better
-     instrument - generalize it before the next dump question.
+     (+7249 B); the rig-side generated-script scan (_rig_vptr_scan.py) is the
+     workaround and the better instrument.
   6. DEAD / CANCELLED - do not restart: the +0x818 and +0x38 writer hunts; the
-     creation-loop framing; the queue-event/sobject_message entity carrier
-     (ring-only, excluded); type-17 as carrier.
-  DO NOT: re-measure the creation loop; hunt writers for +0x38 or +0x818; read "the
-  loop skips the peer" as a defect (it is the loop's rule executing correctly); trust
-  the local copy of dump_p2-179-hang.dmp as evidence (hash mismatch); cite today's
-  BABOON as evidence about the hang (dump-precipitated, 20.306 R1); read the hang as
-  a client bug in isolation (it tracks the sustained row, 20.306 R2); ship a build
-  change without replaying its own trigger over a recorded log (no replay tool yet -
-  Wave 2 builds it); trust recursive `grep` under RE_build/ or RE_output/ (use
-  /usr/bin/grep or RE_scripts/sgrep.sh); modify the client.
-   7. OPEN DEBT, updated: the image_set hang is worked around not understood; the
-      re-arm needs a non-ack trigger (20.300 R5) IF a sustained row is ever needed
-      again (the landed-gate may obsolete it).
+     creation-loop framing; the queue-event/sobject_message entity carrier;
+     type-17 as carrier; cap=0/never-withdraw as the hang fix (refuted 20.307
+     R4c - stable-presence at body cadence still churns).
+  DO NOT: re-measure the creation loop; trust the local copy of
+  dump_p2-179-hang.dmp as evidence (hash mismatch); cite the BABOON as hang
+  evidence (dump-precipitated, 20.306 R1); call the empty-manager trio a hang
+  signature (normal in landed boots too, 20.307 R0); modify the client.
+   7. OPEN DEBT: the image_set hang (worked around, not understood); the re-arm
+      knob is obsoleted by the duty-cycle gate if it ships.
 
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.

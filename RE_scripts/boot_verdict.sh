@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# REGISTRY: caps: boot-verdict
+# REGISTRY: caps: boot-verdict, per-arm-discriminator
 # Reads BOTH clients' logs plus the server's and prints the lobby-lane verdict.
 #
 # WHY A SCRIPT: the success signal is not "did a line appear" but "WHICH xuid does
@@ -7,9 +7,65 @@
 # own xuid and proves nothing on its own). That comparison is easy to eyeball wrong
 # at 2am, so it is mechanical here. Also spares transcribing four greps per machine.
 #
-# Usage: bash RE_scripts/boot_verdict.sh
+# v2 (2026-09-05, empty-mask #2 / TOOLING_AUDIT): --sigtable mode prints the
+# PER-ARM FAILURE-SIGNATURE TABLE. The solo control boot is a DISCRIMINATOR,
+# not just a crash guard: a failure signature present in BOTH arms is NOT
+# peer-attributable, no matter how it correlates with peer arrival.
+#
+# Usage:
+#   bash RE_scripts/boot_verdict.sh                        (legacy lobby verdict)
+#   bash RE_scripts/boot_verdict.sh --sigtable <archive-solo> <archive-paired> \
+#        "signature-regex" ["more"...]
+#        Each archive is a directory of *.log (or a single .log file). Counts
+#        every signature in EVERY arm side by side. Exit 0 always (visibility).
+#
+# All greps pinned to /usr/bin/grep (T1.1: the interactive-shell grep can be a
+# ugrep wrapper blind to RE_output/ and Game/ captures).
 set -uo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GREP=/usr/bin/grep
+
+# ---------- v2: the per-arm signature discriminator table ----------
+if [[ "${1:-}" == "--sigtable" ]]; then
+  shift
+  [[ $# -ge 3 ]] || { echo "usage: boot_verdict.sh --sigtable <archive-A> <archive-B> \"sig\" [...]"; exit 2; }
+  arm_a="$1"; arm_b="$2"; shift 2
+  collect() {
+    local t="$1"
+    if [ -f "$t" ]; then echo "$t"
+    elif [ -d "$t" ]; then find "$t" -maxdepth 1 -name '*.log'
+    fi
+  }
+  files_a=$(collect "$arm_a"); files_b=$(collect "$arm_b")
+  [ -n "$files_a" ] || { echo "no logs in arm A: $arm_a"; exit 2; }
+  [ -n "$files_b" ] || { echo "no logs in arm B: $arm_b"; exit 2; }
+  label() { basename "$1"; }
+  la=$( [ -f "$arm_a" ] && basename "$arm_a" || label "$arm_a" )
+  lb=$( [ -f "$arm_b" ] && basename "$arm_b" || label "$arm_b" )
+  count_arm() { # <files...> <sig>
+    local sig="$1"; shift; local total=0 n
+    for f in "$@"; do
+      n=$("$GREP" -ac -- "$sig" "$f" 2>/dev/null) || n=0
+      total=$((total + n))
+    done
+    echo "$total"
+  }
+  echo "======== PER-ARM SIGNATURE TABLE (empty-mask #2: a signature in BOTH arms is NOT peer-attributable) ========"
+  printf '  %-42s %12s %12s  %s\n' "signature" "$la" "$lb" "verdict"
+  for sig in "$@"; do
+    ca=$(count_arm "$sig" $files_a)
+    cb=$(count_arm "$sig" $files_b)
+    if [ "$ca" -gt 0 ] && [ "$cb" -gt 0 ]; then v="BOTH ARMS - NOT PEER-ATTRIBUTABLE"
+    elif [ "$cb" -gt 0 ]; then v="only in $lb - attributable to that arm's condition"
+    elif [ "$ca" -gt 0 ]; then v="only in $la - attributable to that arm's condition"
+    else v="absent in both (check the input gate / pre-named absence negative)"
+    fi
+    printf '  %-42s %12s %12s  %s\n' "${sig:0:42}" "$ca" "$cb" "$v"
+  done
+  echo "(signatures come from the brief's FALSIFIABLE CLAIM / ABSENCE NEGATIVE; the solo arm is a DISCRIMINATOR)"
+  exit 0
+fi
+
 mac_log="$root/Game/bin/x64/Sunrise/logs/sunrise.log"
 srv_log="$root/RE_output/s1_accept/Sunrise/logs/sunrise.log"
 rig_host="rasla@192.168.1.136"
