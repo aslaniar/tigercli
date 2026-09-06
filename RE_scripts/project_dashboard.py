@@ -211,25 +211,41 @@ class SegmentScanner:
         self.stages.append((t, stg))
         self.segment_stages.add(stg)
 
-    def summary(self, now_t=None, source_age=None, order=None):
-        """Render the PINNED pipeline: every known stage is always visible
-        (reached / current / not-yet), so the lane never re-shuffles mid-boot
-        and a segment reset never hides stages. Unknown stages append."""
+    def summary(self, now_t=None, source_age=None, order=None, fresh=None):
+        """Progress-bar semantics over the PINNED pipeline: stages up to the
+        client's current stage are PASSED (the client is logically past them
+        even when a Tower return skips their re-emission), stages after are
+        UPCOMING, the current is highlighted. When the source is not live
+        (client closed), NOTHING is lit."""
         order = order or DEFAULT_BOOTFLOW_ORDER
+        idx = {s: i for i, s in enumerate(order)}
         first_seen = {}
         for t, s in self.stages:
             if s not in first_seen:
                 first_seen[s] = t
         current = self.stages[-1][1] if self.stages else None
         cur_t = first_seen.get(current)
+        live = bool(fresh) and current is not None
         dwell = None
-        if current and cur_t is not None and now_t is not None:
+        if live and cur_t is not None and now_t is not None:
             dwell = now_t - cur_t
-        lane = [{"stage": s, "t": first_seen.get(s)} for s in order]
+        cur_i = idx.get(current)
+        lane = []
+        for s in order:
+            if not live:
+                state = "upcoming"
+            elif s == current:
+                state = "current"
+            elif s in idx and cur_i is not None and idx[s] < cur_i:
+                state = "passed"
+            else:
+                state = "upcoming"
+            lane.append({"stage": s, "t": first_seen.get(s), "state": state})
         for s in first_seen:  # stages outside the pinned list append
-            if s not in order:
-                lane.append({"stage": s, "t": first_seen[s]})
-        return {"lane": lane, "current": current, "dwell_ms": dwell,
+            if s not in idx:
+                lane.append({"stage": s, "t": first_seen[s], "state": "passed"})
+        return {"lane": lane, "current": current if live else None,
+                "dwell_ms": dwell, "live": live,
                 "bootflow_last_t": self.last_t, "stale": source_age}
 
 
@@ -354,6 +370,22 @@ def rig_scanner():
         if m:
             sc.last_t = max(sc.last_t or 0, int(m.group(1)))
     return sc
+
+
+_rig_fresh = {"last_t": None, "changed_ts": None}
+
+
+def rig_fresh(last_t):
+    """The rig log's mtime is not visible from here; freshness = the tail's
+    newest t= has CHANGED within the last 120 s (a live client keeps ticking)."""
+    now = time.time()
+    if last_t is None:
+        return False
+    if last_t != _rig_fresh["last_t"]:
+        _rig_fresh["last_t"] = last_t
+        _rig_fresh["changed_ts"] = now
+    return (_rig_fresh["changed_ts"] is not None
+            and now - _rig_fresh["changed_ts"] < 120)
 
 
 # ------------------------------------------------------------- contract
@@ -503,9 +535,12 @@ def api_now():
     out = {
         "server": st, "identity": identity(),
         "lanes": {"mac": sc_mac.summary(now_t["mac"], age["mac"],
-                                        order=_bootflow_order),
+                                        order=_bootflow_order,
+                                        fresh=age["mac"] is not None
+                                        and age["mac"] < 120),
                   "rig": sc_rig.summary(now_t["rig"],
-                                        order=_bootflow_order),
+                                        order=_bootflow_order,
+                                        fresh=rig_fresh(sc_rig.last_t)),
                   "segment": {"mac": len(sc_mac.stages),
                               "rig": len(sc_rig.stages)}},
         "contract": {"declared": bool(cfg), "front": (cfg or {}).get("front"),
@@ -728,23 +763,28 @@ function warnShape(raw){ return raw.replace(/t=\d+/g,"t=N").replace(/\d{6,}/g,"N
 function renderLane(name, bf, fresh){
   var wrap = el("div","lane");
   var who = el("div");
-  who.appendChild(el("span","who src-"+name, name + (fresh ? "" : "  (last boot - source idle)")));
-  if (bf.current){
-    who.appendChild(el("span","muted","  now: "+bf.current
-      + (bf.dwell_ms!==null ? " ("+Math.round(bf.dwell_ms/1000)+"s)" : "")));
+  if (!bf.live){
+    who.appendChild(el("span","who src-"+name, name));
+    who.appendChild(el("span","muted","  no live boot"
+      + (bf.stale!==null && bf.stale!==undefined ? " (last write "+Math.round(bf.stale)+"s ago)" : "")));
+  } else {
+    who.appendChild(el("span","who src-"+name, name));
+    if (bf.current){
+      who.appendChild(el("span","muted","  now: "+bf.current
+        + (bf.dwell_ms!==null ? " ("+Math.round(bf.dwell_ms/1000)+"s)" : "")));
+    }
   }
   wrap.appendChild(who);
   var row = el("div","stages");
-  // PINNED pipeline: every stage always renders (reached / current / not-yet)
-  // so the lane never re-shuffles mid-boot - the de-render/re-render bug
+  // PINNED pipeline, progress-bar semantics: stages up to the client's
+  // current stage are PASSED, after it UPCOMING; nothing lit when the
+  // client is closed
   bf.lane.forEach(function(st){
-    var reached = st.t !== null && st.t !== undefined;
-    var isCur = st.stage === bf.current;
-    var stuck = isCur && fresh && bf.dwell_ms!==null && bf.dwell_ms>120000;
-    var cls = "st " + (isCur ? (stuck ? "stuck" : "cur") : (reached ? "done" : "off"));
-    var txt = st.stage + (isCur && bf.dwell_ms!==null ? " ("+Math.round(bf.dwell_ms/1000)+"s)" : "");
+    var cls = "st " + (st.state==="current" ? (bf.dwell_ms!==null && bf.dwell_ms>120000 ? "stuck" : "cur")
+             : st.state==="passed" ? "done" : "off");
+    var txt = st.stage + (st.state==="current" && bf.dwell_ms!==null ? " ("+Math.round(bf.dwell_ms/1000)+"s)" : "");
     var sp = el("span",cls,txt);
-    if (reached) sp.title = "entered t="+st.t;
+    if (st.t !== null && st.t !== undefined) sp.title = "entered t="+st.t;
     row.appendChild(sp);
   });
   wrap.appendChild(row);
@@ -764,9 +804,8 @@ function pollNow(){
       var H = document.getElementById("lanehost");
       H.textContent = "mac="+d.hostnames.mac+"  rig="+(d.hostnames.rig||"?");
       swapIfChanged("lanes", function(L){
-        [["mac",d.lanes.mac, d.tail_age.mac!==null && d.tail_age.mac<600],
-         ["rig",d.lanes.rig, d.tail_age.rig!==null]].forEach(function(p){
-          L.appendChild(renderLane(p[0], p[1], p[2]));
+        [["mac",d.lanes.mac],["rig",d.lanes.rig]].forEach(function(p){
+          L.appendChild(renderLane(p[0], p[1]));
         });
       });
       // contract (declared)
