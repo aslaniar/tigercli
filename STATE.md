@@ -1,7 +1,7 @@
 # STATE - living snapshot
 
 STATUS: live (2026-09-05 1x:xx PDT). Verdict + deployed + next only.
-Full text: FINDINGS (20.308 is newest; 20.292-20.307 under it). Session failures:
+Full text: FINDINGS (20.309 is newest; 20.292-20.308 under it). Session failures:
 docs/postmortems/POSTMORTEM_2026-09-05_THE-REBUILD.md (4 launches lost, 3 to my defects).
 Ops facts (network move, grep hazard, BOM trap) in ENVIRONMENTS.md. Instrument
 defects: docs/TOOLING_AUDIT_2026-09-05.md.
@@ -15,9 +15,14 @@ MODEL REVIEW). WAVE 2 SHIPPED (20.308): replay_trigger.py (the encoder's ship ga
 runnable - replay its trigger over a recorded log), preflight.py + instruments.json
 (the world gate; "ready" = gate PASS + preflight PASS; run --record after every
 deploy), boot_verdict --sigtable (per-arm discriminator), hook_targets + the
-verify_hook_rvas T1.4 fix, field_xref T1.3, needle_scan T1.2. Wave 3 next: brief/
-lane-brief template completion, logq fixes, decision_log + idempotent destructive
-scripts (docs/plans/boot-gate-v3.md + TOOLING_AUDIT shortest path).
+verify_hook_rvas T1.4 fix, field_xref T1.3, needle_scan T1.2. WAVE 3 SHIPPED
+(20.309): logq v2 (--bare/--fn/--help/--aligned-loud/truncation-marker),
+build_index corpus expansion + dedupe, organize_root --dry-run + fixed sed,
+negative_audit two-tier, disasm_fn gap-refusal, decision_log.py, reset_
+lobby_claims idempotent + port-SET + --check (real restart path untested -
+pen live; run at the next boot boundary). Remaining backlog: toolsq.sh,
+negative_audit tool-blindness flag (T2.3), the T3.1 client-side budget
+marker (pen's lane), ENFORCEMENT.md ledger (Tier 4).
 
 *** 20.302 (STATIC + FEMU, NO BOOT): THE ENT_* RECEIVE CLUSTER IS DECODED. Four
 receive interfaces (0x141718510 ent_recv / 0x141718AE0 / 0x1417183C0 /

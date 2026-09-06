@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# REGISTRY: caps: function-disasm, gap-refuse
 """Disassemble one function from the dumped image, following to a heuristic end.
 
 Usage: disasm_fn.py <static_va> [max_insns]
@@ -7,6 +8,7 @@ tag = (field << 3) | wiretype, so field 3 length-delimited = 0x1A, field 5 = 0x2
 field 7 = 0x3A, field 4 = 0x22, field 1 varint = 0x08.
 """
 import sys
+
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 from pe_reader import PE
 import capstone
@@ -18,6 +20,9 @@ TAGS = {0x08: "f1 varint", 0x10: "f2 varint", 0x18: "f3 varint", 0x1A: "f3 LEN",
 
 
 def main(argv):
+    if not argv:
+        print(__doc__)
+        return 2
     va = int(argv[0], 16)
     limit = int(argv[1]) if len(argv) > 1 else 400
     pe = PE("/Users/rubenaslanian/Documents/opencode/sunrise-fork/"
@@ -27,9 +32,22 @@ def main(argv):
         end_va = bounds[1]
         print(f"; pdata bounds: {bounds[0]:#x} .. {end_va:#x} (exact)")
     else:
-        end_va = None
-        print("; WARNING: no .pdata entry - heuristic end (first ret/jmp), "
-              "which can truncate before the real end")
+        # T3.4 (TOOLING_AUDIT): a .pdata GAP means there is no authoritative
+        # function extent, and the heuristic fall-back used to print a
+        # PLAUSIBLE FALSE STREAM from mid-instruction desync (the 20.291
+        # trap - the two 0x1404DD470-class leaf getters). Refuse; hand off
+        # to the linear disassembler, which decodes forward without a
+        # function extent and says so.
+        print(f"REFUSED: {va:#x} is in a .pdata GAP (no enclosing "
+              "RUNTIME_FUNCTION) - heuristic disassembly here would invent a "
+              "plausible false stream (the 20.291 trap).")
+        print("  Use the LINEAR disassembler instead, and start from a "
+              "known-good boundary:")
+        print(f"    /usr/bin/python3 RE_scripts/lane_svc43_disasm_range.py "
+              f"{va:#x} $(( {va:#x} + N ))   # N = bytes you can justify")
+        print("  If you need this function's REAL extent, find its start by "
+              "xref/callers and re-check pdata_bounds at THAT address.")
+        return 1
     code = pe.read(va, limit * 16)
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
     md.detail = True
@@ -51,4 +69,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

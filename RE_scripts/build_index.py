@@ -58,6 +58,14 @@ def parse_findings(findings_dir):
     for d in FINDINGS_DIRS:
         files += list((findings_dir / d).glob(FINDINGS_GLOB)) if d else \
             list(findings_dir.glob(FINDINGS_GLOB))
+    # dedupe ACROSS locations (backlog 3.4): the same file at root and in
+    # findings/ would parse twice and double every entry. Keep the NEWEST copy.
+    by_name = {}
+    for f in files:
+        prev = by_name.get(f.name)
+        if prev is None or f.stat().st_mtime > prev.stat().st_mtime:
+            by_name[f.name] = f
+    files = sorted(by_name.values(), key=lambda p: p.name, reverse=True)
     files = sorted(set(files), reverse=True)
     cur = None
     for path in files:
@@ -135,12 +143,24 @@ def write_findings_index(entries):
 
 def write_claims_index():
     files = sorted(list(CLAIMS_DIR.glob("*.md")) + list(CLAIMS_DIR.glob("*.py")))
+    # refcount corpus (backlog 3.4): root docs + claims + docs/handoffs +
+    # docs/boots + findings/ - a claim cited only from a handoff or a boot
+    # brief is NOT an orphan, and the old corpus (ROOT/*.md + claims) could
+    # not see it. In --root mode this must follow RUN_ROOT, not ROOT.
     corpus_files = (
-        list(ROOT.glob("*.md"))
+        list(RUN_ROOT.glob("*.md"))
         + list(CLAIMS_DIR.glob("*.md"))
+        + list((RUN_ROOT / "docs" / "handoffs").glob("*.md"))
+        + list((RUN_ROOT / "docs" / "boots").glob("*.md"))
+        + list((RUN_ROOT / "findings").glob("*.md"))
     )
-    corpus = {}
+    # dedupe by name (a doc can be reachable from two globs); keep first
+    seen_corpus = {}
     for cf in corpus_files:
+        if cf.name not in seen_corpus:
+            seen_corpus[cf.name] = cf
+    corpus = {}
+    for cf in seen_corpus.values():
         try:
             corpus[cf.name] = cf.read_text(encoding="utf8", errors="replace")
         except OSError:

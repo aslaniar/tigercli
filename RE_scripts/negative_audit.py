@@ -25,7 +25,8 @@ import os
 import re
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("RE_AUDIT_ROOT") or \
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # phrases that indicate a scan-negative claim (lowercase substring match)
 NEGATIVE_PHRASES = [
@@ -119,9 +120,17 @@ def waived(fname, line):
 
 
 CORPOR_GLOBS = ["FINDINGS_2026-*.md", "findings/FINDINGS_2026-*.md",
-                "STATE.md", "docs/handoffs/HANDOFF*.md", "FRONT*.md"]
+                "STATE.md", "docs/handoffs/HANDOFF*.md", "FRONT*.md",
+                "HANDOFF*.md"]  # root handoffs too (backlog 3.5)
 DATE_RE = re.compile(r"20\d{2}-\d{2}-\d{2}")
 HEAD_RE = re.compile(r"^#{1,2} ")
+# a retraction/correction QUOTES the claim it kills; the flag then hits the
+# retraction text itself (the 12357/16997 waiver shape). Auto-waive - visibly.
+QUOTING_RE = re.compile(r"retract|corrected|correction|withdrawn|supersed", re.I)
+# pointer-class by WORD: bare "ref" matched "p(ref)er" (the 'prefer' false
+# match, backlog 3.5)
+POINTER_CLASS_RE = re.compile(r"\b(ref|refs|reference|references|pointer|"
+                              r"pointers|table|tables)\b", re.I)
 
 
 def iter_corpus():
@@ -156,16 +165,18 @@ def audit():
                 window = "\n".join(lines[max(0, lineno - 9):lineno + 8])
                 has_encodeds = "encodeds" in window.lower()
                 # pointer-class negatives + predates-the-fact check
-                pointer_class = any(w in low for w in
-                                    ("reference", "ref", "pointer", "table"))
+                pointer_class = bool(POINTER_CLASS_RE.search(line))
+                quoting = bool(QUOTING_RE.search(low) or
+                               QUOTING_RE.search(entry))
                 stale = False
                 if pointer_class and entry_date and entry_date < FACTS[0][0]:
                     stale = True
-                if not has_encodeds or stale:
+                if quoting or not has_encodeds or stale:
                     flags.append({
                         "file": os.path.basename(path), "line": lineno,
                         "entry": entry, "phrase": phrase,
                         "has_encodeds": has_encodeds, "stale": stale,
+                        "quoting": quoting,
                         "line_text": line,
                         "quote": line.strip()[:110]})
                 break  # one flag per line
@@ -174,35 +185,56 @@ def audit():
 
 def main(argv):
     flags, checked = audit()
-    active, waived_flags = [], []
+    active_t1, backlog_t2, quoting, waived_flags = [], [], [], []
     for f in flags:
         w = waived(f["file"], f["line_text"])
-        (waived_flags if w else active).append((f, w[0][1] if w else ""))
+        if w:
+            waived_flags.append((f, w[0][1]))
+        elif f.get("quoting"):
+            quoting.append(f)
+        elif f["stale"]:
+            active_t1.append(f)      # stale premise = actionable
+        else:
+            backlog_t2.append(f)     # undeclared encodings = migration backlog
     print("LIVENESS: scan-negative claims checked=%d flagged=%d "
-          "waived=%d active=%d" %
-          (checked, len(flags), len(waived_flags), len(active)))
+          "waived=%d quoting=%d stale(tier1)=%d undeclared(tier2)=%d" %
+          (checked, len(flags), len(waived_flags), len(quoting),
+           len(active_t1), len(backlog_t2)))
     if waived_flags:
         print("WAIVED (%d) - reviewed waivers, see WAIVERS in negative_audit.py:"
               % len(waived_flags))
         for f, why in waived_flags:
             print("  %s:%d - %s" % (f["file"], f["line"], why))
-    if not active:
-        print("NEGATIVE AUDIT PASS - no active scan-negative flags (waivers "
-              "listed above are documented in source)")
+    if quoting:
+        print("CORRECTION-QUOTING (%d) - the flag hits retraction/correction "
+              "text quoting the claim it kills; auto-waived, visible here:"
+              % len(quoting))
+        for f in quoting[:10]:
+            print("  %s:%d - %s" % (f["file"], f["line"], f["quote"][:100]))
+    if not active_t1:
+        print("NEGATIVE AUDIT PASS - no actionable (stale-premise) flags."
+              + (" %d undeclared-ENCODEDS item(s) remain on the MIGRATION "
+                 "BACKLOG (tier 2 - add declarations when touching those "
+                 "entries):" % len(backlog_t2) if backlog_t2 else ""))
+        for f in backlog_t2[:10]:
+            print("  tier2 %s:%d [%s] %s" %
+                  (f["file"], f["line"], f["entry"][:44], f["quote"][:80]))
+        if len(backlog_t2) > 10:
+            print("  ... +%d more" % (len(backlog_t2) - 10))
         return 0
-    print("NEGATIVE AUDIT FLAGS (%d) - premise possibly stale or "
-          "undeclared:" % len(active))
-    for f, _ in active[:15]:
-        miss = []
-        if not f["has_encodeds"]:
-            miss.append("no ENCODEDS")
-        if f["stale"]:
-            miss.append("predates RUNTIME_BASE fact")
-        print("  %s:%d [%s] (%s)\n    %s" %
-              (f["file"], f["line"], f["entry"][:44], ", ".join(miss),
-               f["quote"]))
-    if len(active) > 15:
-        print("  ... +%d more" % (len(active) - 15))
+    print("NEGATIVE AUDIT FLAGS - TIER 1 STALE-PREMISE (%d) - actionable:"
+          % len(active_t1))
+    for f in active_t1[:15]:
+        print("  %s:%d [%s] (predates RUNTIME_BASE fact)\n    %s" %
+              (f["file"], f["line"], f["entry"][:44], f["quote"]))
+    if len(active_t1) > 15:
+        print("  ... +%d more" % (len(active_t1) - 15))
+    if backlog_t2:
+        print("TIER 2 MIGRATION BACKLOG (%d undeclared-ENCODEDS items):" %
+              len(backlog_t2))
+        for f in backlog_t2[:10]:
+            print("  tier2 %s:%d [%s] %s" %
+                  (f["file"], f["line"], f["entry"][:44], f["quote"][:80]))
     print("REMEDIATION: re-run the scan with dual encodings "
           "(xref_scan --ptrs tests image + RUNTIME_BASE-relocated), then "
           "add an ENCODEDS: line to the claim.")

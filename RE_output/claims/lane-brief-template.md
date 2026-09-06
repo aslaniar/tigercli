@@ -66,6 +66,45 @@ If the premise dies to a cheap re-check (existing tool, known encoding fact),
 do that instead of building. Precedent: 20.209 R2's "statically unreachable"
 died to a 5-minute relocated-pointer scan - after a 6.5GB dump tool was built.
 
+## PROBE DESIGN RULES (2026-09-05 - from POSTMORTEM_2026-09-01/09-03; each
+## rule names the defect it kills)
+- LOOKUP PROBES LOG THE KEY (09-01 DEFECT 1, three boots): a probe on a
+  lookup function emits pool + queried id + result, never the result alone.
+  "Returns 0" is not a measurement until you know what was asked.
+- NOVELTY GATING, NOT COUNTS (09-01 DEFECT 2): when the event is late in a
+  hot path, gate on first-seen key (the pooldisp seen-bitmap shape), not a
+  line budget. A budget measures the beginning of a boot; novelty measures
+  the boot. Budgets still apply per event class.
+- CONTROL FIRES VERIFICATION (09-01 DEFECT 3): before shipping a positive
+  control, confirm from a PRIOR boot's logs that the control event occurs in
+  the scenario under test. A control chosen without that check is decoration.
+- DERIVED-LINES RULE (09-01 DEFECT 4): a log line reporting what was sent is
+  derived from what was SENT, never from what was INTENDED. An instrument
+  that overstates the wire is the defect class that burns boots later.
+- FIXTURE REPLAY BEFORE DEPLOY (09-01 addendum + 09-05 FAILURE 3): replay
+  EVERY new trigger in a build over a recorded boot's lines before it ships
+  - `RE_scripts/replay_trigger.py <archive> --pred <fixture.py>`. A
+  recorded run is a fixture; shipping without the replay spends a launch to
+  run a unit test. EVERY change, not the one that feels riskiest.
+- LOG THE GATE'S OPERANDS (09-01 attempt 1): a probe that logs the context
+  of its own decision (every input to its dump predicate, on every call) is
+  debuggable from ONE run; log outcomes only and you guess again.
+
+## NIGHT-WAVE RULES (POSTMORTEM_2026-09-01_THE-NIGHT-RUNNER)
+- One lane per wave is spawned FIRST whose deliverable is the evidence that
+  the current front is real - and it is allowed to come back "it is not"
+  (falsify-the-front).
+- Readiness language separates CALLEE-PROVEN (a femu proof is about a
+  function) from ROUTE-PROVEN (the call happens). "femu-verified end to end"
+  says nothing about whether a fork-sent message reaches the handler.
+- Census claims carry their DENOMINATOR: "6 tables x 4 of 32 records", never
+  "6 tables, all records".
+- Observables are expressed RELATIVELY ("the other client's first-registered
+  identity key") unless proven stable across boots.
+- A red-team dispute BLOCKS the synthesis line it touches; contradictions
+  between the wave's own artifacts are resolved before synthesis, never
+  averaged into a recommendation.
+
 ## Standing rules (unchanged)
 - READ-ONLY on the fork unless the brief says otherwise; no git commits; the edit
   scope from the brief; stop stale sunrise-server.exe before smokes; the cache
