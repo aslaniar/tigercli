@@ -374,10 +374,34 @@ def rig_scanner():
 
 _rig_fresh = {"last_t": None, "changed_ts": None}
 
+SHUTDOWN_RE = re.compile(r"ev=shutdown\b")
 
-def rig_fresh(last_t):
+
+def last_lines_shutdown(lines):
+    """A clean client quit writes ev=shutdown as (one of) its last line(s) -
+    closure is then a FACT from the log, not a timing guess."""
+    return any(SHUTDOWN_RE.search(l) for l in lines[-3:])
+
+
+def read_last_lines(path, k=3):
+    try:
+        with open(path, "rb") as fh:
+            fh.seek(0, 2)
+            size = fh.tell()
+            fh.seek(max(0, size - 16384))
+            return fh.read().decode("utf8", errors="replace").splitlines()[-k:]
+    except OSError:
+        return []
+
+
+def rig_fresh(last_t, lines=None):
     """The rig log's mtime is not visible from here; freshness = the tail's
-    newest t= has CHANGED within the last 120 s (a live client keeps ticking)."""
+    newest t= has CHANGED within the last 120 s (a live client keeps ticking),
+    AND the session has not cleanly shut down (ev=shutdown closes it
+    immediately - no 2-minute lingering 'live' after quitting)."""
+    if lines is not None and last_lines_shutdown(lines):
+        _rig_fresh.update(last_t=last_t)
+        return False
     now = time.time()
     if last_t is None:
         return False
@@ -509,6 +533,8 @@ def api_now():
     age = {"mac": source_age(MAC_LOG), "server": source_age(SRV_LOG),
            "rig": None if _rig_tail_cache["data"] is None or
                   _rig_tail_cache["data"]["error"] is None else None}
+    mac_shutdown = last_lines_shutdown(read_last_lines(MAC_LOG))
+    rig_shutdown = last_lines_shutdown(rig_tail(20)["lines"])
     cfg = load_contract()
     counters = []
     if cfg:
@@ -537,10 +563,12 @@ def api_now():
         "lanes": {"mac": sc_mac.summary(now_t["mac"], age["mac"],
                                         order=_bootflow_order,
                                         fresh=age["mac"] is not None
-                                        and age["mac"] < 120),
+                                        and age["mac"] < 120
+                                        and not mac_shutdown),
                   "rig": sc_rig.summary(now_t["rig"],
                                         order=_bootflow_order,
-                                        fresh=rig_fresh(sc_rig.last_t)),
+                                        fresh=rig_fresh(sc_rig.last_t)
+                                        and not rig_shutdown),
                   "segment": {"mac": len(sc_mac.stages),
                               "rig": len(sc_rig.stages)}},
         "contract": {"declared": bool(cfg), "front": (cfg or {}).get("front"),
