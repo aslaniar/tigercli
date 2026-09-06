@@ -45,10 +45,6 @@ from urllib.error import URLError
 ROOT = Path(__file__).resolve().parent.parent
 MAC_LOG = ROOT / "Game/bin/x64/Sunrise/logs/sunrise.log"
 SRV_LOG = ROOT / "RE_output/s1_accept/Sunrise/logs/sunrise.log"
-LEDGER = ROOT / "RE_output/map/boot_outcomes.jsonl"
-DECISIONS = ROOT / "RE_output/map/decisions.log"
-STATE = ROOT / "STATE.md"
-INDEX = ROOT / "RE_output/INDEX_findings.md"
 CLIENT_DLL = ROOT / "Game/bin/x64/steam_api64.dll"
 SERVER_EXE = ROOT / "RE_output/s1_accept/sunrise-server.exe"
 BUILT_CLIENT = ROOT / "RE_build/Sunrise-fork-inventory/build/steam_api64.dll"
@@ -351,78 +347,6 @@ def warns(taildata, cap=40):
     return out[-cap:]
 
 
-def parse_state_md():
-    """STATE.md rendered as-is, sectioned."""
-    try:
-        text = STATE.read_text(encoding="utf8", errors="replace")
-    except OSError:
-        return {"error": "STATE.md missing"}
-    sections, cur = {}, "(header)"
-    for line in text.splitlines():
-        if line.startswith("## "):
-            cur = line[3:].strip()
-            sections[cur] = []
-        else:
-            sections.setdefault(cur, []).append(line)
-    cleaned = {k: "\n".join(v).strip() for k, v in sections.items()}
-    return {"header": cleaned.get("(header)", ""), "sections": cleaned}
-
-
-def ledger():
-    recs = []
-    if LEDGER.exists():
-        for line in LEDGER.read_text(encoding="utf8", errors="replace").splitlines():
-            try:
-                recs.append(json.loads(line))
-            except json.JSONDecodeError:
-                pass
-    streak = 0
-    for r in reversed(recs):
-        if r.get("outcome_class") == "third-branch":
-            streak += 1
-        else:
-            break
-    return {"records": recs[-12:], "streak": streak, "total": len(recs)}
-
-
-def decisions_open():
-    out = []
-    if DECISIONS.exists():
-        for line in DECISIONS.read_text(encoding="utf8", errors="replace").splitlines():
-            try:
-                out.append(json.loads(line))
-            except json.JSONDecodeError:
-                pass
-    last = {}
-    for r in out:
-        last[r["id"]] = r
-    return [r for r in last.values() if not r.get("result")]
-
-
-def findings_headlines(n=12):
-    """Newest entries from the generated index (table rows)."""
-    try:
-        rows = []
-        for line in INDEX.read_text(encoding="utf8", errors="replace").splitlines():
-            if line.startswith("| 20.") or line.startswith("| 9."):
-                rows.append(line)
-        return rows[-n:][::-1]
-    except OSError:
-        return []
-
-
-def archives(n=8):
-    d = ROOT / "RE_output/logs"
-    try:
-        dirs = sorted((p for p in d.iterdir() if p.is_dir()),
-                      key=lambda p: p.stat().st_mtime, reverse=True)[:n]
-        return [{"name": p.name,
-                 "age_h": round((time.time() - p.stat().st_mtime) / 3600, 1)}
-                for p in dirs]
-    except OSError:
-        return []
-
-
 # ---- cached subprocess health (slow tools; refresh at most every N s) ----
 _health_cache = {"ts": 0.0, "data": None}
 
@@ -463,12 +387,6 @@ def api_now():
             "tail_errors": {k: v["error"] for k, v in td.items()},
             "ts": datetime.now().isoformat(timespec="seconds")}
 
-
-def api_research():
-    return {"state_md": parse_state_md(), "ledger": ledger(),
-            "decisions_open": decisions_open(),
-            "findings": findings_headlines(), "archives": archives(),
-            "ts": datetime.now().isoformat(timespec="seconds")}
 
 
 def api_tail(args):
@@ -548,6 +466,7 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 </div>
 <div class="panel">
   <h2>Warnings / errors <span class="muted">(deduped by shape)</span></h2><div id="warns" class="muted">...</div>
+  <div id="health" class="muted" style="margin-top:8px"></div>
 </div>
 <div class="panel">
   <h2>Live logs
@@ -560,14 +479,6 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
     </span>
   </h2>
   <div id="logbox"></div>
-</div>
-<div class="grid">
-  <div class="panel"><h2>Verdict + NEXT + DO-NOT (STATE.md)</h2><div id="statecard" class="muted">...</div></div>
-  <div class="panel"><h2>Boot ledger <span id="streak"></span></h2><div id="ledger" class="muted">...</div>
-       <h2 style="margin-top:12px">Open decisions</h2><div id="decisions" class="muted">...</div></div>
-  <div class="panel"><h2>Newest findings</h2><div id="findings" class="muted">...</div>
-       <h2 style="margin-top:12px">Recent archives</h2><div id="archives" class="muted">...</div>
-       <h2 style="margin-top:12px">Health</h2><div id="health" class="muted">...</div></div>
 </div>
 <script>
 "use strict";
@@ -684,50 +595,21 @@ function pollNow(){
     if (!d.warns.length) W.appendChild(el("span","muted","none in window"));
   }).catch(function(e){ chipText("serverchip","now error: "+e,"bad"); });
 }
-function pollResearch(){
-  fetch("/api/research.json").then(function(r){return r.json();}).then(function(d){
-    var S = document.getElementById("statecard"); S.textContent="";
-    var header = (d.state_md.header||"").split("\n").filter(function(l){return l.trim() && l.indexOf("STATUS:")<0 && l.charAt(0)!=="#";}).slice(0,8);
-    header.forEach(function(l){ S.appendChild(el("div",null,l)); });
-    ["NEXT","HARD RULES"].forEach(function(sec){
-      var body = (d.state_md.sections[sec]||"");
-      if (!body) return;
-      S.appendChild(el("div","dim","== "+sec+" =="));
-      var pre = el("pre"); pre.textContent = body.slice(0, 1800); S.appendChild(pre);
-    });
-    var L = document.getElementById("ledger"); L.textContent="";
-    d.ledger.records.slice().reverse().forEach(function(r){
-      L.appendChild(el("div",null, (r.date||"").slice(0,16)+"  "+r.boot_id+"  "+r.front+"  -> "+r.outcome_class));
-    });
-    if (!d.ledger.records.length) L.appendChild(el("span","muted","no outcomes recorded yet (boot_outcome.py at boot close)"));
-    chipText("streak", "third-branch streak: "+d.ledger.streak, d.ledger.streak>=2?"bad":"dim");
-    var D = document.getElementById("decisions"); D.textContent="";
-    if (!d.decisions_open.length) D.appendChild(el("span","muted","none open"));
-    d.decisions_open.forEach(function(r){ D.appendChild(el("div",null, r.id+" "+r.action+" | expected: "+r.expected)); });
-    var F = document.getElementById("findings"); F.textContent="";
-    d.findings.forEach(function(row){
-      var cells = row.split("|").map(function(x){return x.trim();}).filter(function(x){return x;});
-      if (cells.length >= 5) F.appendChild(el("div",null, cells[0]+"  "+cells[1]+"  "+cells[4].slice(0,110)));
-    });
-    var A = document.getElementById("archives"); A.textContent="";
-    d.archives.forEach(function(a){ A.appendChild(el("div",null, a.name + "  ("+a.age_h+"h ago)")); });
-  }).catch(function(e){ document.getElementById("statecard").textContent = "research error: "+e; });
-}
 function pollHealth(){
   fetch("/api/health.json").then(function(r){return r.json();}).then(function(d){
     var H = document.getElementById("health"); H.textContent="";
+    var parts = [];
     [["registry",d.registry],["preflight",d.preflight],["gate fixture",d.gate_fixture],["index lint",d.index_fresh]].forEach(function(p){
-      H.appendChild(el("div", null, (p[1].rc===0?"ok  ":"FLAG ") + p[0] + ": " + p[1].summary));
+      parts.push((p[1].rc===0?"ok ":"FLAG ") + p[0]);
     });
-    H.appendChild(el("div","muted","refreshed "+d.ts));
+    H.appendChild(el("span","muted","tooling: " + parts.join(" | ") + "  ("+d.ts.slice(11)+")"));
   });
 }
 document.getElementById("filter").addEventListener("input", renderLog);
 document.getElementById("levelsel").addEventListener("change", renderLog);
 setInterval(function(){ if(document.getElementById("follow").checked) pollTail(); pollNow(); }, 2000);
-setInterval(pollResearch, 30000);
 setInterval(pollHealth, 60000);
-pollTail(); pollNow(); pollResearch(); pollHealth();
+pollTail(); pollNow(); pollHealth();
 setInterval(function(){ document.getElementById("clock").textContent = new Date().toLocaleTimeString(); }, 1000);
 </script></body></html>
 """
@@ -757,8 +639,6 @@ def make_handler(port, lan):
                     self._json(api_tail(dict((k, [v]) for k, v in args)))
                 elif path == "/api/now.json":
                     self._json(api_now())
-                elif path == "/api/research.json":
-                    self._json(api_research())
                 elif path == "/api/health.json":
                     self._json(health())
                 else:
