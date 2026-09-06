@@ -28,19 +28,27 @@ defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 ## experiment, so the refusals never blocked anything.
 ## THE RELAY ROAD p2-181..p2-195 IS CLOSED on its own question.
 ## THE REAL WALL IS ROW 7, NOT ROW 9 (correcting this session's first reading):
-## in the FORK's group_target session NO peer ever reaches '_connected' - peers
-## #0, #1 and #2 all sit at '_established' - while the LOCAL posse session DOES
-## reach '_connected' on the same boot (the positive control, right beside the
-## failure). Identical across the p2-190 baseline landing, p2-193a/b and p2-195.
-## establishment-decode.md already named this and it was never resolved: the
-## 3->4 site 0x141803F2B is guarded on [rsi+0x3040]==3 AND [rsi+0x1D18]==5 - it
-## REQUIRES the ladder at CONNECTED(5) - and its own words are "the ladder must
-## reach 5 - the connected-rung, MESSAGE-FED".
-## SO ent_recv=0 IS A SYMPTOM OF ROW 7, not an independent row-9 problem: the
-## receiver object is gated on ladder==5 and is never built. Sending an entity
-## before the ladder connects is pushing on a door held shut upstream. The
-## entity contract stays spec-complete and femu-validated (20.302-20.304, outer
-## wire type still open, 20.303 R4) and waits on row 7.
+## THE (3,4) STALL, RE-MEASURED ON p2-195 by the resv_rec probe - same boot,
+## two records, the positive control sitting beside the failure:
+##   rec=0 (the FORK's connection, ident ...0701A8C0): s30e8=4 s1dc0=5 - the
+##         ladder reaches CONNECTED, touch=a real timestamp, mask 0x0020.
+##   rec=1 (THE RIG's record, ident ...8801A8C0): s1dc0=3 -> 4 and STOPS,
+##         mask=0x0000, touch=-1 (never touched).
+## Identical to p2-180's measurement, so the stall survived W4, the duty-cycle
+## fix AND the entire p2-181..p2-195 relay arc. establishment-decode CLAIM 2:
+## the 3->4 site 0x141803F2B is guarded on [rsi+0x3040]==3 AND [rsi+0x1D18]==5
+## - establishment REQUIRES the ladder at CONNECTED(5). The connected rung is
+## MESSAGE-FED (0x1417E5A10 -> pump -> 0x1416D56C0, event type 4 subtype != 8
+## -> 0x1416BCFC0). The fork's own connection gets that event; the peer's
+## record never does. THAT is the question.
+## ent_recv=0 IS A SYMPTOM of this, not an independent row-9 problem: the
+## receiver is gated on establishment. The entity contract stays spec-complete
+## (20.302-20.304, outer wire type open) and WAITS.
+## INSTRUMENT WARNING (cost me two wrong readings today): the membership dump's
+## `s=_established` / `s=_connected` STRING IS NOT THIS FIELD. It is not even
+## monotonic - `_connected` appears BEFORE `_joining` in the same session's
+## sequence. Read s30e8/s1dc0 via resv_rec; never infer the ladder from the
+## dump string.
 ## Full text: claims connection-layer-join-delivery.md section 14. ***
 
 *** p2-195 (ONE PAIRED BOOT, 2026-09-06 ~16:29): ROW 5'S WALL IS MEASURED AND
@@ -333,12 +341,13 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
 ##  Row 5 is CLOSED. Do NOT resume the join relay, the retarget, the state
 ##  ladder, or any "drive the session to 6" idea - the client is a peer and the
 ##  peer is already established by the membership plane.
-  1. (STATIC, first) What MESSAGE feeds the connected rung? The positive
-      control is on every boot: the local posse session's peers reach
-      '_connected' while the fork session's never do. Diff what the posse
-      peers receive against what the group_target peers receive - same log,
-      same boot, same client. Start from establishment-decode.md's transition
-      sites and [rsi+0x1D18].
+  1. (STATIC, first) WHY DOES THE CONNECTED EVENT NOT MIRROR TO THE PEER'S
+      RECORD? The event chain is already decoded: 0x1417E5A10 -> the pump ->
+      0x1416D56C0 (event type 4, subtype != 8) -> 0x1416BCFC0. rec=0 receives
+      it and reaches s1dc0=5; rec=1 does not. Two live threads from
+      establishment-decode: (a) the mirror subscriber's connected arm, and
+      (b) the peer record's mask/touch (rec=1 has mask=0x0000 and touch=-1 -
+      it is never touched, matching 20.277 R2's disown observation).
   2. (FORK) Publish whatever that is. Row 7 is the gate on row 8's receiver.
   3. READOUT: peer #2 reaching '_connected' in the group_target dumps, then
       a non-zero receiver vptr, then ent_recv calls>0.
