@@ -1,0 +1,12 @@
+{
+  "front": "the peer-adoption condition: the membership conversation that makes the client believe a peer is present (push -> include/pace -> gain), which precedes any creation attempt",
+  "updated": "2026-09-06",
+  "note": "edit this file when the front moves; the dashboard renders whatever is declared and flags it stale when STATE.md has newer verdicts",
+  "counters": [
+    {"name": "peer rows included", "why": "the peer's row was included in a membership body the client received", "source": "server", "match": "stage=membership_peer result=included"},
+    {"name": "peer rows paced", "why": "the duty-cycle is pacing peer-row pushes (the landing fix)", "source": "server", "match": "stage=membership_peer result=paced"},
+    {"name": "peer rows gained", "why": "the client gained the peer row (the pairing event)", "source": "server", "match": "stage=membership_peer result=gained"},
+    {"name": "membership replications", "why": "type-12 membership replication bodies pushed (the peer-carrier class)", "source": "server", "match": "type=12"},
+    {"name": "creation attempts failed", "why": "the client tried to build an entity and failed - the front's goal signal", "source": "mac", "match": "failed to create"}
+  ]
+}
