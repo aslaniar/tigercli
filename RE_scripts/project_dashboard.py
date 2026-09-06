@@ -256,6 +256,72 @@ _file_scanners = {name: SegmentScanner(name) for name in ("mac", "server")}
 _rig_scanner = SegmentScanner("rig")
 _rigbf_cache = {"ts": 0.0, "lines": []}
 _rig_tail_cache = {"ts": 0.0, "data": None}
+_rig_client_pid = {"ts": 0.0, "pid": None}
+
+
+def mac_client_pid():
+    """The mac client = wine64 running destiny2.exe (its cmdline matches;
+    pgrep -f 'destiny2.exe' - the dot matches the literal dot, close enough
+    for a process-name check)."""
+    try:
+        r = subprocess.run(["pgrep", "-f", "destiny2.exe"],
+                           capture_output=True, text=True)
+        pids = r.stdout.split()
+        return int(pids[0]) if pids else None
+    except Exception:
+        return None
+
+
+def rig_client_pid():
+    """The rig client via tasklist (cmd.exe native). Cached 5s (ssh per
+    2s poll is waste)."""
+    now = time.time()
+    if now - _rig_client_pid["ts"] < 5:
+        return _rig_client_pid["pid"]
+    pid = None
+    try:
+        r = subprocess.run(
+            ["ssh"] + SSH_OPTS + [RIG_HOST,
+             'tasklist /FI "IMAGENAME eq destiny2.exe" /FO CSV /NH'],
+            capture_output=True, text=True, timeout=15)
+        for line in r.stdout.splitlines():
+            low = line.strip().lower()
+            if low.startswith('"destiny2.exe"'):
+                parts = [p.strip('"') for p in line.split('","')]
+                if len(parts) > 1 and parts[1].strip().isdigit():
+                    pid = int(parts[1])
+                break
+    except Exception:
+        pass
+    _rig_client_pid.update(ts=now, pid=pid)
+    return pid
+
+
+_client_pid_state = {"mac": None, "rig": None}
+
+
+def track_client_instance(src, pid):
+    """Per-INSTANCE tracking: a NEW client pid is a new clock epoch - reset
+    that source's segment scanner, truncate its snapshot, and bump its gen
+    so the cached clock offset invalidates until the new instance anchors.
+    A pid of None (closed) leaves everything in place: the lane goes dark
+    via the live flag, and the frozen log stays inspectable."""
+    prev = _client_pid_state.get(src)
+    if pid == prev:
+        return
+    _client_pid_state[src] = pid
+    if pid is not None and prev is not None:
+        # a genuinely NEW instance (not the first observation)
+        sc = _file_scanners.get(src) or _rig_scanner
+        sc.reset(f"new client instance pid {pid}")
+        try:
+            with open(snapshot_path(src), "w", encoding="utf8") as fh:
+                pass
+            _snapshot_gen[src] = _snapshot_gen.get(src, 0) + 1
+        except OSError:
+            pass
+
+
 _rig_hostname = {"ts": 0.0, "name": None}
 _scanner_pid = {"server": None}
 _segments_dir = ROOT / "RE_output/dashboard/segments"
@@ -586,6 +652,13 @@ def api_now():
                   _rig_tail_cache["data"]["error"] is None else None}
     mac_shutdown = last_lines_shutdown(read_last_lines(MAC_LOG))
     rig_shutdown = last_lines_shutdown(rig_tail(20)["lines"])
+    # per-INSTANCE client tracking: a new client pid resets that source's
+    # segment (new clock epoch); a closed pid takes the lane dark immediately
+    mac_pid = mac_client_pid()
+    rig_pid = rig_client_pid()
+    track_client_instance("mac", mac_pid)
+    track_client_instance("rig", rig_pid)
+    procs = {"mac": mac_pid, "rig": rig_pid}
     cfg = load_contract()
     counters = []
     if cfg:
@@ -615,11 +688,13 @@ def api_now():
                                         order=_bootflow_order,
                                         fresh=age["mac"] is not None
                                         and age["mac"] < 120
-                                        and not mac_shutdown),
+                                        and not mac_shutdown
+                                        and mac_pid is not None),
                   "rig": sc_rig.summary(now_t["rig"],
                                         order=_bootflow_order,
                                         fresh=rig_fresh(sc_rig.last_t)
-                                        and not rig_shutdown),
+                                        and not rig_shutdown
+                                        and rig_pid is not None),
                   "segment": {"mac": len(sc_mac.stages),
                               "rig": len(sc_rig.stages)}},
         "contract": {"declared": bool(cfg), "front": (cfg or {}).get("front"),
@@ -631,6 +706,7 @@ def api_now():
                   for src, sc in (("mac", sc_mac), ("server", sc_srv),
                                   ("rig", sc_rig))},
         "hostnames": {"mac": os.uname().nodename, "rig": rig_hostname()},
+        "client_pids": procs,
         "tail_age": age,
         "ts": datetime.now().isoformat(timespec="seconds")}
     type_seen_save()
@@ -950,7 +1026,12 @@ def api_tail(args):
     n = min(int(args.get("n", ["300"])[0]), 1200)
     flt = (args.get("filter", [""])[0] or "").lower()
     level = args.get("level", ["all"])[0]
-    want = (args.get("sources", ["mac,rig,server"])[0] or "mac,rig,server").split(",")
+    # an ABSENT param defaults to all; an explicitly EMPTY list means none
+    # (the all-off bug: "" is falsy, so `or` used to substitute the default)
+    if "sources" in args:
+        want = [s for s in (args["sources"][0] or "").split(",") if s]
+    else:
+        want = ["mac", "rig", "server"]
     aligned, meta = alignment_view()
     if aligned:
         rows = read_merged_tail(max(n * 4, 1200), flt, level)
@@ -1325,9 +1406,13 @@ function pollTail(){
     var lv = document.getElementById("levelsel").value;
     if (lv !== "all") q += "&level="+lv;
     var srcs = ["mac","rig","server"].filter(function(s){ return SRC[s]; });
-    if (srcs.length && srcs.length < 3) q += "&sources="+srcs.join(",");
+    q += "&sources=" + srcs.join(",");   // sent ALWAYS - an empty list must
+    // mean "show nothing", not "default to everything" (the all-off bug)
     return fetch("/api/tail.json"+q).then(function(r){return r.json();}).then(function(d){
       var kids = [];
+      if (!srcs.length){
+        kids.push(el("div","muted","all sources hidden - toggle one back on above"));
+      }
       if (d.aligned){
         d.rows.forEach(function(r){ kids.push(fmtRow(r.src, r.line, r.tu)); });
         var dr = d.drift || {};
