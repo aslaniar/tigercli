@@ -1,6 +1,6 @@
 # FRONT — THE PEER-RENDER CHAIN (pinned chart; update after every boot or static verdict)
 
-STATUS: live (2026-09-06, after p2-194b + the evening decode). This is the project's tracking chart.
+STATUS: live (2026-09-06, after the static state-ladder finding - no boot). This is the project's tracking chart.
 Update protocol: after every boot or static finding, re-mark the rows and bump
 the STATUS date. Each row's fact must carry its evidence token. The user reads
 this instead of re-deriving session narratives.
@@ -13,7 +13,7 @@ this instead of re-deriving session narratives.
 | 2 | Client builds the peer's record; identity byte-exact | DONE | verified-by-log/dump (20.309) |
 | 3 | Live hosted session exists (machinery precondition) | DONE | verified-by-execution (p2-182: state 6, sids 0/1, BOTH machines) |
 | 4 | Peer's records enter the session candidate list | RUNNING | verified-by-log (p2-182: add_candidates from 0x141769CFC, per session) |
-| 5 | **JOIN REQUEST passes the connection-layer gate** | 🟡 **TWO OF THREE CHECKS PASS. (1) THE CHANNEL IS FIXED: the join gate (0x1416E0460) loads the walker's container from [ctx+0x28] of the packet's OWN connection (disasm-verified), so the relay must ride the association whose connection object holds the bound sessions - the ENGINE association, not the OOB datagram whose container is nearly empty. relay_join_engine_channel=true, SHIPPED, channel=engine wire-proven. (2) THE LOOKUP MATCHES: on the engine channel the relayed join's key (the verbatim fork sessionId) matched a walked slot's blob, match=1, MEASURED TWICE (p2-193a/b, gate-chain caller 0x17944FA). (3) THE GATE STILL REFUSES - and the found-path carries a SECOND check the decode had missed until 09-06: [found_slot+0x1AEF8] must be in {6,7,8,9} (the session-state window, 6 = LIVE HOSTED) or the SAME 'unknown session' refusal text fires (0x1416E04B6: add ecx,-6 / cmp ecx,3 / ja -> the not-found refuse block). THE AMBIGUITY: walk_map read the matched slot (slot2) at st=6 - INSIDE the passing window - while join_processor (hooked at the gate's own found-path callee 0x1417806C0) stayed at calls=0. Either (a) +0x1AEF8 differs at the refusal walk from the landing walk, or (b) the matched walks were another consumer of the shared walker and the gate's own walk missed. ONE INSTRUMENT SEPARATES THEM: the walker's LEAVE probe (its return value = the gate's own lookup decision, attributed)** | verified-by-execution (p2-192a, p2-193a/b) + verified-by-reading (the join gate's full disasm) |
+| 5 | **JOIN REQUEST passes the connection-layer gate** | 🟡 **THREE CHECKS: CHANNEL done, LOOKUP done, STATE is the wall - AND THE WALL IS NOW NAMED. The gate matches (verbatim forkSession key vs a walked slot's blob, match=1) INSIDE its own enter/leave window, then refuses on its second check: [found_slot+0x1AEF8] must be 6..9. Mapping the recorded compares to slots by WALK ORDER (binds {0,-1,1,-1,-1,2}; an unbound slot is never compared; a bound slot spends one compare at +0x57C and at most one at +0x94E) puts the match on SLOT5 = 0x4631748 - whose state is 2, then 4, and never 6, in every run measured. The client's OWN two sessions sit at 6. So the fork's session is created and bound but never driven to LIVE HOSTED, and a state failure prints the SAME 'unknown session' text as a miss - which is why five boots read it as a lookup failure. RETRACTS p2-193b's 'the matched slot is slot2, st=6' (inferred from which record held the blob, not from the walk order)** | verified-by-execution (p2-192a, p2-193a/b) + verified-by-reading (the gate, walker and helper disassembled to exhaustion, claims section 11) + derived-from-recorded-logs (section 12) |
 | 6 | Reserve -> admit -> adoption completes for the peer | DECODED, waits on 5 | verified-by-reading (20.108 end-to-end) |
 | 7 | Ladder climbs to connected (4,5) | DECODED, unproven | verified-by-reading (establishment-decode.md; gate = ladder==5) |
 | 8 | Guard + receiver object | DECODED, unobserved | verified-by-reading (20.279/20.287; receiver zero in every measured state) |
@@ -31,9 +31,12 @@ wall is ONE READOUT wide. Read it as three checks in series:
   LOOKUP    the walker must find a slot whose identity blob equals the join's
             sessionId. DONE - match=1, measured twice (p2-193a/b), verbatim
             key, gate-chain caller 0x17944FA.
-  STATE     the found slot's [+0x1AEF8] must be 6..9. UNRESOLVED - the field
-            read 6 on the matched slot at the LANDING walk, yet the processor
-            never ran. This is the whole of row 5's remaining wall.
+  STATE     the found slot's [+0x1AEF8] must be 6..9. THE WALL, AND NAMED:
+            the matched slot is slot5 (0x4631748, bind 2 - the session that
+            carries the fork's identity), and it rests at 4. The two sessions
+            that DO reach 6 are the client's own. Confidence: strong inference
+            from three runs, not yet a measurement at the refusal walk itself -
+            the deployed build (44c400b985d60c7a) makes it one.
 
 DO NOT RE-WALK (each was closed by measurement, not by argument):
   - the retarget VALUE arms (1 = join machine id, 2 = real account key,
@@ -84,17 +87,21 @@ outside the join window.
   ladder reaches (4,5)                   = ESTABLISHMENT (row 7)
   receiver vptr non-zero / ent_recv fires = the entity road opens (rows 8-9)
 
-## WHAT THE LEAVE READOUT DECIDES (pre-named, all three branches)
+## WHAT THE CONFIRMATION BOOT DECIDES (pre-named, all three branches)
 
-  MISS             -> the gate's walk uses a DIFFERENT container than the rich
-                      one; attribute via the container-id lines (live since
-                      p2-191) and the fix moves back to delivery.
-  FOUND-LIVE       -> the state check passes and the refusal comes from DEEPER
-                      than the decode reaches; next decode = 0x1417806C0's own
-                      body (capacity vs [pkt+8], flags [pkt+4]).
-  FOUND-STATE-OUT  -> the fork-side fix is making the forkSession-named session
-                      reach state 6+; p2-182 proved sessions reach 6 organically,
-                      so this is a sequencing problem, not a missing mechanism.
+  FOUND-STATE-OUT (expected) -> section 12 confirmed. The front becomes ONE
+                      server-side question: what drives a session slot 4 -> 6,
+                      and what must the fork send to drive the forkSession-named
+                      one there. The positive control is local and already
+                      measured - the client's own sessions make the climb.
+  FOUND-LIVE       -> section 12's inference is wrong, the state really is in
+                      6..9, and the refusal comes from deeper than the decode
+                      reaches; next decode = 0x1417806C0's own body (capacity
+                      vs [pkt+8], flags [pkt+4]).
+  MISS             -> the walker returned 0 despite a match=1 compare inside
+                      the window, which would mean the compare belongs to a
+                      nested call and not the walk; attribute via the
+                      container-id lines.
 
 ## THE CURRENT BLOCKER (measured facts, 2026-09-06 evening)
 

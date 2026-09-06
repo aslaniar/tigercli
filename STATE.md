@@ -6,6 +6,37 @@ HANDOFF_2026-09-06_EVENING-CHANNEL.md - READ THAT FIRST; session failures:
 docs/postmortems/POSTMORTEM_2026-09-06_THE-BLIND-GUARD.md - FOUR instrument
 defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 
+*** 2026-09-06 LATE (STATIC, NO BOOT): ROW 5'S WALL IS NAMED - THE MATCHED
+## SLOT IS SLOT5 AND ITS STATE IS 4, NOT 6. The join gate was disassembled to
+## exhaustion (0x1416E0460 + walker 0x14177A0B0 + helper 0x1417944C0): between
+## the walker and the processor there are EXACTLY TWO conditions - rax != 0 and
+## [rax+0x1AEF8]-6 <=u 3 - and no third check exists. Mapping p2-193a/b's
+## RECORDED compares to slots by WALK ORDER (binds {0,-1,1,-1,-1,2}; an unbound
+## slot is never compared; a bound slot spends one compare at +0x57C and at most
+## one at +0x94E) puts the match on SLOT5 = 0x4631748 - and walk_map read that
+## slot at state 2 then 4, never 6, in THREE runs. The client's own two sessions
+## sit at 6. THE MATCH ALSO SITS INSIDE join_type0a's OWN enter/leave window, so
+## the "was it the gate's walk or another consumer" ambiguity is answered from
+## data already on disk. RETRACTED: p2-193b's "the matched slot is slot2, st=6"
+## (inferred from which record held the blob rather than from the walk order).
+## ALSO FOUND: walk_map's change gate hashes key^slots^binds and the states are
+## read only when a line emits - so a STATE change cannot trigger a line, and
+## every st<i>= ever logged is the state at some OTHER field's change. That is
+## why "st2=6" was never evidence about the refusal walk.
+## THE FRONT IS NOW ONE SERVER-SIDE QUESTION: what drives a session slot from
+## state 4 to 6, and what must the fork send to drive the forkSession-named one
+## there? The positive control is local and measured - the client's own sessions
+## make the climb organically (p2-182, both machines).
+## Full text: RE_output/claims/connection-layer-join-delivery.md sections 11-12.
+## DEPLOYED FOR THE CONFIRMATION BOOT: client 44c400b985d60c7a on BOTH machines
+## (preflight PASS). The walk-return probe is now ARMED BY THE JOIN WINDOW -
+## join_type0a IS the gate (RVA 0x16E0460) and calls the walker once, so the
+## probe costs one thread-local read outside the gate's own call and the
+## attribution is by construction. That also fixes the R8 defect that broke the
+## mac's landing: the old leave probe checked its budget against EMITS while the
+## novelty gate returned before that counter moved, so two guarded reads and a
+## sixteen-entry scan ran on EVERY walker return, forever. ***
+
 *** p2-192/193/194 (the evening's front): THE SESSION-TO-CONNECTION
 ## BINDING SOLVED TO THE SECOND CHECK. VERIFIED CHAIN: (1) the join gate walks
 ## the container of the packet's OWN connection ([ctx+0x28], disasm-verified)
@@ -221,52 +252,43 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
              baseline archive (RE_output/logs/20260906_114917).
 
 
-## NEXT - THE SESSION-TO-CONNECTION BINDING (20.318..20.320, the measured blocker):
-##  the join's lookup walks 6 machine-context slots bound to SMALL-INDEX sessions
-##  {0,-1,1,-1,-1,2} (walk_map, both machines) - one named by the machine's OWN
-##  JOINID (binder2/cof_soid). The refusal is greppable; the refusal line's session
-##  field renders as two reversed dword groups - decode before comparing.
-  1. (instrument, NEXT BOOT) PER-CALLER SUB-BUDGETS for sess_cmp (16/caller,
-      first-seen-key per caller) - the flat 64-triple budget spent by the
-      landing's noise before the relayed join; the gate's own triples for the
-      relayed key are the one missing readout. Optionally caller_filter for
-      the walker's call site (0x177A0B0's helper call site).
-  2. (server, ARM 3 - the evidence-backed fix) retarget the relayed join's
-      sessionId to the RECIPIENT'S CURRENT JOINID (the fork holds the live
-      value on every admitted row; the membership machinery refuses updates
-      that do not echo it). The rewrite machinery is built (arm 1's
-      rewrite_join_session_id, fixture-proven) - arm 3 is the value change +
-      the instrument fix. Arm 1 (machine id) dead; arm 2 (real account key)
-      fallback. Arm 3's key is PROVEN inside the walked records on both
-      machines (binder2/cof_soid + the p2-187 blob census).
-  3. MODEL REVIEW for session-lookup-identity is BANKED (the p2-187 brief) -
-      the dead assumption: the state's idB flows into the live blob via the
-      membership machinery. Any further boot on this front carries the review.
-  4. OPEN SITE: the landing-session's blob writer (the record whose blob held
-      the fork's sessionId) - apply_stamp PROVED it is NOT the session apply
-      (one firing, early, static dst). The copier walk (0x1416E2350) is the
-      remaining suspect.
-  5. INSTRUMENT for the binder trigger: correlate binder firings with the
-      fork's published message stream, or add the caller-discriminated hook
-      on the binders (the runtime trigger is inside the obfuscated ring).
-  6. TOOLING: logq/logindex are BROKEN (merge_timeline.py line 286 - the user
-      is fixing); raw /usr/bin/grep -a stands. NEW DEBT: reset_lobby_claims'
-      real-restart path HUNG on its first real run (the pre-registered untested
-      defect - the canonical launch-server script recovered; the hang ate ~3
-      minutes). disasm_fn truncation (Tier-2 row, logged). COSMETIC: the
-      walk_map instrument emits stage=walkmap (name mismatch with the
-      census/instrument name) - align at the next build.
-  7. The duty-cycle landing fix HOLDS. The relay (OOB re-target) stays.
-  8. DEAD/CANCELLED: the +0x818/+0x38 hunts; the creation-loop framing; the
-      queue-event carrier; type-17; the SESSION-plane join delivery; Road 3's
-      client-host premise; the nonce-mismatch diagnosis (retracted); idB at
-      entry+144; the parameters-apply road on the OOB plane (id 38 dropped);
-      retarget arm 1 (the join machine id). DO NOT re-measure the creation
-      loop; trust corrupted dump pulls; hook a per-tick function with a
-      fixed-N budget; modify the client; ship a retarget value by assumption.
-   9. OPEN DEBT: the mac's co-presence render-black (NOW WITH A SHARPER MARKER:
-      segment 2 reaches region-forced and never fade_release; client alive);
-      the image_set hang; the q.sh false-null on hex addresses (Tier-2 row).
+## NEXT - THE SESSION-STATE LADDER (4 -> 6), the named wall
+##  Row 5 needs the forkSession-named session's SLOT to reach state 6..9. The
+##  lookup, the channel and the key are all DONE and must not be re-walked.
+  1. (STATIC, no boot) Find the writer of [slot+0x1AEF8] and decode the
+      transition 4 -> 6. The positive control is in every log: the client's own
+      two sessions climb 0 -> 6 (0x45A2C18 at sid 0, 0x45DBD60 at sid 1), so the
+      mechanism runs locally and is reachable. Decode what they receive that the
+      fork's session (sid 2, slot5 = 0x4631748) does not.
+  2. (BOOT, confirmation only - client 44c400b985d60c7a is deployed on both)
+      One paired boot. Readout: walk_leave's outcome on the relayed join
+      (expect FOUND-STATE-OUT with state=4) and walk_map's window-forced line
+      naming all six states AT the refusal walk. The brief MUST carry a MODEL
+      REVIEW - boot_outcome records p2-194a and p2-194b as consecutive
+      third-branches on session-lookup-identity, so gate_boot refuses without it.
+  3. The relay stays as it is: verbatim key, engine channel. Both are proven.
+  4. DEAD/CANCELLED (unchanged, plus this session's additions): the retarget
+      value arms 1-3; the blob-stamp timing theory; the connect-family re-decode;
+      the parameters/OOB road (id 38 is a bare ret); the +0x818/+0x38 hunts; the
+      creation-loop framing; the SESSION-plane join delivery; Road 3's
+      client-host premise. AND NEW: do not hunt a third gate condition - the
+      gate has exactly two and both are decoded.
+  5. TOOLING DEBT FOUND THIS SESSION (for the workflow lane, not mid-boot):
+      (a) verify_hook_rvas.py:70 computes the duplicate-RVA problems WITH the
+          waiver reader and then IMMEDIATELY overwrites it with the waiver-blind
+          call - so DUAL-OK: can never satisfy that tool (probe_audit and
+          hook_targets both honor it correctly);
+      (b) probe_audit's docstring promises a `collision` citation will satisfy
+          arm B, but arm B reads STRIPPED source, so only a real zero-guard or
+          per-operand transform can;
+      (c) probe_audit has no R8 cost arm reachable from the CLI (check_hot_path
+          needs a baseline the CLI never passes), which is why the leave probe's
+          unbounded hot-path cost passed the gate that exists for it;
+      (d) the walk_map instrument still emits stage=walkmap in its census name.
+  6. OPEN DEBT (unchanged): the mac's co-presence render-black (segment 2 reaches
+      region-forced, never fade_release, client alive); the image_set hang;
+      logq/logindex broken at merge_timeline.py:286; reset_lobby_claims' real
+      restart path still untested; q.sh false-null on hex addresses.
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
