@@ -1,6 +1,6 @@
 # FRONT — THE PEER-RENDER CHAIN (pinned chart; update after every boot or static verdict)
 
-STATUS: live (2026-09-06, after p2-195 - the wall MEASURED). This is the project's tracking chart.
+STATUS: live (2026-09-06, after the state-ladder decode - ROW 5 CLOSED, the front moves to row 9). This is the project's tracking chart.
 Update protocol: after every boot or static finding, re-mark the rows and bump
 the STATUS date. Each row's fact must carry its evidence token. The user reads
 this instead of re-deriving session narratives.
@@ -13,11 +13,11 @@ this instead of re-deriving session narratives.
 | 2 | Client builds the peer's record; identity byte-exact | DONE | verified-by-log/dump (20.309) |
 | 3 | Live hosted session exists (machinery precondition) | DONE | verified-by-execution (p2-182: state 6, sids 0/1, BOTH machines) |
 | 4 | Peer's records enter the session candidate list | RUNNING | verified-by-log (p2-182: add_candidates from 0x141769CFC, per session) |
-| 5 | **JOIN REQUEST passes the connection-layer gate** | 🟡 **THE WALL IS MEASURED AND IT IS ONE STATE TRANSITION. p2-195: the relayed join arrives on the engine channel, the gate's walk MATCHES it (match=1, slot5's +0x57C blob = the join's key), and the gate refuses on its SECOND check - `walk_leave ret=0x4631748 bind=2 state=4 depth=1 outcome=FOUND-STATE-OUT`, with the window-forced walk_map reporting FRESH states at the same call {st0=6 st1=0 st2=6 st3=0 st4=0 st5=4}. The gate requires 6..9. join_processor calls=0. depth=1 proves it is the gate's OWN walk. So delivery, container, key and lookup are ALL CLOSED - the fork's session is bound at slot5 and carries the right identity; it just sits at state 4 while the client's own two sessions sit at 6 in the same container.** | verified-by-execution (p2-195) + verified-by-reading (claims 11, the gate/walker/helper disassembled to exhaustion) |
+| 5 | ~~JOIN REQUEST passes the connection-layer gate~~ | ✅ **CLOSED - THE QUESTION WAS WRONG, AND THE ANSWER WAS NEVER NEEDED. The gate's 6..9 window is the HOST half of the session ladder (state 6 = 'host-established', state 4 = 'peer-established' - the client prints these names itself). A type-0x0A join is a HOST-ONLY message; the receiving client is a PEER in the fork's session and can never host it, so no key, channel, container or retarget value could ever have passed. AND IT DID NOT MATTER: the membership plane has been delivering the rig into the mac's group session as peer #2 `_established`, 3 peers / 2 players, with a direct mac<->rig channel, for at least THREE boots (p2-193a/b, p2-195 - counts identical, control run). The relay road p2-181..p2-195 is closed on its own question.** | verified-by-execution (p2-195 + the p2-193 control) + verified-by-reading (claims 14) |
 | 6 | Reserve -> admit -> adoption completes for the peer | DECODED, waits on 5 | verified-by-reading (20.108 end-to-end) |
 | 7 | Ladder climbs to connected (4,5) | DECODED, unproven | verified-by-reading (establishment-decode.md; gate = ladder==5) |
 | 8 | Guard + receiver object | DECODED, unobserved | verified-by-reading (20.279/20.287; receiver zero in every measured state) |
-| 9 | Entity message encodes + sends | SPEC-COMPLETE, 1 unknown | verified-by-femu (contract + payloads; outer wire type open, 20.303 R4) |
+| 9 | **Entity message encodes + sends** | 🔴 **THE FRONT** - spec-complete, ONE unknown (the outer wire type, 20.303 R4). With the peer established at the session layer and a channel up, ent_recv/ent_create/ent_gate are all still calls=0: nothing has ever sent the client a peer entity. This is fork-side work in code we own | verified-by-femu (contract + payloads, 20.302-20.304) |
 | 10 | Entity renders and moves | NOT YET | the last link; positive control = the local player (20.53) |
 
 ## HOW TO READ ROW 5 (after the evening of 2026-09-06)

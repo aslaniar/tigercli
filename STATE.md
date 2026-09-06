@@ -6,6 +6,35 @@ HANDOFF_2026-09-06_EVENING-CHANNEL.md - READ THAT FIRST; session failures:
 docs/postmortems/POSTMORTEM_2026-09-06_THE-BLIND-GUARD.md - FOUR instrument
 defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 
+*** 2026-09-06 (STATIC + recorded logs, NO new boot): THE STATE LADDER IS
+## DECODED AND ROW 5 IS CLOSED - THE QUESTION WAS WRONG AND ITS ANSWER WAS
+## NEVER NEEDED. field_xref on +0x1AEF8: 497 accesses, 6 writes, only TWO that
+## can write an arbitrary value - 0x14178CD98 (20.184's cluster) and
+## 0x1417B37DE, which 20.184 never named and which IS the state-transition
+## function: it formats old and new state through 0x14177A280 and LOGS them.
+## THE CLIENT PRINTS ITS OWN LADDER, and p2-195's log carries every transition:
+##   'none' -> 'host-established'                      (fireteam, posse)
+##   'none' -> 'peer-creating' -> 'peer-joining' -> 'peer-established'  (the fork's)
+## Cross-matched to sessstate: STATE 6 = 'host-established', STATE 4 =
+## 'peer-established'. So the gate's 6..9 window is the HOST HALF OF THE LADDER:
+## a type-0x0A join is a HOST-ONLY message and the receiving client is a PEER in
+## the fork's session. NO key, channel, container or retarget value could ever
+## have passed - the relay was delivering a host-only request to a peer.
+## AND IT NEVER MATTERED: the membership plane has ALREADY been putting the rig
+## into the mac's group session as peer #2 `_established` (peers valid 0x7 =
+## three, players valid 0x3 = two, plus a direct mac<->rig channel established).
+## CONTROL RUN: those counts are IDENTICAL in p2-193a, p2-193b and p2-195 - the
+## membership plane has done this for at least three boots, through every relay
+## experiment, so the refusals never blocked anything.
+## THE RELAY ROAD p2-181..p2-195 IS CLOSED on its own question.
+## THE REAL WALL, unchanged since 20.301 (2026-09-05): with the peer established
+## and a channel up, ent_recv=0, ent_create=0, ent_gate=0 on the same boot.
+## NOTHING HAS EVER SENT THE CLIENT A PEER ENTITY, and the fork has never sent
+## one. Fork-side work in code we own. The contract is SPEC-COMPLETE and
+## femu-validated (20.302 receive cluster, 20.303 carrier, 20.304 payloads -
+## kind 2, the guardian, is RAW 8 BYTES); the ONE unknown is the OUTER WIRE TYPE
+## (20.303 R4). Full text: claims connection-layer-join-delivery.md section 14. ***
+
 *** p2-195 (ONE PAIRED BOOT, 2026-09-06 ~16:29): ROW 5'S WALL IS MEASURED AND
 ## IT IS ONE STATE TRANSITION. The gate MATCHES the relayed join and refuses on
 ## its SECOND check - measured, not inferred:
@@ -292,41 +321,29 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
              baseline archive (RE_output/logs/20260906_114917).
 
 
-## NEXT - THE SESSION-STATE LADDER (4 -> 6), the named wall
-##  Row 5 needs the forkSession-named session's SLOT to reach state 6..9. The
-##  lookup, the channel and the key are all DONE and must not be re-walked.
-  1. (STATIC, no boot) Find the writer of [slot+0x1AEF8] and decode the
-      transition 4 -> 6. The positive control is in every log: the client's own
-      two sessions climb 0 -> 6 (0x45A2C18 at sid 0, 0x45DBD60 at sid 1), so the
-      mechanism runs locally and is reachable. Decode what they receive that the
-      fork's session (sid 2, slot5 = 0x4631748) does not.
-  2. DONE - p2-195 ran it and it confirmed (FOUND-STATE-OUT, state=4, bind=2).
-      No further boot is owed on the "which check refuses" question.
-  3. The relay stays as it is: verbatim key, engine channel. Both are proven.
-  4. DEAD/CANCELLED (unchanged, plus this session's additions): the retarget
-      value arms 1-3; the blob-stamp timing theory; the connect-family re-decode;
-      the parameters/OOB road (id 38 is a bare ret); the +0x818/+0x38 hunts; the
-      creation-loop framing; the SESSION-plane join delivery; Road 3's
-      client-host premise. AND NEW: do not hunt a third gate condition - the
-      gate has exactly two and both are decoded.
-  5. TOOLING DEBT FOUND THIS SESSION (resolved 2026-09-06 evening, the
-      workflow session + pen):
-      (a) verify_hook_rvas.py:70 waiver-blind duplicate call - FIXED by the
-          pen's session (the waiver-ful result stands; hook_targets and
-          probe_audit honor DUAL-OK: correctly);
-      (b) probe_audit's docstring promised a `collision` citation satisfies
-          arm B - WRONG (arm B reads stripped source); docstring corrected,
-          only the real zero-guard/transform satisfies it;
-      (c) probe_audit's R8 cost arm was unreachable from the CLI - FIXED:
-          audit() now fetches git HEAD baselines itself (git_baselines);
-          untracked/new files honestly skip the cost arm. Full real run:
-          PROBE AUDIT PASS, 0 findings;
-      (d) the walk_map instrument still emits stage=walkmap in its census name
-          (the pen's instrument-side item, not tooling).
-  6. OPEN DEBT (unchanged): the mac's co-presence render-black (segment 2 reaches
-      region-forced, never fade_release, client alive); the image_set hang;
-      logq/logindex broken at merge_timeline.py:286; reset_lobby_claims' real
-      restart path still untested; q.sh false-null on hex addresses.
+## NEXT - ROW 9: THE FORK MUST SEND AN ENTITY (20.301's front, now unblocked)
+##  Row 5 is CLOSED. Do NOT resume the join relay, the retarget, the state
+##  ladder, or any "drive the session to 6" idea - the client is a peer and the
+##  peer is already established by the membership plane.
+  1. (STATIC) Resolve the OUTER WIRE TYPE - the one unknown in the entity
+      contract (20.303 R4). Everything under it is spec-complete and
+      femu-validated: the ent_* receive cluster (20.302), the carrier chain
+      (20.303), and the payload bodies (20.304 - kind 2, the guardian, is RAW
+      8 BYTES, bit-exact against the real dump codec).
+  2. (FORK) Build the encoder and SEND one peer entity on the gameplay plane
+      (UDP 30976). The receive cluster has logged zero in every boot because
+      nothing has ever sent it one.
+  3. READOUT for the first send: ent_recv calls>0 is the whole test. Its
+      census already runs every boot and has never been non-zero.
+  4. The membership/session plane is DONE and must not be re-litigated: the
+      rig arrives as peer #2 `_established`, 3 peers / 2 players, direct
+      channel up, reproducible across p2-193a/b and p2-195.
+  5. OPEN DEBT: the mac's TWO render-black variants (see the parked-debt block
+      above - do not merge them); the image_set hang; logq/logindex broken at
+      merge_timeline.py:286; reset_lobby_claims' real-restart path untested
+      (the manual pkill + mac-port/launch-server-macos.sh path works and was
+      used for p2-195); q.sh false-null on hex addresses (it returned EMPTY for
+      1AEF8 while /usr/bin/grep found 10 hits - Tier-2 row, now twice-burned).
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).

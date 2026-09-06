@@ -693,3 +693,112 @@ container, on the same boot - so whatever makes 6 happen is reachable and observ
 NOTE the tension to resolve: 20.184 calls 6..9 "a DIFFERENT object family", but slot0,
 slot2 and slot5 are all in the one walked container. Its addresses stand; its framing
 needs a pass.
+
+---
+
+## 14. THE STATE LADDER DECODED - AND THE JOIN-RELAY ROAD CLOSES ON ITS OWN QUESTION
+## (2026-09-06, STATIC + recorded logs, NO new boot)
+
+### 14.1 THE STATES HAVE NAMES, AND THE CLIENT PRINTS THEM
+
+field_xref on +0x1AEF8: 497 accesses, SIX writes, and only two can write an
+arbitrary value:
+    0x0140914bbf  mov [rsp+0x1AEF8], eax    <- SIB base=rsp: a STACK write in a
+                                               huge frame. NOT the field.
+    0x0141768036  mov dword [rbx+0x1AEF8], -1
+    0x0141774f41  mov dword [rbx+0x1AEF8], -1
+    0x01417756cd  mov dword [rdi+0x1AEF8], 0
+    0x014178cd98  mov [rdi+0x1AEF8], esi     <- 20.184's named cluster
+    0x01417b37de  mov [r14+0x1AEF8], r15d    <- NOT named by 20.184
+
+The second register writer (enclosing chunk 0x1417B36CA..0x1417B37F6) is the
+STATE-TRANSITION function, and it LOGS the transition: it formats the old state
+([r14+0x1AEF8], read at 0x1417b3780) and the new state (r15d) through the
+name function 0x14177A280, and emits. It then computes `lea ecx,[r15-4] /
+cmp ecx,5 / setbe al` - "is the NEW state in 4..9" - and compares that against
+a saved boolean, i.e. an in-range-ness edge that drives a notification.
+
+So the ladder was never a mystery: the client prints it in plain English, and
+the p2-195 log carries every transition of the boot:
+
+    t=58024  [fireteam:...]     'none' -> 'host-established'
+    t=82048  [posse:...]        'none' -> 'host-established'
+    t=118144 [group_target:...] 'none' -> 'peer-creating'
+    t=118190 [group_target:F3238901:C0161CE7] 'peer-creating' -> 'peer-joining'
+    t=118628 [group_target:F3238901:C0161CE7] 'peer-joining' -> 'peer-established'
+
+Cross-matched against the sessstate probe on the same boot (0x45A2C18 -> 6 at
+t=58025; 0x45DBD60 -> 6 at t=82061; slot5 at 4):
+
+    **state 6 = 'host-established'      state 4 = 'peer-established'**
+
+    host path: none -> host-established (6)
+    peer path: none -> peer-creating -> peer-joining -> peer-established (4)
+
+### 14.2 WHAT THE GATE'S 6..9 WINDOW ACTUALLY MEANS
+
+`[found_slot+0x1AEF8]` in {6,7,8,9} is not an arbitrary readiness threshold. It
+is the HOST half of the ladder. The gate is answering a join REQUEST - a machine
+asking to be admitted to a session - and it requires that the session named be
+one THIS MACHINE HOSTS. A peer cannot admit anyone; only the host can.
+
+The mac is a PEER in the fork's group_target session (it logs "Creating CLIENT
+managed session", "joining Steam Lobby as client", and tops out at
+peer-established). It will never be that session's host.
+
+**THEREFORE THE RELAY CANNOT SUCCEED, AND NOT FOR ANY REASON WE WERE HUNTING.**
+Not the channel, not the key, not the container, not the retarget value - all of
+which we closed by measurement. A connection-layer type-0x0A join is a HOST-ONLY
+message, and we were delivering it to a peer. The 4 -> 6 question posed at the
+end of section 13 is the WRONG question: driving the mac's peer session to
+'host-established' would be asserting a falsehood about the topology, and the
+fork - which really is the host - is where such a request belongs.
+
+### 14.3 AND THE RELAY WAS NEVER NEEDED FOR PEER PRESENCE
+
+The membership plane has ALREADY put the rig into the mac's group session. From
+the same p2-195 log (t=241625, after the rig reached the tower):
+
+    [group_target:F3238901:C0161CE7] update_number: 11, leader_peer_index: #0,
+      host_peer_index: #0
+    peers valid: 0x7 (THREE peers), players valid: 0x3 (TWO players)
+    peer # 2 a=[192.168.1.136:3097] s=_established o=1 j=[095E5AF2-3ED67ABB]
+    channel 192.168.1.136:3097 ... state change connecting -> established
+    [group_target:...] player-properties accepted for player #1
+
+THE CONTROL (run before claiming novelty): these counts are NOT new to this boot.
+peers 0x7 / players 0x3 and the `peer # 2 a=[192.168.1.136...]` row appear
+identically in 20260906_143105 (p2-193a) and 20260906_144232 (p2-193b). The
+membership plane has been delivering the rig as an ESTABLISHED PEER, with a
+direct mac<->rig channel, for at least three boots - through every one of the
+join-relay experiments, whose refusals therefore never blocked anything.
+
+### 14.4 WHERE THE WALL ACTUALLY IS
+
+With the rig established as a peer and a channel up, the entity road is still
+COMPLETELY SILENT on the same boot:
+
+    ent_recv   calls=0        ent_create calls=0
+    ent_gate   calls=0        ent_make   calls=56  (local only)
+
+So the wall is not session membership, not the join gate, and not the state
+ladder. The peer is present at the session layer and NO ENTITY TRAFFIC FOLLOWS.
+
+That is exactly what 20.301 said on 2026-09-05 and it has been true the whole
+time: "peers must ARRIVE by SERVER-MEDIATED replication on the gameplay plane
+(UDP 30976). The receive cluster logs zero because NOTHING EVER SENDS IT A PEER
+ENTITY - and the fork has never sent one. This is fork-side work in code we own."
+
+### 14.5 THE FRONT
+
+CLOSED (on its own question, not a sub-question): "what must the fork send so
+the receiving client's join gate admits the peer?" Answer: NOTHING CAN. The gate
+is host-only by construction, the client is a peer, and the peer is already
+admitted by a different plane that has been working for boots. The whole
+p2-181..p2-195 relay road is closed - its machinery, decodes and measurements
+stand as the record of how it was closed.
+
+OPEN, and it is the one 20.301 named: THE FORK MUST SEND AN ENTITY. The contract
+is already spec-complete and femu-validated (20.302 ent_* receive cluster,
+20.303 the carrier, 20.304 the payload bodies - kind 2, the guardian, is RAW 8
+BYTES). The single remaining unknown is the OUTER WIRE TYPE (20.303 R4).
