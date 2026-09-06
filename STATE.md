@@ -6,6 +6,39 @@ HANDOFF_2026-09-06_EVENING-CHANNEL.md - READ THAT FIRST; session failures:
 docs/postmortems/POSTMORTEM_2026-09-06_THE-BLIND-GUARD.md - FOUR instrument
 defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 
+*** p2-195 (ONE PAIRED BOOT, 2026-09-06 ~16:29): ROW 5'S WALL IS MEASURED AND
+## IT IS ONE STATE TRANSITION. The gate MATCHES the relayed join and refuses on
+## its SECOND check - measured, not inferred:
+##   walk_leave ret=0x4631748 bind=2 state=4 depth=1 outcome=FOUND-STATE-OUT
+##   walk_map window=1 (FRESH states, same call): st0=6 st1=0 st2=6 st3=0
+##                                                st4=0 st5=4
+##   join_processor calls=0  |  the retail refusal fires immediately after.
+## Every value was PRE-NAMED in the brief; the boot was a confirmation and it
+## confirmed. depth=1 proves the walk is the GATE'S OWN, closing the p2-193b
+## attribution ambiguity by construction. CLOSED BY MEASUREMENT: the channel,
+## the key (verbatim), the container, the lookup, and the gate's decision path
+## (exactly two conditions - claims section 11.1 - no third check exists).
+## THE FORK'S SESSION IS BOUND AT SLOT5 AND CARRIES THE RIGHT IDENTITY. It sits
+## at state 4; the gate requires 6..9. The client's own two sessions sit at 6 in
+## the SAME container on the SAME boot, so 6 is reachable and observable.
+## THE INSTRUMENT DEFECT IS ALSO FIXED: the mac LANDED (initial_slice_set x10,
+## tower) on 44c400b985d60c7a, where d5ed2ae3 never reached the tower - the R8
+## regression (the leave probe's budget checked against EMITS while the novelty
+## gate returned before that counter moved) was found by READING, not by the two
+## boots p2-194a/b spent on it. Third-branch streak on this front: 2 -> 0.
+## THE ONE REMAINING QUESTION ON ROW 5: what drives a session slot from 4 to 6,
+## and what must the fork send to drive the forkSession-named one there?
+## Starting evidence (do NOT re-derive): 20.184 RESULT 3 - stage writers are
+## 0x14178CD97's cluster driven by 0x140C05F80, which tries stages 0/1, 2/3, 4/5
+## until the setter returns true; "THE CLIENT CYCLES STAGES 0..5 ONLY". p2-195
+## matches it exactly - the fork's session is parked at the TOP of that range.
+## Full text: RE_output/claims/connection-layer-join-delivery.md sections 11-13.
+## PARKED DEBT RECURRED, now sharper: the mac's render-black happened on a SOLO
+## landing this boot (rig not yet up), segment 2 reaches `region result=forced
+## native=0 answer=1` and never fade_release; the client stays alive and keeps
+## logging; a subclass swap did NOT fix it. Previously correlated with the rig's
+## connection event - that correlation is now REFUTED as necessary. ***
+
 *** 2026-09-06 LATE (STATIC, NO BOOT): ROW 5'S WALL IS NAMED - THE MATCHED
 ## SLOT IS SLOT5 AND ITS STATE IS 4, NOT 6. The join gate was disassembled to
 ## exhaustion (0x1416E0460 + walker 0x14177A0B0 + helper 0x1417944C0): between
@@ -260,12 +293,8 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
       two sessions climb 0 -> 6 (0x45A2C18 at sid 0, 0x45DBD60 at sid 1), so the
       mechanism runs locally and is reachable. Decode what they receive that the
       fork's session (sid 2, slot5 = 0x4631748) does not.
-  2. (BOOT, confirmation only - client 44c400b985d60c7a is deployed on both)
-      One paired boot. Readout: walk_leave's outcome on the relayed join
-      (expect FOUND-STATE-OUT with state=4) and walk_map's window-forced line
-      naming all six states AT the refusal walk. The brief MUST carry a MODEL
-      REVIEW - boot_outcome records p2-194a and p2-194b as consecutive
-      third-branches on session-lookup-identity, so gate_boot refuses without it.
+  2. DONE - p2-195 ran it and it confirmed (FOUND-STATE-OUT, state=4, bind=2).
+      No further boot is owed on the "which check refuses" question.
   3. The relay stays as it is: verbatim key, engine channel. Both are proven.
   4. DEAD/CANCELLED (unchanged, plus this session's additions): the retarget
       value arms 1-3; the blob-stamp timing theory; the connect-family re-decode;
@@ -273,18 +302,20 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
       creation-loop framing; the SESSION-plane join delivery; Road 3's
       client-host premise. AND NEW: do not hunt a third gate condition - the
       gate has exactly two and both are decoded.
-  5. TOOLING DEBT FOUND THIS SESSION (for the workflow lane, not mid-boot):
-      (a) verify_hook_rvas.py:70 computes the duplicate-RVA problems WITH the
-          waiver reader and then IMMEDIATELY overwrites it with the waiver-blind
-          call - so DUAL-OK: can never satisfy that tool (probe_audit and
-          hook_targets both honor it correctly);
-      (b) probe_audit's docstring promises a `collision` citation will satisfy
-          arm B, but arm B reads STRIPPED source, so only a real zero-guard or
-          per-operand transform can;
-      (c) probe_audit has no R8 cost arm reachable from the CLI (check_hot_path
-          needs a baseline the CLI never passes), which is why the leave probe's
-          unbounded hot-path cost passed the gate that exists for it;
-      (d) the walk_map instrument still emits stage=walkmap in its census name.
+  5. TOOLING DEBT FOUND THIS SESSION (resolved 2026-09-06 evening, the
+      workflow session + pen):
+      (a) verify_hook_rvas.py:70 waiver-blind duplicate call - FIXED by the
+          pen's session (the waiver-ful result stands; hook_targets and
+          probe_audit honor DUAL-OK: correctly);
+      (b) probe_audit's docstring promised a `collision` citation satisfies
+          arm B - WRONG (arm B reads stripped source); docstring corrected,
+          only the real zero-guard/transform satisfies it;
+      (c) probe_audit's R8 cost arm was unreachable from the CLI - FIXED:
+          audit() now fetches git HEAD baselines itself (git_baselines);
+          untracked/new files honestly skip the cost arm. Full real run:
+          PROBE AUDIT PASS, 0 findings;
+      (d) the walk_map instrument still emits stage=walkmap in its census name
+          (the pen's instrument-side item, not tooling).
   6. OPEN DEBT (unchanged): the mac's co-presence render-black (segment 2 reaches
       region-forced, never fade_release, client alive); the image_set hang;
       logq/logindex broken at merge_timeline.py:286; reset_lobby_claims' real

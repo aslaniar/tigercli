@@ -616,3 +616,80 @@ progression mechanism exists, runs locally, and is reachable - the fork simply
 never triggers it for the session it names. That is fork-side work on the
 gameplay plane, in code we own, and it is the next decode: find the writer of
 [slot+0x1AEF8] and the transition 4 -> 6.
+
+---
+
+## 13. MEASURED (p2-195, 2026-09-06 ~16:29) - SECTION 12 CONFIRMED BYTE-FOR-BYTE
+
+One paired boot, client 44c400b985d60c7a, archive RE_output/logs/20260906_162912_p2-195.
+Every value section 12 pre-named was measured exactly. The inference is retired; this
+is now a measurement.
+
+### 13.1 THE READOUT
+
+    t=240902 enter fn=join_type0a call=1 caller_rva=0x16E2BE0
+    t=240903 pktdump nonce=0xA4F8 key16=F3238901C0161CE7BB7AD63EF25A5E09
+    t=240904 leave  fn=inst_nonce ret=0xA4F8                    <- version check PASSES
+    t=240904 walk_map call=82 window=1 key=0xE71C16C0018923F3
+             bind0=0  st0=6   slot0=0x45A2C18
+             bind1=-1 st1=0   slot1=0x45BF4B8
+             bind2=1  st2=6   slot2=0x45DBD60
+             bind3=-1 st3=0   slot3=0x45F8600
+             bind4=-1 st4=0   slot4=0x4614EA8
+             bind5=2  st5=4   slot5=0x4631748                   <- THE FORK'S SESSION
+    t=240904 sesscmp 0x17944FA blob=0x6D51976ADE26AE2E match=0   slot0 +0x57C
+    t=240905 sesscmp 0x1794520 blob=0x0000000000000000 match=0   slot0 +0x94E
+    t=240905 sesscmp 0x17944FA blob=0x4039673F805FDAE4 match=0   slot2 +0x57C
+    t=240905 sesscmp 0x17944FA blob=0xE71C16C0018923F3 match=1   slot5 +0x57C  MATCH
+    t=240906 walk_leave ret=0x4631748 bind=2 state=4 depth=1 outcome=FOUND-STATE-OUT
+    t=240906 retail site=301 "join-request: received message for an unknown session
+             F3238901:C0161CE7 ... sending back a refusal"
+
+  join_processor (0x1417806C0) calls=0 - the consumer is never reached.
+
+### 13.2 WHAT IS NOW PROVEN RATHER THAN INFERRED
+
+- The gate MATCHES the relayed join and refuses on its SECOND check. Not a lookup
+  failure, not a container failure, not a key failure - all three are closed.
+- The matched slot is slot5 = 0x4631748, bind 2. Section 12's compare-to-slot mapping
+  by walk order was correct; p2-193b's "the matched slot is slot2 at st=6" is retracted.
+- The matched slot's state is 4 AT THE REFUSAL WALK, in the same call, read by the
+  window-forced walk_map (window=1) and independently by walk_leave off the walker's own
+  return value. The two-minute gap section 12.4 flagged as its honest limit is closed.
+- depth=1 on the walk_leave line: the walk is the GATE'S OWN, not a nested or concurrent
+  consumer's. The p2-193b attribution ambiguity is closed by construction, not argument.
+- Exactly ONE walk_leave line for the whole boot. The armed window behaves as designed:
+  silent everywhere else (walk_leave=0 for the entire solo period before the join).
+
+### 13.3 THE INSTRUMENT VERDICT
+
+The mac LANDED on 44c400b985d60c7a (initial_slice_set x10, character select, tower)
+where d5ed2ae3f12e42fb never reached the tower at all. The R8 defect diagnosed by
+reading - the leave probe's budget checked against EMITS while the novelty gate returned
+before that counter could move - was the landing regression, and removing the probe's
+cost outside the join window fixed it. Two boots (p2-194a/b) had been spent on that
+defect; no boot was needed to find it.
+
+The one budget_exhausted line in the boot belongs to an unrelated consumer
+(sess_cmp caller 0x1779C3A, t=241942) AFTER the gate window - the gate's own chain
+emitted its complete compare set.
+
+### 13.4 THE FRONT, RESTATED
+
+Row 5 is one state transition from falling. The fork's session is created, bound into
+the gate's walked container at slot5, and carries the identity the join names - the
+whole delivery chain works. It sits at state 4; the gate requires 6..9.
+
+  **WHAT DRIVES A SESSION SLOT FROM 4 TO 6, AND WHAT MUST THE FORK SEND TO DRIVE THE
+  forkSession-NAMED ONE THERE?**
+
+Starting evidence for the decode (do not re-derive): 20.184 RESULT 3 - the stage
+writers are 0x14178CD97's cluster, driven by 0x140C05F80, which tries stages 0/1, 2/3,
+4/5 across 0x1C8A0-stride object pairs until the setter returns true, and the client
+"CYCLES STAGES 0..5 ONLY". That matches this measurement exactly: the fork's session is
+parked at the top of the client-driven range (4) and something ELSE must carry it to 6.
+The positive control is in the same log: slot0 and slot2 are at 6, in the same
+container, on the same boot - so whatever makes 6 happen is reachable and observable.
+NOTE the tension to resolve: 20.184 calls 6..9 "a DIFFERENT object family", but slot0,
+slot2 and slot5 are all in the one walked container. Its addresses stand; its framing
+needs a pass.
