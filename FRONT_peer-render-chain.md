@@ -1,6 +1,6 @@
 # FRONT — THE PEER-RENDER CHAIN (pinned chart; update after every boot or static verdict)
 
-STATUS: live (2026-09-06, after the state-ladder decode - ROW 5 CLOSED, the front moves to row 9). This is the project's tracking chart.
+STATUS: live (2026-09-06, after the state-ladder decode - ROW 5 CLOSED; the front is ROW 7, the connected rung). This is the project's tracking chart.
 Update protocol: after every boot or static finding, re-mark the rows and bump
 the STATUS date. Each row's fact must carry its evidence token. The user reads
 this instead of re-deriving session narratives.
@@ -15,7 +15,7 @@ this instead of re-deriving session narratives.
 | 4 | Peer's records enter the session candidate list | RUNNING | verified-by-log (p2-182: add_candidates from 0x141769CFC, per session) |
 | 5 | ~~JOIN REQUEST passes the connection-layer gate~~ | ✅ **CLOSED - THE QUESTION WAS WRONG, AND THE ANSWER WAS NEVER NEEDED. The gate's 6..9 window is the HOST half of the session ladder (state 6 = 'host-established', state 4 = 'peer-established' - the client prints these names itself). A type-0x0A join is a HOST-ONLY message; the receiving client is a PEER in the fork's session and can never host it, so no key, channel, container or retarget value could ever have passed. AND IT DID NOT MATTER: the membership plane has been delivering the rig into the mac's group session as peer #2 `_established`, 3 peers / 2 players, with a direct mac<->rig channel, for at least THREE boots (p2-193a/b, p2-195 - counts identical, control run). The relay road p2-181..p2-195 is closed on its own question.** | verified-by-execution (p2-195 + the p2-193 control) + verified-by-reading (claims 14) |
 | 6 | Reserve -> admit -> adoption completes for the peer | DECODED, waits on 5 | verified-by-reading (20.108 end-to-end) |
-| 7 | Ladder climbs to connected (4,5) | DECODED, unproven | verified-by-reading (establishment-decode.md; gate = ladder==5) |
+| 7 | **Ladder climbs to connected (4,5)** | 🔴 **THE FRONT - MEASURED UNMET.** In the fork's group_target session NO peer reaches `_connected`; all three sit at `_established`. The LOCAL posse session DOES reach `_connected` on the same boot = the positive control. Identical across the p2-190 baseline, p2-193a/b and p2-195. The 3->4 site 0x141803F2B is guarded on `[rsi+0x3040]==3 AND [rsi+0x1D18]==5` - it REQUIRES connected(5), and the rung is MESSAGE-FED | verified-by-execution (4 boots) + verified-by-reading (establishment-decode.md) |
 | 8 | Guard + receiver object | DECODED, unobserved | verified-by-reading (20.279/20.287; receiver zero in every measured state) |
 | 9 | **Entity message encodes + sends** | 🔴 **THE FRONT** - spec-complete, ONE unknown (the outer wire type, 20.303 R4). With the peer established at the session layer and a channel up, ent_recv/ent_create/ent_gate are all still calls=0: nothing has ever sent the client a peer entity. This is fork-side work in code we own | verified-by-femu (contract + payloads, 20.302-20.304) |
 | 10 | Entity renders and moves | NOT YET | the last link; positive control = the local player (20.53) |

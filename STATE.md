@@ -27,13 +27,21 @@ defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 ## membership plane has done this for at least three boots, through every relay
 ## experiment, so the refusals never blocked anything.
 ## THE RELAY ROAD p2-181..p2-195 IS CLOSED on its own question.
-## THE REAL WALL, unchanged since 20.301 (2026-09-05): with the peer established
-## and a channel up, ent_recv=0, ent_create=0, ent_gate=0 on the same boot.
-## NOTHING HAS EVER SENT THE CLIENT A PEER ENTITY, and the fork has never sent
-## one. Fork-side work in code we own. The contract is SPEC-COMPLETE and
-## femu-validated (20.302 receive cluster, 20.303 carrier, 20.304 payloads -
-## kind 2, the guardian, is RAW 8 BYTES); the ONE unknown is the OUTER WIRE TYPE
-## (20.303 R4). Full text: claims connection-layer-join-delivery.md section 14. ***
+## THE REAL WALL IS ROW 7, NOT ROW 9 (correcting this session's first reading):
+## in the FORK's group_target session NO peer ever reaches '_connected' - peers
+## #0, #1 and #2 all sit at '_established' - while the LOCAL posse session DOES
+## reach '_connected' on the same boot (the positive control, right beside the
+## failure). Identical across the p2-190 baseline landing, p2-193a/b and p2-195.
+## establishment-decode.md already named this and it was never resolved: the
+## 3->4 site 0x141803F2B is guarded on [rsi+0x3040]==3 AND [rsi+0x1D18]==5 - it
+## REQUIRES the ladder at CONNECTED(5) - and its own words are "the ladder must
+## reach 5 - the connected-rung, MESSAGE-FED".
+## SO ent_recv=0 IS A SYMPTOM OF ROW 7, not an independent row-9 problem: the
+## receiver object is gated on ladder==5 and is never built. Sending an entity
+## before the ladder connects is pushing on a door held shut upstream. The
+## entity contract stays spec-complete and femu-validated (20.302-20.304, outer
+## wire type still open, 20.303 R4) and waits on row 7.
+## Full text: claims connection-layer-join-delivery.md section 14. ***
 
 *** p2-195 (ONE PAIRED BOOT, 2026-09-06 ~16:29): ROW 5'S WALL IS MEASURED AND
 ## IT IS ONE STATE TRANSITION. The gate MATCHES the relayed join and refuses on
@@ -321,20 +329,21 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
              baseline archive (RE_output/logs/20260906_114917).
 
 
-## NEXT - ROW 9: THE FORK MUST SEND AN ENTITY (20.301's front, now unblocked)
+## NEXT - ROW 7: THE CONNECTED RUNG (established(4) -> connected(5))
 ##  Row 5 is CLOSED. Do NOT resume the join relay, the retarget, the state
 ##  ladder, or any "drive the session to 6" idea - the client is a peer and the
 ##  peer is already established by the membership plane.
-  1. (STATIC) Resolve the OUTER WIRE TYPE - the one unknown in the entity
-      contract (20.303 R4). Everything under it is spec-complete and
-      femu-validated: the ent_* receive cluster (20.302), the carrier chain
-      (20.303), and the payload bodies (20.304 - kind 2, the guardian, is RAW
-      8 BYTES, bit-exact against the real dump codec).
-  2. (FORK) Build the encoder and SEND one peer entity on the gameplay plane
-      (UDP 30976). The receive cluster has logged zero in every boot because
-      nothing has ever sent it one.
-  3. READOUT for the first send: ent_recv calls>0 is the whole test. Its
-      census already runs every boot and has never been non-zero.
+  1. (STATIC, first) What MESSAGE feeds the connected rung? The positive
+      control is on every boot: the local posse session's peers reach
+      '_connected' while the fork session's never do. Diff what the posse
+      peers receive against what the group_target peers receive - same log,
+      same boot, same client. Start from establishment-decode.md's transition
+      sites and [rsi+0x1D18].
+  2. (FORK) Publish whatever that is. Row 7 is the gate on row 8's receiver.
+  3. READOUT: peer #2 reaching '_connected' in the group_target dumps, then
+      a non-zero receiver vptr, then ent_recv calls>0.
+  4. The ENTITY contract is ready and waits (20.302-20.304; outer wire type
+      open, 20.303 R4). Do not spend it before row 7 opens.
   4. The membership/session plane is DONE and must not be re-litigated: the
       rig arrives as peer #2 `_established`, 3 peers / 2 players, direct
       channel up, reproducible across p2-193a/b and p2-195.
