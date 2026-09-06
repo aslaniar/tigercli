@@ -266,35 +266,6 @@ def snapshot_path(src):
     return _segments_dir / f"{src}.log"
 
 
-def append_snapshot(src, text, reset_seq=None):
-    """Append freshly-read lines to the source's CURRENT-SEGMENT snapshot
-    (the file merge_timeline re-anchors over). A segment reset truncates the
-    snapshot: the new cycle starts clean. The reset lands mid-chunk, so the
-    boundary chunk is dropped (seconds of lines) - anchors re-form quickly
-    and the alternative is re-parsing the chunk byte-offset, not worth it."""
-    try:
-        _segments_dir.mkdir(parents=True, exist_ok=True)
-        p = snapshot_path(src)
-        if reset_seq is not None:
-            st = _snapshot_seq.setdefault(src, 0)
-            if reset_seq != st:
-                with open(p, "w", encoding="utf8") as fh:
-                    fh.write(text)
-                _snapshot_seq[src] = reset_seq
-                _snapshot_gen[src] = _snapshot_gen.get(src, 0) + 1
-                return
-        if p.exists() and p.stat().st_size > _SNAPSHOT_CAP:
-            with open(p, "rb") as fh:
-                fh.seek(-_SNAPSHOT_CAP // 2, 2)
-                keep = fh.read().decode("utf8", errors="replace")
-            with open(p, "w", encoding="utf8") as fh:
-                fh.write(keep)
-        with open(p, "a", encoding="utf8") as fh:
-            fh.write(text)
-    except OSError:
-        pass
-
-
 _snapshot_seq = {}
 _snapshot_gen = {}  # bumped on truncation/rewrite; drift validity keys on this
 
@@ -326,7 +297,11 @@ def source_age(path):
 
 def scan_file_source(name, path):
     """Feed only the NEW bytes of an append-only log to its scanner, and
-    mirror them into the current-segment snapshot file."""
+    mirror them into the current-segment snapshot file - LINE BY LINE, so a
+    mid-chunk segment reset truncates the snapshot exactly at the reset line
+    (the shim's log APPENDS across client launches with t restarting at 0;
+    a whole-chunk append would mix the two sessions' epochs in one file and
+    the anchors pair across sessions - the -222365 mislock)."""
     sc = _file_scanners[name]
     try:
         size = path.stat().st_size
@@ -339,11 +314,37 @@ def scan_file_source(name, path):
         with open(path, "rb") as fh:
             fh.seek(sc.offset)
             chunk = fh.read(size - sc.offset).decode("utf8", errors="replace")
-        seq_before = sc.segment_seq
         sc.offset = size
-        sc.feed(chunk)
-        append_snapshot(name, chunk,
-                        reset_seq=sc.segment_seq if sc.segment_seq != seq_before else None)
+        _segments_dir.mkdir(parents=True, exist_ok=True)
+        p = snapshot_path(name)
+        seq_at_start = sc.segment_seq
+        buf = []
+        for line in chunk.splitlines():
+            seq_before = sc.segment_seq
+            sc.feed_line(line)
+            if sc.segment_seq != seq_before:
+                # the reset line itself starts the new segment: truncate and
+                # drop everything buffered before it
+                buf = []
+                with open(p, "w", encoding="utf8") as fh:
+                    pass
+            buf.append(line)
+        try:
+            if seq_at_start != sc.segment_seq or not p.exists():
+                with open(p, "w", encoding="utf8") as fh:
+                    fh.write("\n".join(buf) + "\n")
+                _snapshot_gen[name] = _snapshot_gen.get(name, 0) + 1
+            else:
+                if p.stat().st_size > _SNAPSHOT_CAP:
+                    with open(p, "rb") as fh:
+                        fh.seek(-_SNAPSHOT_CAP // 2, 2)
+                        keep = fh.read().decode("utf8", errors="replace")
+                    with open(p, "w", encoding="utf8") as fh:
+                        fh.write(keep)
+                with open(p, "a", encoding="utf8") as fh:
+                    fh.write("\n".join(buf) + "\n")
+        except OSError:
+            pass
     return sc
 
 
@@ -797,7 +798,24 @@ def maybe_realign(force=False):
         os.write(fd, str(os.getpid()).encode())
         os.close(fd)
     except FileExistsError:
-        return  # another process is aligning
+        # stale-lock recovery: a SIGKILLed holder (restart mid-align) leaves
+        # the lock behind; steal it when the recorded pid no longer exists
+        try:
+            holder = int(lock.read_text().strip() or "0")
+            os.kill(holder, 0)
+            return  # a live process really is aligning
+        except (ValueError, ProcessLookupError, PermissionError):
+            pass  # pid gone (or unparsable) -> orphaned lock, steal it
+        except OSError as e:
+            if e.errno == 3:  # ESRCH: no such process
+                pass
+            else:
+                return
+        try:
+            os.unlink(str(lock))
+        except OSError:
+            return
+        return maybe_realign(force=force)
     try:
         _maybe_realign_locked(force=force)
     finally:
@@ -834,21 +852,38 @@ def _maybe_realign_locked(force=False):
         for src in ("mac", "rig"):
             if src in inputs:
                 cmd.append(f"--client-log={src}={inputs[src]}")
-        subprocess.run(cmd, capture_output=True, text=True, timeout=420)
-        # cache per-source offsets for the CURRENT segment generation
+        cmd.append("--out")
+        cmd.append(str(ROOT / "RE_output/dashboard/merge"))
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        # the merge must never fail silently (U13): every run logs its rc and
+        # the stderr tail - the stale drift went unnoticed for 25 minutes
+        # because the refresher swallowed its own failures
         try:
-            drift = json.loads((ROOT / "RE_output/dashboard/merge.drift.json")
-                               .read_text(encoding="utf8"))
-            for s in drift.get("sources", []):
-                label = (s.get("source") or "?").split("/")[0]
-                if label in _clock_offsets:
-                    gen = _snapshot_gen.get(label, 0)
-                    if s.get("offset_ms") is not None:
-                        _clock_offsets[label] = {"offset": s["offset_ms"],
-                                                 "gen": gen}
-                    # native_null: keep the cached offset (clock unchanged)
-        except Exception:
+            with open(ROOT / "RE_output/dashboard/align.log", "a",
+                      encoding="utf8") as fh:
+                fh.write(f"[{datetime.now().isoformat(timespec='seconds')}] "
+                         f"rc={r.returncode} "
+                         + (r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "-")
+                         + " | stderr_tail="
+                         + ((r.stderr.strip().splitlines()[-1][:200]) if r.stderr.strip() else "-")
+                         + "\n")
+        except OSError:
             pass
+        if r.returncode == 0:
+            # cache per-source offsets for the CURRENT segment generation
+            try:
+                drift = json.loads((ROOT / "RE_output/dashboard/merge.drift.json")
+                                   .read_text(encoding="utf8"))
+                for s in drift.get("sources", []):
+                    label = (s.get("source") or "?").split("/")[0]
+                    if label in _clock_offsets:
+                        gen = _snapshot_gen.get(label, 0)
+                        if s.get("offset_ms") is not None:
+                            _clock_offsets[label] = {"offset": s["offset_ms"],
+                                                     "gen": gen}
+                        # native_null: keep the cached offset (clock unchanged)
+            except Exception:
+                pass
         meta = {"gens": list(snapshot_gens()), "computed": time.time()}
         (ROOT / "RE_output/dashboard/merge.meta.json").write_text(
             json.dumps(meta), encoding="utf8")

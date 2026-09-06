@@ -218,14 +218,19 @@ def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
     spread must be tight. Returns (deltas, med, spread, robust) or None.
     NOT a port of the old positional path; used only when type pairing fails.
     """
+    # 2026-09-06 rewrite (two-client era): collect every len-matched pair
+    # (a client tape row and the next server push with len == size + delta),
+    # then CLUSTER the deltas by consecutive steps (a client-side stall or
+    # clock shift moves the delta as a STEP; both sides of the step are real
+    # clock behavior). The largest internally-consistent cluster wins;
+    # unmatched tail tape rows are skipped, not fatal. The old strict
+    # running-median + total-spread checks rejected exactly the boots that
+    # stall mid-window - the most interesting ones.
     if not pushes or not tapes:
         return None
-    deltas = []
-    used_sizes = set()
+    matched = []  # (t_client, delta = t_server - t_client, tape_size)
     j = 0
     n_p = len(pushes)
-    running = None
-    unmatched_tail = 0
     for t_c, _ty, s in tapes:
         if s is None:
             continue
@@ -233,37 +238,48 @@ def pair_size_window(pushes, tapes, size_delta=28, slack_ms=400,
         while j < n_p and pushes[j][0] < t_c:
             j += 1
         k = j
-        matched = False
         while k < n_p:
             t_s, _ty2, ln = pushes[k]
             if ln != target:
                 k += 1
                 continue
-            d = t_s - t_c
-            if running is None or abs(d - running) <= slack_ms:
-                deltas.append(d)
-                used_sizes.add(s)
-                running = sorted(deltas)[len(deltas) // 2]
-                j = k + 1
-                matched = True
+            matched.append((t_c, t_s - t_c, s))
             break
-        if not matched:
-            # 2026-09-06: the FRESHEST tape rows may legitimately have no
-            # matching server push yet (the server's own push log can lag or
-            # carry a different line shape late in a session - observed live
-            # on the p2-181 window). One unmatched tail row used to abort the
-            # whole lock, discarding ~150 good pairs. Skip it; the
-            # running-median cluster check still guards the matched set.
-            unmatched_tail += 1
+    clusters = []  # {"rows": [(t_c, d, s)], "last": d}
+    # the consecutive-jump threshold is the SAME 10*slack bound as the
+    # internal-spread check: the server logs duplicate copies of each body
+    # (one per client) seconds apart, so a correct lock's deltas legitimately
+    # jitter by seconds row-to-row (observed live: +/-3.5s on the p2-181
+    # windows). A 400ms split shredded one real lock into sub-min_pairs
+    # fragments - the most expensive kind of false negative.
+    jump_limit = 10 * slack_ms
+    for t_c, d, s in matched:
+        if clusters and abs(d - clusters[-1]["last"]) <= jump_limit:
+            c = clusters[-1]
+            c["rows"].append((t_c, d, s))
+            c["last"] = d
+        else:
+            clusters.append({"rows": [(t_c, d, s)], "last": d})
+    best = None
+    for c in clusters:
+        if len(c["rows"]) < min_pairs:
             continue
-    if len(deltas) < min_pairs or len(used_sizes) < min_distinct_sizes:
+        ds = sorted(r[1] for r in c["rows"])
+        sizes = {r[2] for r in c["rows"]}
+        if len(sizes) < min_distinct_sizes:
+            continue
+        spread = ds[-1] - ds[0]
+        if spread > 10 * slack_ms:
+            continue
+        med = ds[len(ds) // 2]
+        robust = ds[(9 * len(ds)) // 10] - ds[len(ds) // 10]
+        cand = (ds, med, spread, robust, len(c["rows"]))
+        if best is None or cand[4] > best[4]:
+            best = cand
+    if best is None:
         return None
-    deltas.sort()
-    med = deltas[len(deltas) // 2]
-    if deltas[-1] - deltas[0] > 10 * slack_ms:
-        return None
-    robust = deltas[(9 * len(deltas)) // 10] - deltas[len(deltas) // 10]
-    return deltas, med, deltas[-1] - deltas[0], robust
+    ds, med, spread, robust, _n = best
+    return ds, med, spread, robust
 
 
 def align_newest_first(seq_a, seq_b, max_k=16, min_pairs=3):
@@ -415,11 +431,13 @@ def solve_offset(src, ref):
         if sw is not None:
             deltas, med, spread, robust = sw
             drift.update({"family": "wire_tape_push_sizewin",
-                          "anchor_pairs": len(deltas), "offset_ms": med,
+                          "anchor_pairs": len(deltas), "offset_ms": -med,
                           "spread_ms": spread, "robust_spread_ms": robust,
                           "distinct_sizes": len(set(s for _, _, s in tapes
                                                     if s is not None))})
-            offset = med
+            offset = -med  # delta is (t_server - t_client); the convention
+            # needs (t_client - t_server) - the flipped sign mirrored every
+            # size-window-anchored client's unified times (found 2026-09-06)
     if offset is None:
         drift["family"] = family
         drift.update(extra)
