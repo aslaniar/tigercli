@@ -106,7 +106,7 @@ fi
 
 echo
 echo "== NEWEST FINDINGS HEADLINES ($newest_findings) =="
-[ -n "$newest_findings" ] && grep -m 6 '^## [0-9]' "$newest_findings" | cut -c1-100
+[ -n "$newest_findings" ] && /usr/bin/grep '^## [0-9]' "$newest_findings" | tail -6 | cut -c1-100
 
 echo
 echo "== STATE HEADER (first 12 lines; read the rest of STATE.md after) =="
