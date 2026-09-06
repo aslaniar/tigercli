@@ -471,14 +471,18 @@ def api_tail(args):
     n = min(int(args.get("n", ["300"])[0]), 1200)
     flt = (args.get("filter", [""])[0] or "").lower()
     level = args.get("level", ["all"])[0]
+    want = (args.get("sources", ["mac,rig,server"])[0] or "mac,rig,server").split(",")
     out = {}
     for src, path in (("mac", MAC_LOG), ("server", SRV_LOG)):
+        if src not in want:
+            continue
         lines, age, err = tail_file(path, n)
         rows = [l for l in lines if "unavailable" not in l]
         out[src] = {"lines": rows, "age": age, "error": err}
-    r = rig_tail(n)
-    out["rig"] = {"lines": r["lines"], "age": 0.0 if r["lines"] else None,
-                  "error": r["error"]}
+    if "rig" in want:
+        r = rig_tail(n)
+        out["rig"] = {"lines": r["lines"], "age": 0.0 if r["lines"] else None,
+                      "error": r["error"]}
     for src in out:
         if flt:
             out[src]["lines"] = [l for l in out[src]["lines"]
@@ -535,6 +539,9 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 .f-res-bad { color:var(--err); } .f-fn { color:#d2a8ff; } .f-lvl-warn { color:var(--warn); }
 .f-lvl-error { color:var(--err); }
 .controls input,select,button { background:#0d1117; color:var(--fg); border:1px solid var(--edge); border-radius:5px; padding:3px 8px; font:inherit; }
+.tgl { cursor:pointer; opacity:.35; }
+.tlg-off { opacity:.35; }
+.tgl.active { opacity:1; font-weight:bold; }
 .muted { color:var(--dim); }
 .novel { color:var(--warn); }
 .censustable td.num { text-align:right; }
@@ -561,6 +568,9 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 <div class="panel">
   <h2>Live logs
     <span class="controls" style="float:right">
+      <button id="tgl-mac"  class="tgl active" onclick="toggleSrc('mac',this)">mac</button>
+      <button id="tgl-rig"  class="tgl active" onclick="toggleSrc('rig',this)">rig</button>
+      <button id="tgl-server" class="tgl active" onclick="toggleSrc('server',this)">server</button>
       <input id="filter" placeholder="filter text" size="18">
       <select id="levelsel"><option>all</option><option>info</option><option>debug</option><option>warn</option><option>error</option></select>
       <select id="nlinesel"><option>300</option><option>600</option><option>1200</option></select>
@@ -720,6 +730,12 @@ function pollNow(){
   });
 }
 
+var SRC = {mac: true, rig: true, server: true};
+function toggleSrc(name, btn){
+  SRC[name] = !SRC[name];
+  btn.classList.toggle("active", SRC[name]);
+  pollTail();
+}
 function pollTail(){
   once("tail", function(){
     var n = document.getElementById("nlinesel").value;
@@ -727,9 +743,15 @@ function pollTail(){
     if (f) q += "&filter="+encodeURIComponent(f);
     var lv = document.getElementById("levelsel").value;
     if (lv !== "all") q += "&level="+lv;
+    var srcs = ["mac","rig","server"].filter(function(s){ return SRC[s]; });
+    if (srcs.length && srcs.length < 3) q += "&sources="+srcs.join(",");
     return fetch("/api/tail.json"+q).then(function(r){return r.json();}).then(function(d){
       var kids = [];
-      ["mac","rig","server"].forEach(function(src){
+      var shown = srcs.length ? srcs : [];
+      if (!shown.length){
+        kids.push(el("div","muted","all sources hidden - toggle one back on above"));
+      }
+      shown.forEach(function(src){
         var sd = d.sources[src];
         if (!sd) return;
         var head = el("div","blkhead src-"+src, src + (sd.error ? " - "+sd.error : " ("+sd.count+" lines)")
