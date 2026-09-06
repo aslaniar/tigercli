@@ -513,11 +513,17 @@ PAGE = r"""<!DOCTYPE html>
         --mac:#58a6ff; --rig:#d2a8ff; --srv:#3fb950; --warn:#d29922; --err:#f85149;
         --ok:#3fb950; }
 * { box-sizing: border-box; }
-body { background:var(--bg); color:var(--fg); font:13px/1.45 -apple-system,Menlo,monospace; margin:0; padding:14px; }
-h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 8px; }
-.panel { background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:12px; margin-bottom:14px; }
-.grid { display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:14px; }
-@media (max-width:1100px){ .grid{grid-template-columns:1fr;} }
+body { background:var(--bg); color:var(--fg); font:13px/1.45 -apple-system,Menlo,monospace; margin:0 auto; padding:14px; max-width:1720px; }
+h2 { font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin:0 0 10px; }
+.panel { background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:10px 14px; margin-bottom:14px; }
+.bs, .fv, .dg { display:grid; gap:16px; }
+.bs { grid-template-columns: 1.6fr 1fr; }
+.fv { grid-template-columns: 1fr 1.3fr; }
+.dg { grid-template-columns: 1fr 1fr; }
+.sub { font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); margin-bottom:6px; }
+.vsep { border-left:1px solid var(--edge); padding-left:16px; min-width:0; }
+@media (max-width:1100px){ .bs,.fv,.dg{grid-template-columns:1fr;} .vsep{border-left:none;border-top:1px solid var(--edge);padding-left:0;padding-top:10px;} }
+.scrollbox { max-height:230px; overflow-y:auto; }
 .chip { display:inline-block; padding:2px 9px; border-radius:10px; border:1px solid var(--edge); margin:0 6px 4px 0; font-size:12px; }
 .ok { color:var(--ok); border-color:var(--ok); } .bad { color:var(--err); border-color:var(--err); }
 .warn { color:var(--warn); border-color:var(--warn); } .dim { color:var(--dim); }
@@ -530,6 +536,7 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 .st { padding:1px 7px; border-radius:4px; border:1px solid var(--edge); font-size:11px; }
 .st.done { color:var(--dim); } .st.cur { color:#fff; background:#1f6feb; border-color:#1f6feb; }
 .st.stuck { color:var(--err); border-color:var(--err); }
+.counters { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; }
 .cnt { border:1px solid var(--edge); border-radius:6px; padding:8px; text-align:center; }
 .cnt b { display:block; font-size:22px; }
 #logbox { height:460px; overflow-y:auto; background:#0a0d12; border:1px solid var(--edge); border-radius:6px; padding:6px; font-size:12px; }
@@ -569,17 +576,47 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
   </h2>
   <div id="logbox"></div>
 </div>
-<div class="grid">
-  <div class="panel"><h2>Bootflow lanes <span class="muted" id="lanehost"></span></h2><div id="lanes" class="muted">...</div></div>
-  <div class="panel"><h2>Contract <span class="muted" id="contractmeta"></span></h2>
-       <div id="contractfront" class="muted"></div><div id="contract" class="muted">...</div></div>
-  <div class="panel"><h2>Wire census <span class="muted">(type= counts this boot)</span></h2><div id="census" class="muted">...</div></div>
+<div class="panel">
+  <h2>Boot state</h2>
+  <div class="bs">
+    <div>
+      <div class="sub">bootflow lanes</div>
+      <div id="lanehost" class="muted" style="font-size:11px"></div>
+      <div id="lanes" class="muted">...</div>
+    </div>
+    <div class="vsep">
+      <div class="sub">pairing</div>
+      <div id="pairing" class="muted">...</div>
+    </div>
+  </div>
 </div>
-<div class="grid">
-  <div class="panel"><h2>Instruments</h2><div id="instruments" class="muted">...</div></div>
-  <div class="panel"><h2>Pairing</h2><div id="pairing" class="muted">...</div></div>
-  <div class="panel"><h2>Warnings <span class="muted">(deduped by shape)</span></h2><div id="warns" class="muted">...</div>
-       <div id="health" class="muted" style="margin-top:8px"></div></div>
+<div class="panel">
+  <h2>Front vitals <span class="muted" id="contractmeta"></span></h2>
+  <div id="contractfront" class="muted" style="margin-bottom:8px"></div>
+  <div class="fv">
+    <div>
+      <div class="sub">contract counters</div>
+      <div id="contract" class="counters muted">...</div>
+    </div>
+    <div class="vsep">
+      <div class="sub">wire census <span style="text-transform:none">(type= counts, this boot)</span></div>
+      <div id="census" class="muted">...</div>
+    </div>
+  </div>
+</div>
+<div class="panel">
+  <h2>Diagnostics</h2>
+  <div class="dg">
+    <div>
+      <div class="sub">instruments</div>
+      <div id="instruments" class="muted">...</div>
+    </div>
+    <div class="vsep">
+      <div class="sub">warnings <span style="text-transform:none">(deduped by shape)</span></div>
+      <div id="warns" class="muted">...</div>
+      <div id="health" class="muted" style="margin-top:8px"></div>
+    </div>
+  </div>
 </div>
 <script>
 "use strict";
@@ -681,24 +718,31 @@ function pollNow(){
           C.appendChild(card);
         });
       });
-      // census
+      // census (one merged table: source | type | count | meaning)
       swapIfChanged("census", function(Z){
-      ["server","mac","rig"].forEach(function(src){
-        var cz = d.census[src] || {types:[]};
-        if (!cz.types.length) return;
-        var head = el("div"); head.appendChild(el("span","who src-"+src, src));
-        if (cz.novel.length) head.appendChild(el("span","novel","  NOVEL types: "+cz.novel.join(", ")));
-        Z.appendChild(head);
+        var rows = [], novel = {};
+        ["server","mac","rig"].forEach(function(src){
+          var cz = d.census[src] || {types:[], novel:[]};
+          cz.types.forEach(function(t){ rows.push({src:src, type:t.type, count:t.count, known:t.known}); });
+          (cz.novel||[]).forEach(function(t){ novel[src+"|"+t] = true; });
+        });
+        if (!rows.length){ Z.appendChild(el("span","muted","no wire traffic this boot")); return; }
+        rows.sort(function(a,b){ return b.count - a.count; });
         var tbl = el("table","censustable");
-        cz.types.slice(0,12).forEach(function(t){
+        var tr = el("tr");
+        ["source","type","count","meaning"].forEach(function(h){ tr.appendChild(el("th",null,h)); });
+        tbl.appendChild(tr);
+        rows.slice(0,22).forEach(function(r){
           var tr = el("tr");
-          tr.appendChild(el("td",null,"type "+t.type));
-          var td = el("td","num",String(t.count)); tr.appendChild(td);
-          tr.appendChild(el("td","muted", t.known || (cz.novel.indexOf(t.type)>=0 ? "UNRECOGNIZED" : "")));
+          tr.appendChild(el("td","src-"+r.src, r.src));
+          tr.appendChild(el("td",null,"type "+r.type));
+          tr.appendChild(el("td","num",String(r.count)));
+          var meaning = r.known || (novel[r.src+"|"+r.type] ? "UNRECOGNIZED" : "");
+          tr.appendChild(el("td","muted", meaning));
           tbl.appendChild(tr);
         });
-        Z.appendChild(tbl);
-      });
+        if (rows.length > 22) Z.appendChild(el("div","muted","... +"+(rows.length-22)+" more types"));
+        var wrap = el("div","scrollbox"); wrap.appendChild(tbl); Z.appendChild(wrap);
       });
       // instruments
       swapIfChanged("instruments", function(I){
@@ -715,7 +759,7 @@ function pollNow(){
           tbl.appendChild(row);
         });
       });
-      I.appendChild(tbl);
+      var wrap = el("div","scrollbox"); wrap.appendChild(tbl); I.appendChild(wrap);
       });
       // pairing
       swapIfChanged("pairing", function(P){
@@ -736,6 +780,9 @@ function pollNow(){
         });
       });
       if (!any) W.appendChild(el("span","muted","none this boot"));
+      var wrap = el("div","scrollbox"); wrap.style.maxHeight = "200px";
+      while (W.firstChild) wrap.appendChild(W.firstChild);
+      W.appendChild(wrap);
       });
     });
   });
