@@ -539,9 +539,10 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 .f-res-bad { color:var(--err); } .f-fn { color:#d2a8ff; } .f-lvl-warn { color:var(--warn); }
 .f-lvl-error { color:var(--err); }
 .controls input,select,button { background:#0d1117; color:var(--fg); border:1px solid var(--edge); border-radius:5px; padding:3px 8px; font:inherit; }
-.tgl { cursor:pointer; opacity:.35; }
-.tlg-off { opacity:.35; }
-.tgl.active { opacity:1; font-weight:bold; }
+.tgl { cursor:pointer; }
+.tgl.active.mac { color:var(--mac); border-color:var(--mac); font-weight:bold; }
+.tgl.active.rig { color:var(--rig); border-color:var(--rig); font-weight:bold; }
+.tgl.active.server { color:var(--srv); border-color:var(--srv); font-weight:bold; }
 .muted { color:var(--dim); }
 .novel { color:var(--warn); }
 .censustable td.num { text-align:right; }
@@ -568,9 +569,9 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 <div class="panel">
   <h2>Live logs
     <span class="controls" style="float:right">
-      <button id="tgl-mac"  class="tgl active" onclick="toggleSrc('mac',this)">mac</button>
-      <button id="tgl-rig"  class="tgl active" onclick="toggleSrc('rig',this)">rig</button>
-      <button id="tgl-server" class="tgl active" onclick="toggleSrc('server',this)">server</button>
+      <button id="tgl-mac"  class="tgl mac active" onclick="toggleSrc('mac',this)">mac</button>
+      <button id="tgl-rig"  class="tgl rig active" onclick="toggleSrc('rig',this)">rig</button>
+      <button id="tgl-server" class="tgl server active" onclick="toggleSrc('server',this)">server</button>
       <input id="filter" placeholder="filter text" size="18">
       <select id="levelsel"><option>all</option><option>info</option><option>debug</option><option>warn</option><option>error</option></select>
       <select id="nlinesel"><option>300</option><option>600</option><option>1200</option></select>
@@ -599,7 +600,8 @@ function swapIfChanged(id, build){
 function fmtRow(src, raw){
   var kv = {}, m, re=/\b([A-Za-z_][A-Za-z0-9_.-]*)=([^\s]+)/g;
   while ((m = re.exec(raw)) !== null) kv[m[1]] = m[2];
-  var d = el("div","lr src-"+src);
+  var d = el("div","lr");
+  d.appendChild(el("span","src-"+src, "["+src+"] "));
   var tm = raw.match(/\bt=(\d+)/);
   d.appendChild(el("span","muted", (tm ? "t="+tm[1]+" " : "")));
   if(kv.level==="warn"||kv.level==="error") d.appendChild(el("span","f-lvl-"+kv.level, kv.level+" "));
@@ -608,8 +610,17 @@ function fmtRow(src, raw){
   if(kv.result) d.appendChild(el("span", kv.result==="ok"?"f-res-ok":"f-res-bad","result="+kv.result+" "));
   if(kv.fn) d.appendChild(el("span","f-fn","fn="+kv.fn+" "));
   if(kv.type) d.appendChild(el("span","f-stage","type="+kv.type+" "));
+  // the message body: highlight the remaining k=v KEYS (dim) so the free
+  // text is what carries the eye - the old render was one monochrome block
   var rest = raw.replace(/^.*? level=\w+ /,"").replace(/^.*? t=\d+ /,"");
-  d.appendChild(el("span","", rest));
+  var last = 0, kvre = /([a-zA-Z_][a-zA-Z0-9_.-]*)=(\S*)/g, mm;
+  while ((mm = kvre.exec(rest)) !== null){
+    if (mm.index > last) d.appendChild(el("span","", rest.slice(last, mm.index)));
+    d.appendChild(el("span","muted", mm[1]+"="));
+    d.appendChild(el("span","", mm[2]+" "));
+    last = mm.index + mm[0].length + 1;
+  }
+  if (last <= rest.length) d.appendChild(el("span","", rest.slice(last)));
   return d;
 }
 function warnShape(raw){ return raw.replace(/t=\d+/g,"t=N").replace(/\d{6,}/g,"N").slice(0,120); }
