@@ -612,7 +612,7 @@ function fmtRow(src, raw){
   if(kv.type) d.appendChild(el("span","f-stage","type="+kv.type+" "));
   // the message body: highlight the remaining k=v KEYS (dim) so the free
   // text is what carries the eye - the old render was one monochrome block
-  var rest = raw.replace(/^.*? level=\w+ /,"").replace(/^.*? t=\d+ /,"");
+  var rest = raw.replace(/^.*?\bt=\d+\s*/, "");
   var last = 0, kvre = /([a-zA-Z_][a-zA-Z0-9_.-]*)=(\S*)/g, mm;
   while ((mm = kvre.exec(rest)) !== null){
     if (mm.index > last) d.appendChild(el("span","", rest.slice(last, mm.index)));
