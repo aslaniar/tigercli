@@ -1,10 +1,108 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-05 1x:xx PDT). Verdict + deployed + next only.
+STATUS: live (2026-09-06 03:3x PDT). Verdict + deployed + next only.
 Full text: FINDINGS (20.309 is newest; 20.292-20.308 under it). Session failures:
 docs/postmortems/POSTMORTEM_2026-09-05_THE-REBUILD.md (4 launches lost, 3 to my defects).
 Ops facts (network move, grep hazard, BOM trap) in ENVIRONMENTS.md. Instrument
 defects: docs/TOOLING_AUDIT_2026-09-05.md.
+
+*** 20.311 (p2-182, ONE BOOT, the adoption-condition baseline): THE HOSTED-SESSION
+## PREMISE WAS WRONG - THE SESSIONS ALREADY EXIST. During a plain fork landing BOTH
+## machines put TWO session slots into state 6 (LIVE HOSTED SESSION, sids 0/1), and
+## the PEER-ADOPTION walker ran per session (add_candidates from 0x141769CFC upserts
+## the peer's records into session +0xC8). What never happens: the CONNECTION-LAYER
+## join - join_type0a (0x1416E0460) = 0, join_processor = 0, join_handler = 0 on both
+## machines. The p2-181 relay failed because it delivered the join as a SESSION-PLANE
+## JoinId::request (the F3 space) - the connection layer (receive switch 0x1416E0940,
+## types 0..0x2A; type 10 -> 0x1416E0460) is a DIFFERENT space the relay never touched.
+## THE FRONT: deliver the peer's join body as a connection-layer type-10 packet on the
+## existing fork->client channel (the fork already RECEIVES clients' own type-0x0A
+## joins - joincapture). The handler's nonce check (word[+0] == 0x1416C1260()) makes
+## the PACKET FRAMING the work. Full text: RE_output/claims/adoption-condition.md
+## (MEASURED + THE RELOCATED MISSING LINK). Road 3's client-host premise is moot; the
+## roster/invite plane stays parked fork-side work for the retail UI path only. ***
+
+ *** 20.320 (p2-189, ONE BOOT, the wide binding capture): THE BINDING
+## ARCHITECTURE IS MEASURED END TO END - THE FIX KEY IS THE RECIPIENT'S JOINID.
+## +6 client hooks (58->64: binder1/binder2/cof_index/cof_soid/walk_map/
+## apply_stamp) + sess_cmp WIDENED to (caller_rva,key,blob) triples - all fired
+## on BOTH machines. MEASURED: the join gate's walked six slots are bound to
+## SMALL-INDEX sessions {0,-1,1,-1,-1,2} (walk_map, identical both machines);
+## binder2's stack args name the binding key = THE MACHINE'S OWN JOINID (a6,
+## both machines); binder ctx pointers = the walked slots (attribution proven);
+## cof_index granted indexes 0/1, cof_soid index 2 (the joinId-keyed record);
+## apply_stamp fired ONCE (early, static dst) - the session-apply is NOT the
+## landing blob's writer (open site). sesscmp widening WORKS but the flat
+## 64-triple budget was spent by the landing noise before the relayed join
+## (per-caller sub-budgets = the instrument fix). The relayed join refused
+## byte-verbatim (retarget OFF) - baseline reproduced. The mac hit the parked
+## co-presence render-black (alive client, no fade_release in segment 2; the
+## rig fine on the identical build). THE CONSEQUENCE: the gate's walked slots
+## hold the client's OWN joinId-named session (p2-187's blob census: a record
+## whose blob = the joinId, match=1) - SO THE RELAYED JOIN'S SESSIONID MUST
+## EQUAL THE RECIPIENT'S CURRENT JOINID = retarget ARM 3 (the fork already
+## holds the live value; arm 1 dead, arm 2 fallback; the rewrite machinery is
+## built - one value change). Full text: connection-layer-join-delivery.md
+## section 10. ***
+
+
+## 20.319 (STATIC + SHIP, no boot): THE PARAMETERS ROAD IS CLOSED ON THE OOB
+## PLANE - THE FIX MOVED TO THE RELAY RETARGET. The client's message registry
+## decoded: descriptor blocks 0x40 wide (present/name/min/max/4 handler slots),
+## parameters-update at reg+0x980 (max 0xAC20 = kParameterUpdateSize exactly).
+## THE OOB SWITCH byte map re-read slot-indexed: id 0x26 (38) = slot 16 =
+## the default stub 0x1416E0A40 = a bare `ret` - SILENT DROP (join-complete
+## id 12 too). The client's reliable-plane receive is the VM-OBFUSCATED ring
+## (0x1472B4425/0x146260781 prologue) - parameter-value publishing cannot
+## reach the client. VINDICATED: the apply 0x1416C5280's TAIL (disasm_fn
+## TRUNCATED it at 0x1416C5B89 - tool debt, 09-03 class) copies source
+## +0xC8/+0xD0 → blob +0x57C/+0x584: the claim's +0xC8 window was right.
+## The gate walk DECODED: 0x14177A0B0 walks 6 slots, per slot [slot+0x1C7C0]
+## → record via 0x14179AF00; helper 0x1417944C0 compares the key vs
+## [rec+0x57C] FIRST (bit 4 of [rec+4] set), else [rec+0x94E]; both blobs
+## tried, one-qword equality. peer-connect (id 11, 0x1416E0E10) is the SAME
+## GATE - every connection-layer message naming the fork's session dies at
+## the one wall. TWO IDENTITY FORMS distinguished (logs): the REAL account
+## key (field6!=0: mac 0xD3DABDA3AF16F99E, rig 0x846C8338F7D022E6, stable;
+## appeared as live blobs) vs the join machine id (field6=0, per-boot,
+## machineId>>40 == memberKey&0xFFFFFF; appeared as a blob NOWHERE). The
+## mac's own-join comparisons (t=131-132xxx, PRE-refusal) included match=1
+## vs the fork's sessionId - the landing's session, outside the gate's
+## slots; the refusal's walk emitted no new pairs (novelty-gate hazard).
+## NEXT DECODE (clean code): the connect-family handlers 0x1417D3010/
+## 0x1417D4590/0x1417D27B0/0x1417D1A90 - what binds sessions into the
+## receiving connection's context. SHIPPED: relay_join_target_identity
+## (default OFF) - the relay's per-recipient sessionId retarget at absolute
+## bit 109 (byte-verified vs the p2-182 admit decode; fixture replay: only
+## the 64 sessionId bits change), value = the recipient's join machine id
+## (arm 1; arm 2 = the real account key; the boot readout decides).
+## Full text: RE_output/claims/connection-layer-join-delivery.md (20.319). ***
+
+ *** 20.318 (p2-185..187, THREE BOOTS + the no-boot decode arc): THE LOOKUP IS MEASURED
+## LIVE - THE BLOCKER IS THE SESSION-TO-CONNECTION BINDING. Chain verified: the record =
+## the DECODED JoinRequest struct (proto/minBuild/maxBuild/sessionId/joinId - byte-exact vs
+## the fork's own admit decode in THREE boots); the nonce gate = the PROTOCOL VERSION check
+## and it PASSES (0x1416C1260 returns 0xA4F8 both machines; p2-183's nonce diagnosis
+## RETRACTED); the session lookup = a ONE-QWORD compare (0x141A83C00: cmp [key],[blob]) =
+## the join's sessionId vs the receiver session's identity blob. p2-185: idB published at
+## model-entry +144 -> the state hash DIVERGED (no result=completed, retry storm, outcome
+## (c) as pre-named) -> reverted byte-exact. p2-186: the copier walk (0x1416E2350: field
+## address = walker + entry[8] + entry[9] signed, advancing by size; walker at entry+8)
+## derives the true offset +152 - HASH-VALID (both joins completed). p2-187 (the live-blob
+## instrument, sess_cmp on the equality helper): THE JOIN'S LOOKUP FIRES AND COMPARES THE
+## JOIN'S SESSIONID (10 firings, byte-exact) - and the blobs hold THE MAC'S OWN IDENTITY
+## (account key 0xD3DABDA3..., joinId 0xACBE7AA8...), NOT the fork's sessionId. THE GAME'S
+## OWN REFUSAL IS NOW VISIBLE IN OUR LOGS: "networking:messages:join-request: received
+## message for an unknown session ... sending back a refusal". A session whose blob DOES
+## hold the sessionId exists (match=1 during the landing) - outside the gate's ctx+0x28
+## container. THE NEXT DECODE: the session-to-connection binding - what populates the
+## ctx+0x28 container's sessions' identity blobs; the fork must publish that binding.
+## THIRD-BRANCH LEDGER: session-lookup-identity carries 2 (p2-185, p2-186) - the model
+## review for that front is BANKED in the p2-187 brief (the dead assumption: the state's
+## idB flows into the live blob via the membership machinery - it does not; the live
+## writer is the session-to-connection binding path). Full text: RE_output/claims/
+## connection-layer-join-delivery.md + FRONT_peer-render-chain.md (the pinned chart). ***
+
 TOOLING 20.307 (2026-09-05, no boot): enforcement waves 0-1 SHIPPED - pre-commit hook
 INSTALLED; gate_boot v3 brief-tie fields ENFORCED (the next boot brief MUST carry
 PRIOR ART / STATE READERS / READOUT TRIGGER / EFFECT CLAIM / ABANDON+WIDE-NET / FIX
@@ -81,50 +179,77 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
   20.295 p2-174: the client READS the row's character field; knob is SOLO-ONLY.
   20.294 eventType not the routing key; wire->image CLOSED at the queue interior.
 
-## DEPLOYED (2026-09-04 22:0x - server LIVE on the NEW address; clients p2-171 both)
-   NETWORK   *** THE MAC MOVED TO ETHERNET: 192.168.1.7 (was WiFi 192.168.1.164). ***
-             Server bind/relay/advertised/transport, the mac client host, and the rig
-             client host+config_url ALL repointed. reset_lobby_claims.sh and
-             deploy_p2d6_gameplay.sh now DERIVE the host from settings.json.
-             If the DHCP lease moves, this breaks again - a reservation would fix it.
-   server    3f0496a9ebcf744c UNCHANGED (no rebuild since p2-175). Settings:
-             transport_identity=FALSE, publish_player_profile=FALSE, peer_row_flags=0,
-             reseed=0, sweep=false (pin 0 = packedMasks = the default),
-             same_region_advert=TRUE, self_peer_row=false, c4_mark_push=false,
-             world_population=true, peer_retry_cap=10 (echoed at startup).
-   clients   BOTH p2-171 a96a6a70f578fc40 (hashes asserted both machines this run).
-   rollback  settings .bak_p2-176_pre (pre-run-A knobs) and .bak_pre_ethernet_move
-             (pre-address). Rig client settings .bak_pre_ethernet_move ON THE RIG.
-   logs      RE_output/logs/20260904_220846_p2-176-runA (the run), plus
-             ..._203945_p2-176-aborted-network and ..._215841_p2-176-attempt2-macspin.
+## DEPLOYED (2026-09-06 00:1x - after p2-189; the wide binding instruments)
+   NETWORK   the mac is on ETHERNET 192.168.1.7 (its join identity caches the
+             stale .164 in the first pair - the decoder now accepts either);
+             the rig 192.168.1.136. Server bind/relay/advertised/transport
+             derive from settings.json.
+   server    4b94d56a063c9534: the identity-decoder fix (either-pair selfcheck,
+             p2-188) + the retarget mechanism (arm 3 pending) + the machine-id
+             table; settings relay_join_target_identity=false (byte-verbatim;
+             arm 3 = the next flip).
+             Settings: relay_peer_join=true, duty 30000, retry_cap=10,
+             transport_identity=true, profile=true, world_population=true
+             (carrier 17), self_peer_row=false, sweep=false.
+   clients   BOTH 307586da4bb7e0ac (the p2-189 build: 64 targets — binder1/
+             binder2/cof_index/cof_soid/walk_map/apply_stamp + the widened
+             sesscmp; preflight PASS 13/0/0; instruments.json recorded).
+   rollback  client .bak_p2d7_20260906_001746 (mac) / _001800 (rig);
+             settings .bak_p2-188_retarget; server build in
+             RE_build/Sunrise-fork-inventory/build (git-uncommitted tree).
+   logs      RE_output/captures/<stamp>_p2-188b (both landings archived);
+             RE_output/logs/20260905_2338xx archives per deploy;
+             .../20260905_220623_p2-187-sesscmp and earlier p2-18x archives
+             (logq BROKEN until merge_timeline is fixed; raw grep -a stands).
+   dumps     RE_output/dumps/p2-180-transition (rig-side only; pulls corrupt 2/2
+             - scan rig-side), p2-179-hang (same).
 
-## NEXT - the front is GETTING THE RIG TO LAND (20.307 mechanism confirmed), then the
-##  transition contract.
-  1. (settings-only boot) retry_cap back to 2 -> quiet window -> the rig lands on
-     the CURRENT stack (behavioral confirmation of 20.306 R2 / 20.307 R3(a)).
-  2. (fork code) DUTY-CYCLE GATE (20.307 R4b): include the peer row at most once
-     every ~30s -> each re-landing completes AND the row is sustained at 30s
-     cadence (what the replication/transition front needs). Settings-gated,
-     default off, trigger replayed over p2-178's recorded included-timeline
-     before any boot ships it.
-  3. Then the p2-179 transition contract (receiver vptr scan on a REAL
-     transition) is runnable with a sustained row.
-  4. The entity-message encoder stays spec-complete except the outer wire type
-     (20.303 R4); contract + payloads done (20.302/20.304).
-  5. TOOL DEBT: tar-over-ssh corrupted the 6.7 GB dump pull deterministically
-     (+7249 B); the rig-side generated-script scan (_rig_vptr_scan.py) is the
-     workaround and the better instrument.
-  6. DEAD / CANCELLED - do not restart: the +0x818 and +0x38 writer hunts; the
-     creation-loop framing; the queue-event/sobject_message entity carrier;
-     type-17 as carrier; cap=0/never-withdraw as the hang fix (refuted 20.307
-     R4c - stable-presence at body cadence still churns).
-  DO NOT: re-measure the creation loop; trust the local copy of
-  dump_p2-179-hang.dmp as evidence (hash mismatch); cite the BABOON as hang
-  evidence (dump-precipitated, 20.306 R1); call the empty-manager trio a hang
-  signature (normal in landed boots too, 20.307 R0); modify the client.
-   7. OPEN DEBT: the image_set hang (worked around, not understood); the re-arm
-      knob is obsoleted by the duty-cycle gate if it ships.
-
+## NEXT - THE SESSION-TO-CONNECTION BINDING (20.318..20.320, the measured blocker):
+##  the join's lookup walks 6 machine-context slots bound to SMALL-INDEX sessions
+##  {0,-1,1,-1,-1,2} (walk_map, both machines) - one named by the machine's OWN
+##  JOINID (binder2/cof_soid). The refusal is greppable; the refusal line's session
+##  field renders as two reversed dword groups - decode before comparing.
+  1. (instrument, NEXT BOOT) PER-CALLER SUB-BUDGETS for sess_cmp (16/caller,
+      first-seen-key per caller) - the flat 64-triple budget spent by the
+      landing's noise before the relayed join; the gate's own triples for the
+      relayed key are the one missing readout. Optionally caller_filter for
+      the walker's call site (0x177A0B0's helper call site).
+  2. (server, ARM 3 - the evidence-backed fix) retarget the relayed join's
+      sessionId to the RECIPIENT'S CURRENT JOINID (the fork holds the live
+      value on every admitted row; the membership machinery refuses updates
+      that do not echo it). The rewrite machinery is built (arm 1's
+      rewrite_join_session_id, fixture-proven) - arm 3 is the value change +
+      the instrument fix. Arm 1 (machine id) dead; arm 2 (real account key)
+      fallback. Arm 3's key is PROVEN inside the walked records on both
+      machines (binder2/cof_soid + the p2-187 blob census).
+  3. MODEL REVIEW for session-lookup-identity is BANKED (the p2-187 brief) -
+      the dead assumption: the state's idB flows into the live blob via the
+      membership machinery. Any further boot on this front carries the review.
+  4. OPEN SITE: the landing-session's blob writer (the record whose blob held
+      the fork's sessionId) - apply_stamp PROVED it is NOT the session apply
+      (one firing, early, static dst). The copier walk (0x1416E2350) is the
+      remaining suspect.
+  5. INSTRUMENT for the binder trigger: correlate binder firings with the
+      fork's published message stream, or add the caller-discriminated hook
+      on the binders (the runtime trigger is inside the obfuscated ring).
+  6. TOOLING: logq/logindex are BROKEN (merge_timeline.py line 286 - the user
+      is fixing); raw /usr/bin/grep -a stands. NEW DEBT: reset_lobby_claims'
+      real-restart path HUNG on its first real run (the pre-registered untested
+      defect - the canonical launch-server script recovered; the hang ate ~3
+      minutes). disasm_fn truncation (Tier-2 row, logged). COSMETIC: the
+      walk_map instrument emits stage=walkmap (name mismatch with the
+      census/instrument name) - align at the next build.
+  7. The duty-cycle landing fix HOLDS. The relay (OOB re-target) stays.
+  8. DEAD/CANCELLED: the +0x818/+0x38 hunts; the creation-loop framing; the
+      queue-event carrier; type-17; the SESSION-plane join delivery; Road 3's
+      client-host premise; the nonce-mismatch diagnosis (retracted); idB at
+      entry+144; the parameters-apply road on the OOB plane (id 38 dropped);
+      retarget arm 1 (the join machine id). DO NOT re-measure the creation
+      loop; trust corrupted dump pulls; hook a per-tick function with a
+      fixed-N budget; modify the client; ship a retarget value by assumption.
+   9. OPEN DEBT: the mac's co-presence render-black (NOW WITH A SHARPER MARKER:
+      segment 2 reaches region-forced and never fade_release; client alive);
+      the image_set hang; the q.sh false-null on hex addresses (Tier-2 row).
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
