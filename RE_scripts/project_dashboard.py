@@ -90,6 +90,42 @@ KNOWN_TYPES = {
 
 KV_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_.-]*)=([^\s]+)")
 TYPE_RE = re.compile(r"[^\w]type=(\d+)")
+TYPE_SEEN_FILE = ROOT / "RE_output/map/wire_types_seen.json"
+_type_seen = None  # learned registry: {"<type>": "first-seen date"} (durable)
+
+
+def type_seen():
+    global _type_seen
+    if _type_seen is None:
+        try:
+            _type_seen = json.loads(TYPE_SEEN_FILE.read_text(encoding="utf8"))
+        except Exception:
+            _type_seen = {}
+    return _type_seen
+
+
+_type_seen_dirty = False
+
+
+def type_seen_note_new(ty):
+    """A type neither KNOWN nor in the learned registry is a genuine first
+    sighting: record it durably so it is only ever NOVEL once."""
+    global _type_seen_dirty
+    seen = type_seen()
+    if ty not in seen:
+        seen[ty] = datetime.now().strftime("%Y-%m-%d")
+        _type_seen_dirty = True
+        return True
+    return False
+
+
+def type_seen_save():
+    global _type_seen_dirty
+    if _type_seen_dirty:
+        TYPE_SEEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+        TYPE_SEEN_FILE.write_text(json.dumps(_type_seen, indent=1, sort_keys=True),
+                                  encoding="utf8")
+        _type_seen_dirty = False
 
 
 # ---------------------------------------------------------------- scanners
@@ -136,7 +172,8 @@ class SegmentScanner:
         for m in TYPE_RE.finditer(raw):
             ty = m.group(1)
             self.type_counts[ty] = self.type_counts.get(ty, 0) + 1
-            if ty not in KNOWN_TYPES and ty not in self.novel_types:
+            if ty not in KNOWN_TYPES and ty not in self.novel_types \
+                    and type_seen_note_new(ty):
                 self.novel_types.add(ty)
         # contract patterns (declared)
         for name, pat in self.contract_patterns:
@@ -448,7 +485,7 @@ def api_now():
         instruments[src] = sorted(sc.instruments.values(), key=lambda r: r["fn"])
     dead = [r["fn"] for src in ("mac", "rig") for r in instruments[src]
             if r.get("attached") == "0"]
-    return {
+    out = {
         "server": st, "identity": identity(),
         "lanes": {"mac": sc_mac.summary(now_t["mac"], age["mac"]),
                   "rig": sc_rig.summary(now_t["rig"]),
@@ -465,8 +502,8 @@ def api_now():
         "hostnames": {"mac": os.uname().nodename, "rig": rig_hostname()},
         "tail_age": age,
         "ts": datetime.now().isoformat(timespec="seconds")}
-
-
+    type_seen_save()
+    return out
 def api_tail(args):
     n = min(int(args.get("n", ["300"])[0]), 1200)
     flt = (args.get("filter", [""])[0] or "").lower()
@@ -513,18 +550,19 @@ PAGE = r"""<!DOCTYPE html>
         --mac:#58a6ff; --rig:#d2a8ff; --srv:#3fb950; --warn:#d29922; --err:#f85149;
         --ok:#3fb950; }
 * { box-sizing: border-box; }
-body { background:var(--bg); color:var(--fg); font:13px/1.45 -apple-system,Menlo,monospace; margin:0 auto; padding:14px; max-width:1720px; }
-h2 { font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin:0 0 10px; }
+body { background:var(--bg); color:var(--fg); font:13px/1.45 -apple-system,Menlo,monospace; margin:0; padding:14px; }
+h2 { font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--fg); font-weight:600; margin:0 0 10px; border-left:3px solid #1f6feb; padding-left:8px; }
 .panel { background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:10px 14px; margin-bottom:14px; }
-.bs, .fv, .dg { display:grid; gap:16px; }
-.bs { grid-template-columns: 1.6fr 1fr; }
-.fv { grid-template-columns: 1fr 1.3fr; }
-.dg { grid-template-columns: 1fr 1fr; }
+.bs, .fv, .dg { display:grid; gap:16px; grid-template-columns: 1.2fr 1fr; align-items:start; }
+.bs > *, .fv > *, .dg > * { min-width:0; }
 .sub { font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); margin-bottom:6px; }
-.vsep { border-left:1px solid var(--edge); padding-left:16px; min-width:0; }
+.vsep { border-left:1px solid var(--edge); padding-left:16px; }
 @media (max-width:1100px){ .bs,.fv,.dg{grid-template-columns:1fr;} .vsep{border-left:none;border-top:1px solid var(--edge);padding-left:0;padding-top:10px;} }
-.scrollbox { max-height:230px; overflow-y:auto; }
-.chip { display:inline-block; padding:2px 9px; border-radius:10px; border:1px solid var(--edge); margin:0 6px 4px 0; font-size:12px; }
+.scrollbox { max-height:230px; overflow:auto; }
+table { border-collapse:collapse; width:100%; font-size:12px; }
+td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; white-space:nowrap; }
+.wrap { word-break:break-all; }
+.censuswrap { max-height:250px; overflow:auto; }
 .ok { color:var(--ok); border-color:var(--ok); } .bad { color:var(--err); border-color:var(--err); }
 .warn { color:var(--warn); border-color:var(--warn); } .dim { color:var(--dim); }
 .src-mac { color:var(--mac); } .src-rig { color:var(--rig); } .src-server { color:var(--srv); }
@@ -540,7 +578,8 @@ td,th { padding:2px 8px; border-bottom:1px solid var(--edge); text-align:left; w
 .cnt { border:1px solid var(--edge); border-radius:6px; padding:8px; text-align:center; }
 .cnt b { display:block; font-size:22px; }
 #logbox { height:460px; overflow-y:auto; background:#0a0d12; border:1px solid var(--edge); border-radius:6px; padding:6px; font-size:12px; }
-.lr { white-space:pre-wrap; word-break:break-all; padding:1px 0; }
+.lr { white-space:pre-wrap; padding:1px 0; }
+.lr, .lr span { overflow-wrap:anywhere; word-break:break-all; min-width:0; }
 .blkhead { font-weight:bold; border-top:1px solid var(--edge); margin-top:6px; padding-top:4px; }
 .f-ev { color:#ffa657; } .f-stage { color:#79c0ff; } .f-res-ok { color:var(--ok); }
 .f-res-bad { color:var(--err); } .f-fn { color:#d2a8ff; } .f-lvl-warn { color:var(--warn); }
@@ -650,6 +689,11 @@ function fmtRow(src, raw){
   // the message body: highlight the remaining k=v KEYS (dim) so the free
   // text is what carries the eye - the old render was one monochrome block
   var rest = raw.replace(/^.*?\bt=\d+\s*/, "");
+  // the server's own line format repeats the header ev/stage inside the
+  // message; drop the leading duplicate so it does not render twice
+  if (kv.ev && kv.stage && rest.indexOf(kv.ev + " " + kv.stage + " ") === 0){
+    rest = rest.slice(kv.ev.length + kv.stage.length + 2);
+  }
   var last = 0, kvre = /([a-zA-Z_][a-zA-Z0-9_.-]*)=(\S*)/g, mm;
   while ((mm = kvre.exec(rest)) !== null){
     if (mm.index > last) d.appendChild(el("span","", rest.slice(last, mm.index)));
@@ -704,9 +748,9 @@ function pollNow(){
       var CM = document.getElementById("contractmeta");
       if (!d.contract.declared){ CM.textContent="(nothing declared)"; }
       else {
-        CM.textContent = "front updated "+d.contract.updated
-          + (d.contract.stale ? "  STALE? (STATE.md has newer verdicts)" : "");
-        CM.className = "muted" + (d.contract.stale ? " warn" : "");
+        CM.textContent = "declared " + d.contract.updated
+          + (d.contract.stale ? "  - STALE? (STATE.md has newer verdicts)" : "");
+        CM.className = "chip " + (d.contract.stale ? "warn" : "dim");
       }
       document.getElementById("contractfront").textContent = d.contract.front || "";
       swapIfChanged("contract", function(C){
@@ -732,17 +776,16 @@ function pollNow(){
         var tr = el("tr");
         ["source","type","count","meaning"].forEach(function(h){ tr.appendChild(el("th",null,h)); });
         tbl.appendChild(tr);
-        rows.slice(0,22).forEach(function(r){
+        rows.forEach(function(r){
           var tr = el("tr");
           tr.appendChild(el("td","src-"+r.src, r.src));
           tr.appendChild(el("td",null,"type "+r.type));
           tr.appendChild(el("td","num",String(r.count)));
-          var meaning = r.known || (novel[r.src+"|"+r.type] ? "UNRECOGNIZED" : "");
+          var meaning = r.known || (novel[r.src+"|"+r.type] ? "NEW (first sighting)" : "");
           tr.appendChild(el("td","muted", meaning));
           tbl.appendChild(tr);
         });
-        if (rows.length > 22) Z.appendChild(el("div","muted","... +"+(rows.length-22)+" more types"));
-        var wrap = el("div","scrollbox"); wrap.appendChild(tbl); Z.appendChild(wrap);
+        var wrap = el("div","censuswrap"); wrap.appendChild(tbl); Z.appendChild(wrap);
       });
       // instruments
       swapIfChanged("instruments", function(I){
@@ -764,7 +807,11 @@ function pollNow(){
       // pairing
       swapIfChanged("pairing", function(P){
         P.appendChild(el("div",null,"sessions: "+s.session_count+" | lobby entries: "+(Array.isArray(s.lobby)?s.lobby.length:"?")));
-        (s.sessions||[]).slice(0,4).forEach(function(x){ P.appendChild(el("div","muted",JSON.stringify(x).slice(0,150))); });
+        (s.sessions||[]).slice(0,6).forEach(function(x){
+          var txt = JSON.stringify(x);
+          var row = el("div","wrap muted", txt.length > 220 ? txt.slice(0,220)+"..." : txt);
+          P.appendChild(row);
+        });
       });
       // warns (per source, deduped by shape)
       swapIfChanged("warns", function(W){
