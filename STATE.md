@@ -91,28 +91,54 @@ defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 ## (before vs after spawn), in whether a subclass swap helps, and in whether a
 ## second machine is required at all. ***
 
-*** p2-196 (ONE PAIRED BOOT) + THE COUNT THAT EXPLAINS THE LAST 97: THE FORK HAS
-## NEVER SENT AN ENTITY, AND ent_recv READS calls=0 IN 97 OF 97 ARCHIVES. There is
-## no entity encoder anywhere in the fork - the only file matching any send pattern
-## is the CLIENT OBSERVER. Every front to date has measured the CLIENT'S READINESS
-## to receive a message that no code has ever produced, which is why they terminate
-## in "already known" or in absence. Absence is the one evidence class that cannot
-## distinguish "the world is blocked" from "my instrument is blind or dead" - and
-## the last three walls were all the latter (the blind guard, st2=6, and now the
-## (3,4) stall).
+*** p2-196 + THE LATE-SESSION CORRECTION (2026-09-06). READ THE CORRECTION, NOT
+## JUST THE BOOT.
 ## p2-196's TWO results:
 ##  (1) MY HYPOTHESIS REFUTED CLEANLY - disown rec=1 bit=5 before=0x0020
-##      after=0x0000 wasset=1 ident=0xFF000C198801A8C0, twice: the RIG's participant
-##      bit IS set and IS cleared. 20.277 R2's set-then-disowned reading STANDS;
-##      "never set at all" is dead. resv_rec's mask=0x0000 is the aftermath.
-##  (2) THE (3,4) STALL IS NOT A STALL. The rig's connection 0x41D49B8 (= rec=1 by
-##      the 0xA8 base arithmetic) went ladder 4 -> 5 at t=266218 after rung_adv
-##      fired at t=266149, and HELD at 5 through t=358252. The stall carried since
-##      p2-164 and "reproduced" in p2-180/p2-195 was A DEAD SAMPLER'S LAST READING:
-##      resv ran 10 times all boot, last at t=264682, 93 seconds before the log end.
-## ROWS 1-7 ARE NOW DONE OR PASSING. Row 8's receiver=0 is NOT evidence about the
-## guard, because nothing has ever been sent for it to receive.
-## THE FRONT IS ROW 9 AND IT HAS NEVER BEEN ATTEMPTED. Full text: the chart. ***
+##      after=0x0000 wasset=1 ident=0xFF000C198801A8C0, twice: the RIG's
+##      participant bit IS set and IS cleared. 20.277 R2's set-then-disowned
+##      reading STANDS. resv_rec's mask=0x0000 is the aftermath.
+##  (2) THE (3,4) STALL IS NOT A STALL. The rig's connection 0x41D49B8 (= rec=1
+##      by the 0xA8 base arithmetic) went ladder 4 -> 5 at t=266218 after
+##      rung_adv fired at t=266149, and HELD at 5 through t=358252. The stall
+##      carried since p2-164 and "reproduced" in p2-180/p2-195 was A DEAD
+##      SAMPLER'S LAST READING: resv ran 10 times all boot, last at t=264682,
+##      93 seconds before the log ends. ROWS 1-7 ARE DONE OR PASSING.
+##
+## *** THE CORRECTION - TWO CLAIMS I MADE THIS SESSION AND THEN DISPROVED ***
+##  (a) "The fork has no entity encoder" is WRONG. I grepped the wrong names.
+##      The fork HAS activity_entity_slots_encoder, activity_entity_index_
+##      allocation_encoder, activity_entity_index_grant_encoder and
+##      entity_baseline - the top two ranked carrier candidates - wired behind
+##      the gameplay settings entity_index_allocation / _assignment / _grant.
+##  (b) "Nothing has ever been sent" is WRONG. 20.218 (p2-143, verified-by-log):
+##      "THE ROUTER GATE THEORY IS DEAD - OUR MESSAGES ROUTE (flags=0x00).
+##      ASSIGNMENT+ORDERING ALL CONFIRMED WORKING." The fork's activity messages
+##      reach the client's router and the assignment->recreate->sync chain runs.
+##  The ent_recv=0-in-97-of-97 count is REAL and still the headline symptom, but
+##  its cause is NOT an absent sender. It is downstream of index allocation.
+##
+## THE REAL FRONT: idx_alloc 0x141711D10 RETURNS -1, 23+ times a boot, and the
+## local entity-index mask comes up empty (20.218 R2). That is a function that
+## RUNS AND FAILS - a positive, reproducible signal, categorically unlike the
+## ABSENCES this project has read for ~50 boots (ent_recv=0, receiver=0, mask
+## empty, ladder "stuck"). Absence cannot separate "blocked" from "my instrument
+## is blind or dead", which is why three walls in a row dissolved into
+## instrument artifacts (the blind guard, st2=6, the (3,4) stall).
+##
+## AND THE RECORDED ROOT CAUSE FOR IT IS PROBABLY WRONG: CLAIM O of
+## entity-index-allocation-schema.md says the client's index request rides BAP
+## svc21 and the fork answers it empty. The request body - which the claim calls
+## "still unread" - has been captured in ~130 archives and decodes to protobuf
+## field 2, a PACKED REPEATED VARINT list 1090090..1090202 (sorted runs, 1.09M
+## band). Entity indices are SMALL INTEGERS 0..6 (20.302). That is a catalogue
+## query, which is what the fork's own routing already calls it
+## (RequestService::purchasedOffers), and an EMPTY reply is correct for it.
+## CLAIM O's "exactly once per join" is contradicted too (p2-196: 3; another
+## boot: 11). DO NOT build an entity-index grant body onto svc21 - the
+## scaffolding exists (BodyCodec::entityIndexGrantResponse) which is exactly why
+## that mistake is cheap to make. Full text: the claim doc's last section. ***
+
 
 *** 2026-09-06 LATE (STATIC, NO BOOT): ROW 5'S WALL IS NAMED - THE MATCHED
 ## SLOT IS SLOT5 AND ITS STATE IS 4, NOT 6. The join gate was disassembled to
@@ -360,23 +386,23 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
              baseline archive (RE_output/logs/20260906_114917).
 
 
-## NEXT - ROW 9: BUILD THE ENCODER AND SEND ONE ENTITY
-##  STOP INSTRUMENTING THE CLIENT. 97 boots have measured a receiver that has
-##  never been sent anything. The next result must come from the WIRE.
-  1. (FORK) Build the entity encoder. Everything under it is spec-complete and
-      femu-validated: the ent_* receive cluster (20.302), the carrier chain
-      (20.303), the payload bodies (20.304 - kind 2, the guardian, is RAW 8
-      BYTES, bit-exact against the real dump codec).
-  2. (FORK) The ONE unknown is the OUTER WIRE TYPE (20.303 R4). It is a SMALL
-      SEARCH SPACE, not a mystery: the router census is complete (93 wire bytes,
-      44 handlers; connection-layer types 0..0x2A; the 0x1404BA530 dialect's
-      extended types 18-46). Enumerate the candidates and send.
-  3. READOUT: ent_recv calls>0. Binary, positive, and impossible to confuse with
-      an instrument artifact - the census has run every boot for 97 boots and has
-      never been non-zero. The first non-zero is the first real forward result
-      this project will have had on this front.
-  4. DO NOT re-measure rows 1-7. They are confirmed by execution, repeatedly.
-      A boot that re-reads them is a boot spent proving what the chart says.
+## NEXT - BUILD THE ALLOCATOR PROBE (specified since ~p2-142, never built)
+##  The subject is a call that ACTUALLY HAPPENS AND FAILS, not an absence.
+  1. (CLIENT PROBE) The instrument this project specified in writing and never
+      built - bootstrap_check.sh has printed the warning at the top of EVERY
+      session since (empty-mask #8): "a client-side probe on the allocator
+      0x141711D10 / the case-21 consumer 0x14170CFB0 reading the +0xC118
+      popcount at call time." idx_alloc returns -1 23+ times a boot; this says
+      WHY - whether the pool is empty at call time and what is meant to fill it.
+      Build it or retire the sentence; do not boot around it a 51st time.
+  2. (STATIC, first and free) Re-identify the REAL entity-index request. CLAIM O
+      picked svc21 and the body refutes it. Find the message whose body carries
+      SMALL INTEGERS in the 0..6 namespace, or establish that the client never
+      asks and the pool is meant to be filled by a push.
+  3. DO NOT: answer svc21 with a grant body; re-measure rows 1-7; re-open the
+      join relay, the retarget, the state ladder, or the (3,4) stall.
+  4. The entity wire contract stays spec-complete and femu-validated
+      (20.302-20.304) and is NOT the blocker - the index namespace under it is.
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
