@@ -1,25 +1,23 @@
 # FRONT — THE PEER-RENDER CHAIN (pinned chart; update after every boot or static verdict)
 
-STATUS: live (2026-09-07 evening - 20.326 + p2-200/201/202; THREE static
-lanes running: session-identity decode, type-51 handshake spec, type-54
-format + receiver gate). WORKING: the ID allocation (p2-198), the delivery
-pipe (p2-197 + p2-200: sent->acked x2, zero gaveup), the upstream dump, the
-probe bookkeeping. **20.326: the view message is STRUCTURALLY DROPPED (case
-40 = bare `ret`, no h0 slot). p2-200: allocation content INERT (clean null).
-p2-201/p2-202: the type-9 host-designation arm CLOSED BY MEASUREMENT - 4
-burst pushes (p2-201) then 45 duty-cycled pushes (p2-202) with correct
-bodies, ZERO new client lines (identical shape census); per the p2-202
-brief's absence negative, silence after well-timed re-sends is not a timing
-miss. The designation's session id is likely not the key the client's
-session table holds - hence lane A.** THE FRONT IS ROW 8's real unknown: the
-receiver-object construction (job-gated, 20.326 R6b) - the three lanes'
-deliverables decide the next boot. Type-51 (the 'V'-magic handshake) and a
-non-empty type-54 table are the remaining message levers. Grant (type 21)
-proven inapplicable - never send. Deployed: server bf122e9d21989631 (the
-duty-cycled designation, gate ON but the arm is closed - flip
-activity_start_host_push=false at the next deploy for a byte-identical
-baseline unless a lane revives it); clients be5807eca028ddea (both
-machines).
+STATUS: live (2026-09-07 night - 20.326-20.329 + p2-200..203). WORKING: the
+ID allocation (p2-198), the delivery pipe (sent->acked, zero losses), the
+identity capture (both clients' live per-session SteamNetworkingIdentities
+captured server-side from their matchmaking advertisements). **CLOSED ARMS
+(all by measurement/static, none revisit): the view (structurally dropped,
+20.326); the type-9 designation (structurally dead, 20.327); the allocation
+content (inert, p2-200).** **p2-203: the type-51 bubble-startup echo
+DELIVERED (4 pushes, the femu-validated W8 form, both identities captured) -
+client silent, AND the pre-named account-mixup confounder fired (the rig's
+push echoed the wrong identity; only the mac's push was plausibly-correct
+and still produced nothing). THE VERDICT IS CONFOUNDED: the next boot needs
+(a) the account-mapping fix (key by the session's owner) and (b) the
+boot-end dump check (the client's identity row vs the echo - was the echo
+even right?). If a verified-correct echo STILL nulls, the apply half is
+inert and row 8 = the transport job-gate alone.** NEXT (in order): the
+account-mapping fix; the dump-check readout; the re-test boot. Grant (type
+21) never send. Deployed: server 95cf0e93dcbc69d6 (the bubble-startup echo +
+capture, gate ON); clients be5807eca028ddea (both machines).
 Update protocol: after every boot or static finding, re-mark the rows and bump
 the STATUS date. Each row's fact must carry its evidence token. The user reads
 this instead of re-deriving session narratives.
