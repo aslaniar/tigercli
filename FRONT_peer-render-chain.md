@@ -1,8 +1,25 @@
 # FRONT — THE PEER-RENDER CHAIN (pinned chart; update after every boot or static verdict)
 
-STATUS: live (2026-09-06, after p2-196). ROWS 1-7 ARE DONE OR PASSING. THE FRONT IS ROW 9,
-and it has never once been attempted: the fork has no entity encoder and ent_recv reads
-calls=0 in 97 of 97 archives. This is the project's tracking chart.
+STATUS: live (2026-09-07 evening - 20.326 + p2-200/201/202; THREE static
+lanes running: session-identity decode, type-51 handshake spec, type-54
+format + receiver gate). WORKING: the ID allocation (p2-198), the delivery
+pipe (p2-197 + p2-200: sent->acked x2, zero gaveup), the upstream dump, the
+probe bookkeeping. **20.326: the view message is STRUCTURALLY DROPPED (case
+40 = bare `ret`, no h0 slot). p2-200: allocation content INERT (clean null).
+p2-201/p2-202: the type-9 host-designation arm CLOSED BY MEASUREMENT - 4
+burst pushes (p2-201) then 45 duty-cycled pushes (p2-202) with correct
+bodies, ZERO new client lines (identical shape census); per the p2-202
+brief's absence negative, silence after well-timed re-sends is not a timing
+miss. The designation's session id is likely not the key the client's
+session table holds - hence lane A.** THE FRONT IS ROW 8's real unknown: the
+receiver-object construction (job-gated, 20.326 R6b) - the three lanes'
+deliverables decide the next boot. Type-51 (the 'V'-magic handshake) and a
+non-empty type-54 table are the remaining message levers. Grant (type 21)
+proven inapplicable - never send. Deployed: server bf122e9d21989631 (the
+duty-cycled designation, gate ON but the arm is closed - flip
+activity_start_host_push=false at the next deploy for a byte-identical
+baseline unless a lane revives it); clients be5807eca028ddea (both
+machines).
 Update protocol: after every boot or static finding, re-mark the rows and bump
 the STATUS date. Each row's fact must carry its evidence token. The user reads
 this instead of re-deriving session narratives.
@@ -17,10 +34,12 @@ this instead of re-deriving session narratives.
 | 4 | Peer's records enter the candidate list | DONE | The other player shows up in the list the session machinery actually considers. | verified-by-log (p2-182) |
 | 5 | Join request passes the connection-layer gate | CLOSED - wrong question | We spent ~14 boots trying to make one client "admit" the other with a join packet. That can never work: only a session's HOST answers joins, and both clients are peers in our server's session. It also never mattered - the membership plane had already put each player in the other's session. | verified-by-execution (p2-195) + claims 11-14 |
 | 6 | Reserve -> admit -> adoption | NOT A DEPENDENCY | The reservation/claim bookkeeping sits on a different path. The participant mask it maintains has 7 accesses in the whole binary and none of them is in the entity code. | verified-by-reading (field_xref, 7/7 accesses) |
-| 7 | Ladder climbs to connected (4->5) | PASSES | The client's connection to the other player climbs all the way to "connected" and stays there. The wall we thought was here was a probe that had quietly stopped reporting. | verified-by-execution (p2-196) |
-| 7b | Entity INDEX allocation (idx_alloc) | ⚠️ **A REAL ANOMALY, BUT NOT PROVEN TO BE THE BLOCKER** | idx_alloc 0x141711D10 searches an 8192-bit free-map at manager+0xC118 and finds nothing, 54x a boot, writing -1 into its out-param (verified from the instructions + p2-196 outparam out0=0xFFFFFFFF, mgr_free=0). BUT it is called from ent_make with kind=2 - the client allocating an index for an entity IT creates. A PEER's entity index arrives ON THE WIRE (ent_recv decodes it via the 'entity-index' key, contract §2 step 4). And the local player renders fine while this fails every boot, so it is not fatal. Worth understanding; NOT established as the peer-render blocker.
-| 8 | Guard + receiver object | ⛔ **THE HONEST BLOCKER** | The object that would receive entity data is never built (receiver=0, every boot). Nothing has ever been sent TO it, so we cannot yet tell whether it is broken or merely idle - and that is the question. | receiver=0 in every boot |
-| 9 | Entity message encodes + sends | READY, waiting on 7b | We know the exact byte format (femu-validated; a guardian's body is RAW 8 BYTES) and the server can already send activity messages that reach the client's router. There is just nothing valid to put in them yet. | verified-by-femu (20.302-20.304) + 20.218 |
+| 6b | The ID-allocation message reaches its real handler | ✅ **DONE (p2-198)** | Turning the allocation push on (it had been off in every recent boot) worked end to end: the client's applier applied it, the local ID pool filled for the first time ever (0 -> ~150 free), all 48 creation failures stopped mid-boot, and the client's entity creation silently succeeded for the rest of the boot. BONUS: the handler table holds 15 types and the grant type (21) is NOT among them - the old failed-grant experiments were structurally doomed; the allocation was always the right message. | p2-198: mask 0 -> 144-150 across 13.7k samples; failures stop at t=99960 |
+| 6c | The client becomes a replication participant (view + receiver registration) | ❌ **VIEW ROAD DEAD (20.326 static)** | The fork spoke first and the client decoded our view fine - then dropped it: the receive switch has NO case 40 (a bare `ret`), and the view carries no h0 apply slot (only five messages do - time-sync, membership, player-properties, parameters x2). No consumer exists on any plane. Both earlier suspects (apply checks, token identity) are moot - there is no apply. The view-initiate setting is retired. What remains of 6c is the receiver-object construction question, now static-located: it hangs off a transport JOB. | 20.326: jump tables read from the image + the live registry block; cross-validated vs 20.319's join/peer-connect/stub records |
+| | 7 | Ladder climbs to connected (4->5) | PASSES | The client's connection to the other player climbs all the way to "connected" and stays there. The wall we thought was here was a probe that had quietly stopped reporting. | verified-by-execution (p2-196) |
+| 7b | Entity INDEX allocation (idx_alloc) | ❌ **RETRACTED (20.321) - NOT THE BLOCKER** | idx_alloc 0x141711D10 returns -1 54x/boot - TRUE, identity CONFIRMED (a real free-slot allocator over the session object's +0xC118 8192-bit pool). But it has exactly ONE caller (ent_make 0x14170F190 <- 0x1416EE180, the LOCAL creation loop; the create is never attempted for a foreign record, 20.300), the receive cluster structurally cannot reach it, ent_create's lease/descriptor validation is SOFT (bit0-payload decodes from the wire regardless), and the local player renders every boot while it fails. A peer's index arrives ON THE WIRE. Do not build the allocator probe. | verified-by-reading + callers.py + disasm (20.321, this repo's FINDINGS) |
+| 8 | Guard + receiver object | 🔴 **THE BLOCKER (static-located 20.326)** | The client's external handler is never registered and its view is never established (measured: zero view/handler/index traffic in every archived boot). 20.326 located the construction chain: the four receive blocks' ctor 0x1416BB1E0 is built by a TRANSPORT JOB (job runner 0x1416CCDA0, one parent via the obfuscated orchestrator 0x140B5ECD0). The next static question: which job constructs the receive blocks, and what gates its registration - that gate is the server-side lever. | 20.326 R6b (callers chain) + p2-197 + all-archive census: no type 20/21/40 ever, either direction |
+| 9 | Entity message encodes + sends | ✅ DELIVERY PROVEN (p2-197) | The carrier is NAMED: the established packet's external body (four-channel wrapper; channel 2 = the entity record). The fork now SENDS it behind `gameplay_external_body`: a strict CREATE, token {slot 7, incarnation 0}, type 2 playerBroadcast, baseline = the dump's REAL kind-2 bytes. The clients RECEIVED every probe packet (acks climbed through the probe sequences; no drops, no reconnect storm). Consumption was silent - because of row 8, not the wire. Probe bookkeeping race (gaveup before ack credit) fixed for the next boot. | p2-197: result=sent x8; client base climbed through seq 6; self-test + packet round trip |
 | 10 | Entity renders and moves | NOT YET | The actual goal: another player's guardian visible and moving on your screen. | positive control = the local player (20.53) |
 
 ## HOW TO READ ROW 5 (after the evening of 2026-09-06)
@@ -76,77 +95,48 @@ outside the join window.
   the relay lands on the right channel   = DONE (p2-192a: channel=engine)
   the relayed join MATCHES a walked slot = DONE (p2-193a/b: match=1, twice)
   --------------------------------------------------------------------
-  the walker's RETURN attributed         = THE CURRENT BLOCKER - the leave
-    (MISS / FOUND-LIVE / FOUND-STATE-OUT)  probe on 0x14177A0B0, armed by the
-                                            join packet so the hot path pays
-                                            nothing outside the window
-  join_processor enter                   = the state check must pass first
-  join_reserve from 0x14178EA73
-    (NOT the self-reserve sites)         = the join flow is running
-  admit enter from the join-handler      = the flow completes
-  resv mask gains the container bit
-    and the record leaves (3,4)          = ADOPTION (row 6)
-  ladder reaches (4,5)                   = ESTABLISHMENT (row 7)
+  (row 5 CLOSED here by p2-195/196 - the gate is host-only and the receiving
+   client is a peer; the membership plane had already delivered the peer.)
   receiver vptr non-zero / ent_recv fires = the entity road opens (rows 8-9)
+  THE FRONT'S OWN READOUT (post-20.321)   = the outer wire type named (static),
+                                            femu's accept/reject verdict on a
+                                            wire id without lease/descriptor,
+                                            then the fork's first peer-entity
+                                            send and "receiving sobject
+                                            creation" in the client log.
 
-## THE ONE REMAINING QUESTION ON ROW 5
+## THE CORRECTED FRONT (20.321, 2026-09-06 evening - replaces the row-5 sections)
 
-  **What drives a session slot from state 4 to state 6, and what must the fork
-  send to drive the forkSession-named one there?**
+Row 5 is CLOSED (host-only gate; never mattered). Row 7b is RETRACTED. The
+front is ROW 9: **send a peer entity on the sobject system (system B).**
 
-Everything else on row 5 is closed by measurement: the channel (p2-192a), the
-key (verbatim, p2-193a/b), the container (p2-193a), the lookup (match=1), and
-the gate's own decision path (exactly two conditions, claims 11.1).
-
-STARTING EVIDENCE - do not re-derive: 20.184 RESULT 3 (2026-08-29) already
-decoded the stage writers as 0x14178CD97's cluster, driven by 0x140C05F80,
-which tries stages 0/1, 2/3, 4/5 across 0x1C8A0-stride object pairs until the
-setter returns true - "THE CLIENT CYCLES STAGES 0..5 ONLY". p2-195 matches that
-exactly: the fork's session is parked at the TOP of the client-driven range.
-Something else carries a session to 6, and the positive control is in the same
-log - slot0 and slot2 are at 6 on the same boot, same container.
-
-TENSION TO RESOLVE (not a blocker): 20.184 calls 6..9 "a DIFFERENT object
-family" from the 0..5 cycling one, but slot0, slot2 and slot5 all live in the
-one walked container. Its addresses stand; its framing needs a pass.
-
-## THE CURRENT BLOCKER (measured facts, 2026-09-06 evening)
-
-- The join gate 0x1416E0460, read line by line: (1) word[pkt+0] vs
-  0x1416C1260() - the protocol version, PASSES; (2) call 0x14177A0B0 with
-  rcx = [rdi+0x28] (mov rcx,[rdi+0x28] at 0x1416E04A4, call at 0x1416E04AC) -
-  the walker over the ARRIVING CONNECTION's six session slots; (3) on a hit,
-  0x1416E04B6: add ecx,-6 / cmp ecx,3 / ja 0x1416E04D7 - the state window,
-  branching into the SAME refuse block as not-found, which is why both
-  failures print identical text; (4) otherwise call 0x1417806C0, the processor.
-- The walker's 35 consumers all sit in the connection-layer receive region
-  (0x1416CD300..0x1416E13DA) plus 0x14175B8F0; the receive pump climbs into the
-  VM-obfuscated ring, which is where the framing/reachability question ends.
-- The gate's identity blobs are at [rec+0x57C] (bit 4 of [rec+4] set) or
-  [rec+0x94E] - DELIBERATELY UNALIGNED fields, which is what blinded the
-  observer for five boots.
-- The session binders bind slot objects' [+0x1C7C0] through the init-time
-  context manager 0x14175E520 plus the VMP ring; container objects are
-  per-connection and DIFFER between the client's associations - that fact is
-  the whole reason the channel mattered.
-- The landing-session blob's writer is still an OPEN SITE: apply_stamp proved
-  the session apply is NOT it (one firing, early, into a static config
-  object); the copier walk 0x1416E2350 is the remaining suspect.
-- The game prints its own refusal, greppable in every boot:
-  "networking:messages:join-request: received message for an unknown session
-  ... sending back a refusal" - the session field renders as two reversed
-  dword groups, so decode before comparing.
-- PARKED DEBT - TWO DISTINCT RENDER-BLACK FAILURES (user, 2026-09-06), never to
-  be merged into one note:
-    VARIANT A - SOLO, PRE-SPAWN: the mac never spawns in at all, and a subclass
-      swap does NOT fix it. Segment 2 reaches `region result=forced native=0
-      answer=1` and never fade_release; the client stays alive and keeps logging.
+- SYSTEM B = ent_recv (0x141718510 family) -> ent_create (0x141718080): small-
+  int ids 0..6, lease bitmap +0xC520, table A descriptors (runtime-built),
+  world manager. THIS is the peer-render path. Contract spec-complete
+  (femu-validated) except the OUTER WIRE TYPE.
+- SYSTEM A = the session entity-slot pool (+0xC118, 8192 slots, idx_alloc,
+  tags 0x14/0x15 request/donate, in-activity init leaves the local mask
+  empty). REAL and open - no tag-0x14 request exists in any archive - but NO
+  verdict depends on it. Parked; do not spend a boot on it.
+- THE ID QUESTION IS OPEN-SOFT: ent_create's lease-bit and descriptor checks
+  bail to a NON-fatal path; with header bit0 set the record decodes from the
+  wire regardless. If femu confirms the apply path accepts a fresh wire id,
+  NO grant message is needed at all.
+- NEXT (STATE.md): 1) name the outer wire type (static; carrier chain
+  0x1416EACB0 -> 0x1417115D0 -> 0x1417117D0, router census 44 handlers);
+  2) femu ent_create with a bit0-set kind-2 body and a fresh id;
+  3) fork-side send on the identified carrier; 4) ONE boot.
+- PARKED DEBT - TWO DISTINCT RENDER-BLACK FAILURES (user, 2026-09-06), never
+  to be merged into one note:
+    VARIANT A - SOLO, PRE-SPAWN: the mac never spawns in at all, and a
+      subclass swap does NOT fix it. Segment 2 reaches `region result=forced
+      native=0 answer=1` and never fade_release; the client stays alive.
       p2-195 was this variant, with the rig not yet up.
-    VARIANT B - CO-PRESENCE, POST-SPAWN: the mac is ALREADY spawned and moving
-      when the screen goes black, and the trigger is the RIG launching to the
-      tower. The rig-connection correlation belongs to B and STANDS.
-  They differ in when they strike (before vs after spawn), in whether a subclass
-  swap helps, and in whether a second machine is needed at all.
+    VARIANT B - CO-PRESENCE, POST-SPAWN: the mac is ALREADY spawned and
+      moving when the screen goes black; the trigger is the RIG launching to
+      the tower. The rig-connection correlation belongs to B and STANDS.
+  They differ in when they strike (before vs after spawn), in whether a
+  subclass swap helps, and in whether a second machine is needed at all.
 
 ## FAIL MODES BANKED (all resolved, with their resolutions)
 

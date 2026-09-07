@@ -104,5 +104,12 @@ If client: a SERVER-SIDE GAP section is required naming the specific wire
 item the server is missing. A client-side proposal without the gap section
 is rejected by the gate.
 
+## NEGATIVE TEST (09-05/09-06 - a change ships with its own negative test)
+The failing arm for THIS boot's change (instrument or server-side), and
+WHERE IT RAN: "ran in <test/fixture>", "replay over <archive>", or
+"rc=<n>". A probe change's arm tests the bad state (e.g. the (k,k)!=(0,0)
+collision arm; the duplicate-RVA table arm). Declare `n/a (<reason>)` ONLY
+when this boot ships no behavioral change of any kind.
+
 ## MODEL REVIEW (conditional - required after >=2 consecutive third-branches)
 Names the causal assumption that dies. The gate tells you when you need it.

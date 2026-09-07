@@ -414,8 +414,10 @@ OPEN before code:
   grant, claims K) vs the fork's release parser is an UNRESOLVED tension; both
   may be true on different channels (svc8 inbound vs the [obj+0x6c18] vtable).
 - live probes still untried: flat framing (settings-only, staged), and the
-  definitive instrument: a client-side probe on the allocator 0x141711D10 /
-  the case-21 consumer 0x14170CFB0 reading the +0xC118 popcount at call time.
+  client-side probe on the allocator 0x141711D10 / the case-21 consumer
+  0x14170CFB0 reading the +0xC118 popcount at call time. RETIRED 2026-09-06
+  evening: specified against the wrong subject - idx_alloc is NOT in the
+  peer-render path (see the final section of this document).
 - confidence: HIGH on the live facts; the mechanism gap is UNRESOLVED.
 
 ### CLAIM O — ROOT CAUSE: the client's index request rides BAP SERVICE 21 and the fork
@@ -543,16 +545,164 @@ DE-PRIORITISED pending a correct identification of the real index request.
 STANDS (20.218 / p2-143, verified-by-log): the fork's activity messages DO route
 to the client - "OUR MESSAGES ROUTE (flags=0x00) ... ASSIGNMENT+ORDERING ALL
 CONFIRMED WORKING" - and the assignment -> recreate -> sync chain executes.
-STANDS: idx_alloc 0x141711D10 RETURNS -1, 23+ times a boot, and the local mask
-comes up empty. That is a LIVE, REPRODUCIBLE, POSITIVE failure signal - a
-function that runs and fails - which is a categorically different evidence class
-from the absences this project has been chasing (ent_recv=0, receiver=0).
 
-THE DEFINITIVE INSTRUMENT IS ALREADY SPECIFIED IN THIS DOCUMENT AND HAS NEVER
-BEEN BUILT: "a client-side probe on the allocator 0x141711D10 / the case-21
-consumer 0x14170CFB0 reading the +0xC118 popcount at call time."
-bootstrap_check.sh has printed that unbuilt-instrument warning at the top of
-EVERY session since it was written (empty-mask #8: "these name an instrument in
-writing. Build it or retire the sentence before booting around it"). It is the
-next thing to build, and unlike every front of the last ~50 boots its subject is
-a call that actually happens.
+## RETRACTED 2026-09-06 EVENING (session after the night handoff): idx_alloc IS
+## NOT THE PEER-RENDER BLOCKER - row 7b as written is a poisoned claim (STATIC,
+## NO BOOT; every leg verified at the bytes this session)
+
+The prior framing ("idx_alloc returns -1 and the empty local mask IS the
+blocker; no index -> no entity -> ent_recv=0") does not survive verification:
+
+1. IDENTITY CONFIRMED (my own disasm, 0x141711D10, pdata-exact): writes -1 to
+   the out-param [rdx] up front; scans the +0xC118 mask (0x2000 bits, first-set
+   via 0x14035EE10); on success CLEARS the found bit, bumps the 6-byte record
+   state at [mgr + (i*3)*2 + 0x118], packs ((([mgr+8]+8)<<4 | rec+0x116)<<16 |
+   bitIndex) into [rbx]; on failure logs via [mgr+8]+0x10 and returns -1.
+   It IS a real free-slot allocator over the session object's 8192-slot pool.
+   The function is what we said it was.
+2. IT IS NOT IN THE PEER-RENDER PATH. callers.py: exactly ONE direct caller,
+   0x14170F190 (ent_make); ent_make's only caller is 0x1416EE180 (CLAIM E's
+   creation-attempt site) on the LOCAL creation loop
+   (0x1413086E0 -> 0x1416EE180 -> 0x14170F190). 20.300 (p2-178) already
+   measured the create is never ATTEMPTED for a foreign record. CLAIM G's full
+   .text census: +0xC118 has exactly three writers (init 0x14171DB20 /
+   allocator / release 0x14170FC90) - none in the receive cluster. The receive
+   path (ent_recv -> ent_create 0x141718080) structurally cannot reach it.
+3. THE ENT_CREATE ID VALIDATION IS SOFT (my disasm of 0x141718080): the
+   +0xC520 lease-bit check (`bt; jae`) and the descriptor-id check
+   (`cmp r9d,[desc+8]; jne`) both bail to 0x14171810d, which is NOT an abort -
+   it falls through to the presence-mask test, and header bit0 set decodes the
+   record FROM THE WIRE regardless; only the bit0-clear template path needs
+   the descriptor (rsi=0 after a failed validation). This corrects
+   ent-receive-contract.md section 5 step 1's "must have the bit" as a gate.
+4. THE FAILING CALL IS BENIGN FOR SPAWN: the local player renders in every
+   boot while idx_alloc fails 54x (p2-196). ent_make(kind=2) allocates a LOCAL
+   activity-entity slot (the 'player_broadcast' family); a peer entity's index
+   arrives ON THE WIRE (contract sections 4-5: the id is decoded from the
+   bitstream via the "entity-index" key).
+
+WHAT THIS RETRACTS: this document's prior "STANDS ... the real front" framing
+and the row-7b "idx_alloc is THE BLOCKER" lines on FRONT_peer-render-chain.md
+and STATE.md NEXT. The -1 is REAL and reproducible, but its subject is the
+SESSION entity-slot pool (system A, CLAIMS E-H: the distributed tag-0x14/0x15
+request/donate pool, in-activity init leaves the local mask empty) - NOT the
+sobject entity system (system B: ent_recv/ent_create, world manager, small-int
+ids 0..6, lease bitmap +0xC520, table A descriptors), which is the peer path.
+
+THE ALLOCATOR-PROBE SPEC IS RETIRED (bootstrap empty-mask #8): it was
+specified against the wrong subject. The +0xC118 pool question (why the
+in-activity local mask is empty; who answers the client's tag-0x14 request;
+which channel [[obj+0x6c18] vtable+0x28] is) remains a REAL, SEPARATE, OPEN
+system - but no current verdict depends on it, and building its probe now
+would spend a boot on a system the front does not touch.
+
+THE CORRECTED FRONT (back to 20.221 R3 / 20.301, now sharper): the fork must
+SEND a peer entity on the sobject system. The contract (20.302-20.304) is
+spec-complete except ONE unknown: the outer wire type (dispatch into vtable
+slot 10; 20.303's carrier decode chain 0x1416EACB0 -> 0x1417115D0 ->
+0x1417117D0 operates the SAME entity storage). The id question is OPEN-SOFT:
+the bit0-payload path decodes without a lease bit or descriptor, so a grant
+may not be needed at all - ent_create's step-5 gate 0x1417114C0 and the apply
+path decide. That question is answerable by FEMU with no boot (ent_create
+against dump state, synthetic reader carrying a bit0-set kind-2 body).
+
+---
+
+## THE ROUTER DECODED LINE-BY-LINE (2026-09-07 early, static, NO boot) - the gate
+## is INVERTED from CLAIM O's reading, and the fork's messages are pushes by construction
+
+The dispatcher 0x1416E6ED0 (877 B, pdata-exact), read whole:
+    rbx = rcx                          ; the MESSAGE OBJECT
+    dil = 1
+    call 0x1416FC5E0                   ; session getter (0x1416FC600 family)
+    edx = [rax+0x560E0]                ; the session's record index (the extract chain's +0x560E0)
+    call 0x1404C0440(&stack, edx)
+    test byte [rbx+1], 1
+    jne  0x1416E7118                   ; bit0 SET -> SKIP the switch entirely (the epilogue)
+    eax = (s8)[rbx] - 1                ; THE TYPE BYTE at object+0; wire byte = name index + 1
+    cmp eax, 0x5c ; ja epilogue        ; else DISPATCH by the jump tables 0x1416E71E0/0x1416E7134
+So: bit0 CLEAR dispatches the case handlers; bit0 SET skips them. The prior
+"dispatch is gated on msg+1 bit0" reading had the polarity backwards; the OBSERVED
+fact stands unchanged (idx20/idx21 handlers = 0 with the fork's pushes).
+
+THE STRUCTURAL FACT that supersedes the polarity question: 0x140E10C10 (the
+registry gate -> the 15-table apply) has EXACTLY ONE caller - 0x1416F17A0 =
+router case 19 (incident/push). The fork's pushes demonstrably reach 0x140E0F000
+(the handle_message hook logs them, type=0/5, accepted=1) - so the fork's
+notifications are dispatched AS CASE 19 (the push wrapper), and the 15-table's
+registered set is {15,50} in our dumps: types 20/21 arrive inside a push and are
+silently dropped THERE, before any type-specific case could matter.
+
+THE REGISTRATION RECORD (dump_p2146): one qword == the router fnptr in .data at
+rva 0x26BE9F8; record = {router, ->0x141BE00C8 (.rdata, reads empty), heap
+cookie, 0x80000046}. The router is a REGISTERED BAP handler (registered by the
+init callback 0x1416F7DA0 via 0x1416F6470 -> 0x14040F500(0xE, DAT_142037968);
+that callback also toggles the enable bytes at 0x142037AE9/B0C, the
+0x142037AF0 neighborhood).
+
+THE ONE MISSING LINK (the next lane's first step, well-scoped): the client's
+svc9 ingress -> the message OBJECT construction - where [+0] (the type byte) and
+[+1] (the flags byte the switch tests) come from on the wire. The fork's DOWN
+envelope is [disc=1][u64be asid][u32be type][u32be len][payload] with NO flags
+byte (handle_message_observer.cpp, verified two ways), so [+1] is constructed
+client-side. Path: 0x140412A30 registered the router into a handler table; the
+table's walker is the BAP dispatch; its object builder names the +1 semantics.
+
+THE V2 FORK MOVE, ONCE THE +1 SEMANTICS ARE KNOWN: either (a) shape the push so
+the object dispatches to case 20/21 directly (if +1 is wire-derivable), or
+(b) accept the push path and find what REGISTERS types 20/21 in the 15-table
+(the table is runtime-built; our dumps hold {15,50}; the static registration
+DAT_142037968 already names 17,18,19,20,21 - queue-event/state-refresh/incident/
+ALLOCATE/FREE - so the handlers EXIST and the registration that surfaces them is
+the target). Either way the downstream chain is already verified:
+case 20 -> 0x1416F0840 shim -> 0x1403CB3F0 -> 0x1404D92A0 (the schema decode)
+-> the entity-manager init (CLAIM I) -> the distributed pool -> the client's
+tag-0x14 request -> the fork's type-21 answer -> the mask fills -> entities can
+exist -> AND the view establishment (group id 40, never once sent by any client
+in any archive; the fork's bind_view/echo has never executed) becomes possible -
+the view being the client's replication registration ("a mismatch produces no
+replicated entities at all").
+
+## INGRESS ARC (same session, continued): the UPSTREAM side is fully mapped; the
+## DOWN-side object construction is VMP-built
+
+UPSTREAM (client -> server, svc8 RequestService::activityMessage): the fork
+PARSES these (BodyCodec::activityMessageRequest -> activity_message::process)
+and logs accept/skip with types. CENSUS ACROSS ALL ARCHIVES: type 47
+(connection_quality_report) x1914, type 39 (send_client_heartbeat, 3447 B -
+the client's per-tick state upload) x928, type 14 (peer reservation release)
+x386, type 15 x29. **NO type 20, NO type 21, NO type 40 (view) has EVER
+arrived upstream in any archive.** The client never asks for indices and never
+establishes its view - consistent with the client never reaching replication-
+participant state.
+
+DOWN (server -> client, svc9 notifications): the wire envelope is
+[disc=1][u64be asid][u32be type][u32be len][payload] - NO flags byte (verified
+two ways in handle_message_observer.cpp). The router's message OBJECT (+0 type
+byte, +1 flags byte) is therefore constructed by the client's BAP ingress -
+which is in the VM-OBFUSCATED transport ring: the registration global
+0x1426BE9F8 (= the dump's live router-ptr location, rva 0x26BE9F8) has ZERO
+rip-relative readers and ZERO absolute-moffs readers in .text; the setter
+0x140412A30 is a bare pointer store. The reader is VMP. Static object-
+construction decode is CLOSED for this arc.
+
+THE REGISTRATION TABLE (static 0x141C9FA48): records are RUNTIME-RELOCATED
+{handler, secondary} pairs (first pair -> 0x1416E6010 (router neighborhood) /
+0x140E0DC10) followed by name strings - the record format needs the relocated
+arithmetic pass before further reads. The ids named in the earlier census
+(1, 8, 13, 17, 18, 19, 20, 21, 39) say the type-20/21 handlers ARE registered
+somewhere in the client's tables; the dispatch just never reaches them.
+
+NEXT LANE (well-scoped, in order):
+1. Log the svc8 upstream bodies fork-side (one snprintf of the first N bytes
+   behind the existing accept/skip lines) + one boot: the heartbeat's bytes
+   give the client's activity-message object->wire serialization, and any
+   flags byte it carries, without touching the client.
+2. femu the DOWN construction is closed (VMP); instead decide the +1 byte
+   empirically from (1)'s symmetric encoding, or find the 15-table's
+   REGISTRATION call (who inserts {15,50} - if the activity's own setup
+   registers pushed types, completing that setup may register 20/21).
+3. Whichever opens: the goal state is "the client's type-20 handler runs"
+   (downstream: schema decode -> manager init branch B -> the tag-0x14
+   request -> our type-21 answer -> mask fills), and then the view
+   establishment + external-handler registration become reachable.

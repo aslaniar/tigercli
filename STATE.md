@@ -1,6 +1,26 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-06 ~15:10 PDT). Verdict + deployed + next only.
+STATUS: live (2026-09-06 night). Verdict + deployed + next only.
+
+*** 20.322 (STATIC + FEMU + STANDALONE TESTS, NO BOOT): THE CARRIER IS NAMED AND
+## THE SEND IS BUILT. The ent cluster's only entry is the [[vptr]+0x50] vtable
+## dispatch - the carrier is the ESTABLISHED PACKET's EXTERNAL BODY:
+## [ext-present 1][body][filler-absent 1][padding] after the two reliable queues.
+## The fork's packets declared it ABSENT forever (write_absent_filler); the
+## client's receive pipeline is ARMED (gate global 0x142037AF0 = 1 in dump_p2146;
+## no readable writer - VMP-set). femu: ent_create APPLIES a fresh descriptorless
+## id (7) byte-identically to id 0/2 - NO grant message needed. The send is wired
+## server-only behind gameplay_external_body (activation settings): one-record
+## playerBroadcast CREATE, token {7,0}, baseline = dump descriptor-0's real kind-2
+## bytes fd 87 97 50 21 0f 02 21; the peer's ACK OF THE PACKET SEQUENCE proves
+## delivery (the body is not reliable-queue protected; 4-attempt cap); self-test
+## runs once and FAILS CLOSED - and caught a real truncation bug pre-deploy
+## (finish() bytes stored as bits). BOOT p2-197 STAGED: brief GATE PASS, settings
+## staged (.bak_p2-197_pre_external), D-044, front peer-entity-send (streak 0).
+## READOUT: fork stage=external result=sent/acked; client's own receive line;
+## stage=tail (RX diagnostic) separates view-gate-closed from grammar mismatch.
+## ABANDON: gate off = byte-identical to pre-probe. Full: FINDINGS 20.322 +
+## BOOT_BRIEF_p2-197.md. ***
 Full text: FINDINGS (the evening arc banked in
 HANDOFF_2026-09-06_EVENING-CHANNEL.md - READ THAT FIRST; session failures:
 docs/postmortems/POSTMORTEM_2026-09-06_THE-BLIND-GUARD.md - FOUR instrument
@@ -118,13 +138,30 @@ defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 ##  The ent_recv=0-in-97-of-97 count is REAL and still the headline symptom, but
 ##  its cause is NOT an absent sender. It is downstream of index allocation.
 ##
-## THE REAL FRONT: idx_alloc 0x141711D10 RETURNS -1, 23+ times a boot, and the
-## local entity-index mask comes up empty (20.218 R2). That is a function that
-## RUNS AND FAILS - a positive, reproducible signal, categorically unlike the
-## ABSENCES this project has read for ~50 boots (ent_recv=0, receiver=0, mask
-## empty, ladder "stuck"). Absence cannot separate "blocked" from "my instrument
-## is blind or dead", which is why three walls in a row dissolved into
-## instrument artifacts (the blind guard, st2=6, the (3,4) stall).
+## RETRACTED 2026-09-06 EVENING (20.321, STATIC): ROW 7B IS A POISONED CLAIM -
+## IDX_ALLOC IS NOT THE PEER-RENDER BLOCKER. The user challenged the identity;
+## verifying it killed the causal chain. Identity CONFIRMED (a real free-slot
+## allocator over the session object's +0xC118 8192-bit pool), but it has
+## exactly ONE caller (ent_make 0x14170F190 <- 0x1416EE180, the LOCAL creation
+## loop; the create is never attempted for a foreign record, 20.300), the
+## receive cluster structurally cannot reach it (+0xC118's only writers are
+## init/alloc/release, CLAIM G), ent_create's lease/descriptor validation is
+## SOFT (bit0-payload decodes FROM THE WIRE regardless; disasm 0x141718080),
+## and the local player renders every boot while idx_alloc fails 54x. The -1
+## is real and belongs to SYSTEM A (the session entity-slot pool, the
+## tag-0x14/0x15 request/donate protocol, open) - NOT SYSTEM B (ent_recv/
+## ent_create, small-int ids 0..6, lease bitmap +0xC520) which IS the peer
+## path. THE ALLOCATOR-PROBE SPEC IS RETIRED (wrong subject; bootstrap #8
+## silenced). Wire check: NO tag-0x14/svc20 request exists in any archive.
+## Full text: entity-index-allocation-schema.md final section. ***
+##
+## THE REAL FRONT (restored, sharper): the fork must SEND a peer entity on the
+## sobject system. The contract (20.302-20.304) is spec-complete except ONE
+## unknown: the OUTER WIRE TYPE (dispatch into vtable slot 10; carrier chain
+## 0x1416EACB0 -> 0x1417115D0 -> 0x1417117D0, same entity storage). The id is
+## OPEN-SOFT: bit0-payload decodes without lease bit or descriptor, so a grant
+## may not be needed - ent_create's step-5 gate 0x1417114C0 and the apply path
+## decide. FEMU CAN ANSWER THAT WITH NO BOOT.
 ##
 ## AND THE RECORDED ROOT CAUSE FOR IT IS PROBABLY WRONG: CLAIM O of
 ## entity-index-allocation-schema.md says the client's index request rides BAP
@@ -369,40 +406,51 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
   20.295 p2-174: the client READS the row's character field; knob is SOLO-ONLY.
   20.294 eventType not the routing key; wire->image CLOSED at the queue interior.
 
-## DEPLOYED (2026-09-06 ~15:10 - the banked state after the evening arc)
+## DEPLOYED (2026-09-07 ~21:45 - p2-201 staged, server-only)
    NETWORK   mac 192.168.1.7 (ethernet; identity caches the stale .164 -
              the decoder accepts either); rig 192.168.1.136.
-   server    acbb62af4a3ca133 RUNNING (settings relay_join_engine_channel=true,
-             relay_peer_join=true, relay_join_target_identity=false (the
-             verbatim key is the measured match), retry_cap=10, duty 30000;
-             backup .bak_p2-192_dtls).
-   clients   mac 572ca7c2fc02ada3 RESTORED (the proven-landing build;
-             d5ed2ae3f12e42fb saved as .bak_d5ed2ae3_150906).
-             rig d5ed2ae3f12e42fb (backs: .bak_p2d7_20260906_144204=5313eb03).
-             BISECT FIRST: 572ca7c2 on both = the proven-landing pair.
-   server bak .bak_p2d6_<14:0x stamp>; client baks on both machines hold the
-             evening's builds (572ca7c2/3d95a375/0687f/5313eb03 lineage).
-   logs      RE_output/logs/<today's stamps>; the auto-archives + the p2-190
-             baseline archive (RE_output/logs/20260906_114917).
+   server    0612cb2ee86ffd4d RUNNING (adds the type-9 start_activity_host
+             designation push per join burst behind
+             activity_start_host_push=true - the activity-plane lever for
+             the receiver-object gate after 20.326 killed the view road;
+             still includes the 20.325 type-20 fix; settings:
+             entity_index_allocation=true, gameplay_external_body=true,
+             activity_view_initiate=false (retired), relay_join_engine_
+             channel=true, relay_peer_join=true, retry_cap=10; settings
+             backup .bak_p2-201_pre_starthost + the exe/cache pair).
+   clients   be5807eca028ddea on BOTH machines (unchanged, the audited
+             platform; the tree's client build ee31a1b1 is unshipped work
+             and stays undeployed - client deploys blocked by the 8
+             standing probe_audit findings; the preflight client pair
+             FAILS knowingly, D-049).
+   brief     BOOT_BRIEF_p2-200.md (GATE PASS) - front allocation-content,
+             streak 0; D-048.
+   logs      RE_output/logs/<today's stamps>; p2-199's logs were never
+             archived (its readout lives in the FRONT chart only).
 
 
-## NEXT - BUILD THE ALLOCATOR PROBE (specified since ~p2-142, never built)
-##  The subject is a call that ACTUALLY HAPPENS AND FAILS, not an absence.
-  1. (CLIENT PROBE) The instrument this project specified in writing and never
-      built - bootstrap_check.sh has printed the warning at the top of EVERY
-      session since (empty-mask #8): "a client-side probe on the allocator
-      0x141711D10 / the case-21 consumer 0x14170CFB0 reading the +0xC118
-      popcount at call time." idx_alloc returns -1 23+ times a boot; this says
-      WHY - whether the pool is empty at call time and what is meant to fill it.
-      Build it or retire the sentence; do not boot around it a 51st time.
-  2. (STATIC, first and free) Re-identify the REAL entity-index request. CLAIM O
-      picked svc21 and the body refutes it. Find the message whose body carries
-      SMALL INTEGERS in the 0..6 namespace, or establish that the client never
-      asks and the pool is meant to be filled by a push.
-  3. DO NOT: answer svc21 with a grant body; re-measure rows 1-7; re-open the
-      join relay, the retarget, the state ladder, or the (3,4) stall.
-  4. The entity wire contract stays spec-complete and femu-validated
-      (20.302-20.304) and is NOT the blocker - the index namespace under it is.
+## NEXT - THE CORRECTED FRONT (20.326 + p2-201/202; the view AND designation arms are DEAD)
+##  The view-establishment message has NO CONSUMER (20.326: bare `ret` at the
+##  switch, no h0 slot). The type-9 start_activity_host designation is CLOSED
+##  by measurement (p2-201: 4 burst pushes null; p2-202: 45 duty-cycled pushes
+##  null - identical client census; per the p2-202 brief's absence negative,
+##  silence after well-timed re-sends is not a timing miss). The designation's
+##  session id is likely not the key the client's session table holds.
+##  1. (STATIC, free) The session-identity decode: 0x140E36C30 (the unmix of
+##      DAT_14280E210) - what identity the client's activity-session records
+##      key on, and where the fork would learn it. Decides whether ANY
+##      designation body can name the right session.
+##  2. (STATIC, free) The remaining host-designation levers: type 51
+##      (bubble_host_startup_info, the 'V'-magic validator - apply-table row
+##      11, crypto-identity compare FUN_1403E96B0) and a non-empty type-54
+##      bubble-host table (6-bit count + records; record format unknown).
+##  3. (STATIC, free) The receiver-object job-gate neighborhood (20.326 R6b:
+##      ctor 0x1416BB1E0 <- ... <- job runner 0x1416CCDA0; the +0x25 gate is
+##      VMP-managed) cross-referenced with the bubble/citizen machinery.
+##  DO NOT: send any view (structurally dropped, 20.326 R3); send more type-9
+##      (arm closed, streak 2); answer svc21 with a grant body; reopen the
+##      +0xC118 pool system (system A); re-measure rows 1-7; touch the join
+##      relay, retarget, state ladder, or (3,4) stall.
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
