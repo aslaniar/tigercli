@@ -274,6 +274,9 @@ def check_hooks(rep, no_traps):
         return
     tables = parse_tables(hooks)
     problems = [p for t in tables for p in t.problems()]
+    from hook_targets import duplicate_rva_problems, raw_lines_around
+    problems.extend(duplicate_rva_problems(
+        tables, raw_reader=lambda path, ln: raw_lines_around(path, ln)))
     n = sum(len(t.entries) for t in tables)
     if problems:
         for p in problems:

@@ -75,10 +75,11 @@ def strip_comments(text):
 
 
 class Entry:
-    __slots__ = ("name", "rva_expr", "rva", "lineno")
+    __slots__ = ("name", "rva_expr", "rva", "lineno", "kind")
 
-    def __init__(self, name, rva_expr, rva, lineno):
+    def __init__(self, name, rva_expr, rva, lineno, kind=None):
         self.name, self.rva_expr, self.rva, self.lineno = name, rva_expr, rva, lineno
+        self.kind = kind
 
     def is_null(self):
         return self.name is None or self.rva == 0
@@ -117,6 +118,64 @@ class Table:
         return out
 
 
+def duplicate_rva_problems(tables):
+    """CROSS-TABLE duplicate-RVA reject (09-06 BLIND-GUARD DEFECT 4:
+    walk_leave shipped as a SECOND row on the SAME RVA as walk_map - dual
+    detours on one function start are an unsupported install; the rig client
+    froze mid-hot-path and the frozen process held the DLL hostage. The
+    per-table problems() cannot see across rows; this check can)."""
+def duplicate_rva_problems(tables, raw_reader=None):
+    """CROSS-TABLE duplicate-RVA reject (09-06 BLIND-GUARD DEFECT 4:
+    walk_leave shipped as a SECOND row on the SAME RVA as walk_map - dual
+    detours on one function start are an unsupported install; the rig client
+    froze mid-hot-path and the frozen process held the DLL hostage. The
+    per-table problems() cannot see across rows; this check can).
+
+    A duplicate is a FAILURE unless one of the duplicate rows carries a
+    machine-readable waiver `DUAL-OK: <reason>` in its raw source (read
+    WITH comments - the waiver is a citation, like no-leave:). The pool_*
+    pairs predate the incident and run dual-detoured on COLD paths; they
+    must say so in source, not rely on a reader's memory."""
+    seen = {}
+    out = []
+    for t in tables:
+        for e in t.entries:
+            if e.rva in (None, 0) or e.name is None:
+                continue
+            seen.setdefault(e.rva, []).append((t, e))
+    for rva, rows in sorted(seen.items()):
+        if len(rows) < 2:
+            continue
+        waived = False
+        for t, e in rows:
+            if raw_reader:
+                raw = raw_reader(t.file, e.lineno)
+                if "DUAL-OK:" in raw:
+                    waived = True
+        if waived:
+            continue
+        where = ", ".join(f"{t.var}:{e.name!r} ({t.file.name}:{e.lineno})"
+                          for t, e in rows)
+        out.append(f"DUPLICATE RVA {hex(rva)}: {len(rows)} rows target the "
+                   f"same function start ({where}) - dual detours on one "
+                   "function start are an UNSUPPORTED install (09-06 "
+                   "DEFECT 4); route enter+leave through one row's dispatch, "
+                   "or waive in source with 'DUAL-OK: <reason>' on the row")
+    return out
+
+
+def raw_lines_around(path, lineno, span=1):
+    """Raw (unstripped) source lines around a table row - the DUAL-OK: /
+    no-leave: waiver citations live in COMMENTS, which strip_comments drops,
+    so waiver checks read the raw file by line number."""
+    try:
+        lines = Path(path).read_text(errors="replace").split("\n")
+    except OSError:
+        return ""
+    lo = max(0, lineno - 1 - span)
+    return "\n".join(lines[lo:lineno - 1 + span + 1])
+
+
 def declared_constants(hooks_dir):
     """Every `constexpr std::uintptr_t k*Rva = 0x...;` under hooks_dir, with
     a use count (occurrences of the identifier beyond its own declaration)."""
@@ -143,7 +202,8 @@ def parse_tables(hooks_dir):
             size_var, var, body = m.group(1), m.group(2), m.group(3)
             lineno = text[:m.start()].count("\n") + 1
             entries = []
-            for em in ENTRY_RE.finditer(body):
+            entry_spans = list(ENTRY_RE.finditer(body))
+            for idx, em in enumerate(entry_spans):
                 name_tok, rva_tok = em.group(1), em.group(2)
                 name = None if name_tok == "nullptr" else name_tok.strip('"')
                 if rva_tok == "nullptr" or rva_tok == "0":
@@ -154,8 +214,16 @@ def parse_tables(hooks_dir):
                     rva = consts[rva_tok]["value"]
                 else:
                     rva = None
+                # the row's Probe::kind (its dispatch class - the enum's doc
+                # comments declare which kinds observe the OUTCOME, which is
+                # what the enter/leave pairing audit needs)
+                row_end = (entry_spans[idx + 1].start()
+                           if idx + 1 < len(entry_spans) else len(body))
+                km = re.search(r"Probe::(\w+)", body[em.start():row_end])
+                kind = km.group(1) if km else None
                 entries.append(Entry(name, rva_tok, rva,
-                                     lineno + body[:em.start()].count("\n")))
+                                     lineno + body[:em.start()].count("\n"),
+                                     kind))
             tables.append(Table(path, var, sizes.get(size_var), entries, lineno))
     return tables
 
@@ -175,4 +243,8 @@ if __name__ == "__main__":
               f"{t.declared_size} initializers={len(t.entries)}")
         for p in t.problems():
             print(f"  PROBLEM {p}")
+    for p in duplicate_rva_problems(
+            tables,
+            raw_reader=lambda path, lineno: raw_lines_around(path, lineno)):
+        print(f"  PROBLEM {p}")
     print("parse ok" if tables else "NO TABLES FOUND")

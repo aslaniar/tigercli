@@ -116,6 +116,7 @@ REQUIRED_SECTIONS = [
     ("ABANDON OUTCOME", "a pre-named outcome that abandons the front (empty-mask #7)"),
     ("WIDE NET", "probes at every decision point on the suspect chain (empty-mask #7, user directive)"),
     ("FIX SURFACE", "server | client; client requires a SERVER-SIDE GAP section (U18)"),
+    ("NEGATIVE TEST", "the arm that fails on the bad state + where it RAN (09-05/09-06: a change ships with its own negative test); 'n/a (<reason>)' when this boot ships no behavioral change"),
 ]
 
 # Required ONLY when the brief declares INSTRUMENTS (the brief ties to the build).
@@ -246,6 +247,22 @@ def main(argv):
                             "is NOT a direct reader (empty-mask #1); name the "
                             "instrument that reads the state itself, or "
                             "'BUILD: <name>' if building it IS the boot")
+
+    # --- NEGATIVE TEST content (09-05/09-06: a change ships with its own
+    # negative test; every one of the 09-06 instrument defects shared the
+    # shape "shipped without its negative test") ---
+    nt = section_text(text, "NEGATIVE TEST")
+    if "negative test" in lower:
+        waiver = bool(re.search(r"^\s*n/a\s*\(", nt, re.I | re.M))
+        ran = bool(re.search(
+            r"ran\s+(?:in|on|:)|\bfixture\b|\breplay\b|rc\s*=\s*\d|"
+            r"selftest|fails\s+as\s+designed|\brefused\b", nt, re.I))
+        if not waiver and not ran:
+            problems.append(
+                "NEGATIVE TEST must name the failing arm AND where it RAN "
+                "('ran in <test/fixture>', 'replay over <archive>', "
+                "'rc=<n>'), or declare 'n/a (<why no behavioral change "
+                "ships>)' - the 09-05/09-06 rule")
 
     # --- FIX SURFACE / U18 ---
     if "fix surface" in lower:

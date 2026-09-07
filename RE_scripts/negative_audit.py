@@ -151,19 +151,39 @@ def audit():
             continue
         entry = "(top)"
         entry_date = None
+        entry_lineno = 0
         for lineno, line in enumerate(lines, 1):
             if HEAD_RE.match(line):
                 entry = line.lstrip("# ").strip()[:70]
                 dm = DATE_RE.search(line)
                 entry_date = dm.group(0) if dm else entry_date
+                entry_lineno = lineno
             low = line.lower()
             for phrase in NEGATIVE_PHRASES:
                 if phrase not in low:
                     continue
                 checked += 1
-                # ENCODEDS declaration within +-8 lines?
-                window = "\n".join(lines[max(0, lineno - 9):lineno + 8])
+                # ENCODEDS declaration within +-8 lines, CLIPPED TO THE
+                # ENTRY on BOTH sides: a window crossing a heading let one
+                # entry's legitimate tool citation sanitize another entry's
+                # bare grep (found by the T2.3 synthetic arm, 2026-09-06)
+                nxt = len(lines)
+                for j in range(lineno, len(lines)):
+                    if j > lineno and HEAD_RE.match(lines[j]):
+                        nxt = j
+                        break
+                w_start = max(entry_lineno, lineno - 9)
+                w_end = min(nxt, lineno + 8)
+                window = "\n".join(lines[w_start - 1:w_end])
                 has_encodeds = "encodeds" in window.lower()
+                # T2.3 (TOOLING_AUDIT 09-05): a scan-negative whose EVIDENCE
+                # cites a BARE grep over the evidence trees is tool-blind -
+                # the shadowed grep returned exit 0 on a 95-hit file twice.
+                # Legitimate: /usr/bin/grep, sgrep, logindex/logq queries.
+                grep_hit = bool(re.search(r"\bgrep\b", window, re.I))
+                sane = bool(re.search(r"/usr/bin/grep|logindex|logq|sgrep",
+                                      window, re.I))
+                tool_blind = bool(grep_hit and not sane)
                 # pointer-class negatives + predates-the-fact check
                 pointer_class = bool(POINTER_CLASS_RE.search(line))
                 quoting = bool(QUOTING_RE.search(low) or
@@ -171,12 +191,12 @@ def audit():
                 stale = False
                 if pointer_class and entry_date and entry_date < FACTS[0][0]:
                     stale = True
-                if quoting or not has_encodeds or stale:
+                if quoting or not has_encodeds or stale or tool_blind:
                     flags.append({
                         "file": os.path.basename(path), "line": lineno,
                         "entry": entry, "phrase": phrase,
                         "has_encodeds": has_encodeds, "stale": stale,
-                        "quoting": quoting,
+                        "quoting": quoting, "tool_blind": tool_blind,
                         "line_text": line,
                         "quote": line.strip()[:110]})
                 break  # one flag per line
@@ -185,33 +205,45 @@ def audit():
 
 def main(argv):
     flags, checked = audit()
-    active_t1, backlog_t2, quoting, waived_flags = [], [], [], []
+    active_t1, backlog_t2, quoting, waived_flags, tool_blind = [], [], [], [], []
     for f in flags:
         w = waived(f["file"], f["line_text"])
         if w:
             waived_flags.append((f, w[0][1]))
         elif f.get("quoting"):
             quoting.append(f)
+        elif f.get("tool_blind"):
+            tool_blind.append(f)     # T2.3: bare-grep evidence = actionable
         elif f["stale"]:
             active_t1.append(f)      # stale premise = actionable
         else:
             backlog_t2.append(f)     # undeclared encodings = migration backlog
     print("LIVENESS: scan-negative claims checked=%d flagged=%d "
-          "waived=%d quoting=%d stale(tier1)=%d undeclared(tier2)=%d" %
+          "waived=%d quoting=%d tool-blind(t2.3)=%d stale(tier1)=%d "
+          "undeclared(tier2)=%d" %
           (checked, len(flags), len(waived_flags), len(quoting),
-           len(active_t1), len(backlog_t2)))
-    if waived_flags:
-        print("WAIVED (%d) - reviewed waivers, see WAIVERS in negative_audit.py:"
-              % len(waived_flags))
-        for f, why in waived_flags:
-            print("  %s:%d - %s" % (f["file"], f["line"], why))
+           len(tool_blind), len(active_t1), len(backlog_t2)))
+    if tool_blind:
+        print("TIER 2.3 TOOL-BLIND (%d) - the negative's evidence cites a "
+              "BARE grep over the evidence trees; the shadowed grep lies by "
+              "omission (T1.1, two published false claims):" % len(tool_blind))
+        for f in tool_blind[:10]:
+            print("  %s:%d [%s] %s" %
+                  (f["file"], f["line"], f["entry"][:44], f["quote"][:90]))
+        print("REMEDIATION: re-run the evidence with /usr/bin/grep -a (or "
+              "sgrep.sh / a logindex query) and re-derive the negative.")
     if quoting:
         print("CORRECTION-QUOTING (%d) - the flag hits retraction/correction "
               "text quoting the claim it kills; auto-waived, visible here:"
               % len(quoting))
         for f in quoting[:10]:
             print("  %s:%d - %s" % (f["file"], f["line"], f["quote"][:100]))
-    if not active_t1:
+    if waived_flags:
+        print("WAIVED (%d) - reviewed waivers, see WAIVERS in negative_audit.py:"
+              % len(waived_flags))
+        for f, why in waived_flags:
+            print("  %s:%d - %s" % (f["file"], f["line"], why))
+    if not active_t1 and not tool_blind:
         print("NEGATIVE AUDIT PASS - no actionable (stale-premise) flags."
               + (" %d undeclared-ENCODEDS item(s) remain on the MIGRATION "
                  "BACKLOG (tier 2 - add declarations when touching those "
@@ -222,19 +254,21 @@ def main(argv):
         if len(backlog_t2) > 10:
             print("  ... +%d more" % (len(backlog_t2) - 10))
         return 0
-    print("NEGATIVE AUDIT FLAGS - TIER 1 STALE-PREMISE (%d) - actionable:"
-          % len(active_t1))
-    for f in active_t1[:15]:
-        print("  %s:%d [%s] (predates RUNTIME_BASE fact)\n    %s" %
-              (f["file"], f["line"], f["entry"][:44], f["quote"]))
-    if len(active_t1) > 15:
-        print("  ... +%d more" % (len(active_t1) - 15))
-    if backlog_t2:
-        print("TIER 2 MIGRATION BACKLOG (%d undeclared-ENCODEDS items):" %
-              len(backlog_t2))
-        for f in backlog_t2[:10]:
-            print("  tier2 %s:%d [%s] %s" %
-                  (f["file"], f["line"], f["entry"][:44], f["quote"][:80]))
+    if active_t1 or tool_blind:
+        print("NEGATIVE AUDIT FLAGS - ACTIONABLE:")
+        if active_t1:
+            print("  TIER 1 STALE-PREMISE (%d):" % len(active_t1))
+            for f in active_t1[:15]:
+                print("  %s:%d [%s] (predates RUNTIME_BASE fact)\n    %s" %
+                      (f["file"], f["line"], f["entry"][:44], f["quote"]))
+            if len(active_t1) > 15:
+                print("  ... +%d more" % (len(active_t1) - 15))
+        if backlog_t2:
+            print("TIER 2 MIGRATION BACKLOG (%d undeclared-ENCODEDS items):" %
+                  len(backlog_t2))
+            for f in backlog_t2[:10]:
+                print("  tier2 %s:%d [%s] %s" %
+                      (f["file"], f["line"], f["entry"][:44], f["quote"][:80]))
     print("REMEDIATION: re-run the scan with dual encodings "
           "(xref_scan --ptrs tests image + RUNTIME_BASE-relocated), then "
           "add an ENCODEDS: line to the claim.")

@@ -32,6 +32,15 @@ esac
 [[ -f "$built" ]] || die "no build output at $built"
 [[ $# -ge 1 ]] || die "no instrument literals given - nothing would be proven deployed"
 
+# THE 09-06 BLIND-GUARD GATE (instrument changes need the same gates as
+# shipped code): refuse to deploy a client whose hook sources fail the
+# probe audit - alignment guards without a decode citation, novelty hashes
+# that collide on the event of interest, lookup rows without their leave
+# side, duplicate-RVA dual detours. Nothing is staged on failure.
+echo "== probe audit (the 09-06 BLIND-GUARD gate) =="
+/usr/bin/python3 "$root/RE_scripts/probe_audit.py" --quiet \
+  || die "probe_audit FAILED on the hook sources - fix the findings (or cite machine-readable waivers in source: ALIGN-CITED / no-leave: / DUAL-OK:) before deploying"
+
 stamp="$(date +%Y%m%d_%H%M%S)"
 built_hash="$(shasum -a 256 "$built" | cut -d' ' -f1)"
 echo "== deploying client DLL to $target =="

@@ -28,6 +28,7 @@ Exit: 0 recorded/shown; 1 refused; 2 usage.
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -66,6 +67,13 @@ def main(argv=None):
     ap.add_argument("--class", dest="oclass", choices=CLASSES, help="outcome class")
     ap.add_argument("--note", default="", help="one-line context (optional)")
     ap.add_argument("--force", action="store_true", help="allow overwriting an existing boot_id's record by appending a corrected one")
+    ap.add_argument("--close", action="store_true",
+                    help="this record CLOSES the front (P5, wrong-question PM): "
+                         "--verdict required and it must restate the brief's "
+                         "PURPOSE terms - a front is closed by answering ITS "
+                         "question, not a sub-question")
+    ap.add_argument("--verdict", default="", help="the closing verdict (required with --close)")
+    ap.add_argument("--brief", default="", help="the boot brief's path (required with --close: the verdict must share a PURPOSE term)")
     ap.add_argument("--show", nargs="?", const="", metavar="FRONT", help="print ledger records (optionally filtered by front substring)")
     args = ap.parse_args(argv)
 
@@ -94,6 +102,34 @@ def main(argv=None):
                                ("--class", args.oclass)) if not v]
     if missing:
         ap.error("missing required args: " + ", ".join(missing))
+
+    # --- P5 (wrong-question PM): a front is closed by answering ITS question
+    if args.close:
+        if not (args.verdict and args.brief):
+            ap.error("--close requires --verdict and --brief")
+        bp = Path(args.brief)
+        if not bp.exists():
+            ap.error(f"--brief not found: {args.brief}")
+        from gate_boot import section_text
+        purpose = section_text(bp.read_text(encoding="utf8", errors="replace"),
+                               "PURPOSE")
+        stop = ("this", "that", "with", "from", "what", "which", "boot",
+                "does", "test", "explicitly", "learn", "wins", "lose",
+                "about", "their", "there", "every", "state", "client",
+                "server", "brief", "under", "again", "still", "must",
+                "each", "when", "where", "name", "names", "probe",
+                "instrument", "boot")
+        terms = {w for w in re.findall(r"[a-zA-Z_]\w{4,}", purpose.lower())
+                 if w not in stop and not w.startswith("p2-")}
+        verdict_terms = {w for w in re.findall(r"[a-zA-Z_]\w{4,}",
+                                               args.verdict.lower())}
+        if not terms & verdict_terms:
+            print(f"REFUSED (P5): the closing verdict does not restate the "
+                  f"brief's PURPOSE question. PURPOSE terms: "
+                  f"{sorted(terms)[:12]}. The wrong-question postmortem: a "
+                  "front is closed by answering ITS question, not a "
+                  "sub-question - restate the question in the verdict.")
+            return 1
 
     path.parent.mkdir(parents=True, exist_ok=True)
     recs = load(path)
