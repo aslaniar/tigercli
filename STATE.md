@@ -91,6 +91,29 @@ defects this session, all documented with rules R1-R8 in docs/ENFORCEMENT.md).
 ## (before vs after spawn), in whether a subclass swap helps, and in whether a
 ## second machine is required at all. ***
 
+*** p2-196 (ONE PAIRED BOOT) + THE COUNT THAT EXPLAINS THE LAST 97: THE FORK HAS
+## NEVER SENT AN ENTITY, AND ent_recv READS calls=0 IN 97 OF 97 ARCHIVES. There is
+## no entity encoder anywhere in the fork - the only file matching any send pattern
+## is the CLIENT OBSERVER. Every front to date has measured the CLIENT'S READINESS
+## to receive a message that no code has ever produced, which is why they terminate
+## in "already known" or in absence. Absence is the one evidence class that cannot
+## distinguish "the world is blocked" from "my instrument is blind or dead" - and
+## the last three walls were all the latter (the blind guard, st2=6, and now the
+## (3,4) stall).
+## p2-196's TWO results:
+##  (1) MY HYPOTHESIS REFUTED CLEANLY - disown rec=1 bit=5 before=0x0020
+##      after=0x0000 wasset=1 ident=0xFF000C198801A8C0, twice: the RIG's participant
+##      bit IS set and IS cleared. 20.277 R2's set-then-disowned reading STANDS;
+##      "never set at all" is dead. resv_rec's mask=0x0000 is the aftermath.
+##  (2) THE (3,4) STALL IS NOT A STALL. The rig's connection 0x41D49B8 (= rec=1 by
+##      the 0xA8 base arithmetic) went ladder 4 -> 5 at t=266218 after rung_adv
+##      fired at t=266149, and HELD at 5 through t=358252. The stall carried since
+##      p2-164 and "reproduced" in p2-180/p2-195 was A DEAD SAMPLER'S LAST READING:
+##      resv ran 10 times all boot, last at t=264682, 93 seconds before the log end.
+## ROWS 1-7 ARE NOW DONE OR PASSING. Row 8's receiver=0 is NOT evidence about the
+## guard, because nothing has ever been sent for it to receive.
+## THE FRONT IS ROW 9 AND IT HAS NEVER BEEN ATTEMPTED. Full text: the chart. ***
+
 *** 2026-09-06 LATE (STATIC, NO BOOT): ROW 5'S WALL IS NAMED - THE MATCHED
 ## SLOT IS SLOT5 AND ITS STATE IS 4, NOT 6. The join gate was disassembled to
 ## exhaustion (0x1416E0460 + walker 0x14177A0B0 + helper 0x1417944C0): between
@@ -337,31 +360,23 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
              baseline archive (RE_output/logs/20260906_114917).
 
 
-## NEXT - ROW 7: THE CONNECTED RUNG (established(4) -> connected(5))
-##  Row 5 is CLOSED. Do NOT resume the join relay, the retarget, the state
-##  ladder, or any "drive the session to 6" idea - the client is a peer and the
-##  peer is already established by the membership plane.
-  1. (STATIC, first) WHY DOES THE CONNECTED EVENT NOT MIRROR TO THE PEER'S
-      RECORD? The event chain is already decoded: 0x1417E5A10 -> the pump ->
-      0x1416D56C0 (event type 4, subtype != 8) -> 0x1416BCFC0. rec=0 receives
-      it and reaches s1dc0=5; rec=1 does not. Two live threads from
-      establishment-decode: (a) the mirror subscriber's connected arm, and
-      (b) the peer record's mask/touch (rec=1 has mask=0x0000 and touch=-1 -
-      it is never touched, matching 20.277 R2's disown observation).
-  2. (FORK) Publish whatever that is. Row 7 is the gate on row 8's receiver.
-  3. READOUT: peer #2 reaching '_connected' in the group_target dumps, then
-      a non-zero receiver vptr, then ent_recv calls>0.
-  4. The ENTITY contract is ready and waits (20.302-20.304; outer wire type
-      open, 20.303 R4). Do not spend it before row 7 opens.
-  4. The membership/session plane is DONE and must not be re-litigated: the
-      rig arrives as peer #2 `_established`, 3 peers / 2 players, direct
-      channel up, reproducible across p2-193a/b and p2-195.
-  5. OPEN DEBT: the mac's TWO render-black variants (see the parked-debt block
-      above - do not merge them); the image_set hang; logq/logindex broken at
-      merge_timeline.py:286; reset_lobby_claims' real-restart path untested
-      (the manual pkill + mac-port/launch-server-macos.sh path works and was
-      used for p2-195); q.sh false-null on hex addresses (it returned EMPTY for
-      1AEF8 while /usr/bin/grep found 10 hits - Tier-2 row, now twice-burned).
+## NEXT - ROW 9: BUILD THE ENCODER AND SEND ONE ENTITY
+##  STOP INSTRUMENTING THE CLIENT. 97 boots have measured a receiver that has
+##  never been sent anything. The next result must come from the WIRE.
+  1. (FORK) Build the entity encoder. Everything under it is spec-complete and
+      femu-validated: the ent_* receive cluster (20.302), the carrier chain
+      (20.303), the payload bodies (20.304 - kind 2, the guardian, is RAW 8
+      BYTES, bit-exact against the real dump codec).
+  2. (FORK) The ONE unknown is the OUTER WIRE TYPE (20.303 R4). It is a SMALL
+      SEARCH SPACE, not a mystery: the router census is complete (93 wire bytes,
+      44 handlers; connection-layer types 0..0x2A; the 0x1404BA530 dialect's
+      extended types 18-46). Enumerate the candidates and send.
+  3. READOUT: ent_recv calls>0. Binary, positive, and impossible to confuse with
+      an instrument artifact - the census has run every boot for 97 boots and has
+      never been non-zero. The first non-zero is the first real forward result
+      this project will have had on this front.
+  4. DO NOT re-measure rows 1-7. They are confirmed by execution, repeatedly.
+      A boot that re-reads them is a boot spent proving what the chart says.
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
