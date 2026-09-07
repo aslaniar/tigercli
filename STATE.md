@@ -406,25 +406,23 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
   20.295 p2-174: the client READS the row's character field; knob is SOLO-ONLY.
   20.294 eventType not the routing key; wire->image CLOSED at the queue interior.
 
-## DEPLOYED (2026-09-07 ~21:45 - p2-201 staged, server-only)
+## DEPLOYED (2026-09-07 ~22:40 - p2-203 staged, server-only)
    NETWORK   mac 192.168.1.7 (ethernet; identity caches the stale .164 -
              the decoder accepts either); rig 192.168.1.136.
-   server    0612cb2ee86ffd4d RUNNING (adds the type-9 start_activity_host
-             designation push per join burst behind
-             activity_start_host_push=true - the activity-plane lever for
-             the receiver-object gate after 20.326 killed the view road;
-             still includes the 20.325 type-20 fix; settings:
-             entity_index_allocation=true, gameplay_external_body=true,
-             activity_view_initiate=false (retired), relay_join_engine_
-             channel=true, relay_peer_join=true, retry_cap=10; settings
-             backup .bak_p2-201_pre_starthost + the exe/cache pair).
+   server    95cf0e93dcbc69d6 RUNNING (adds the type-51 bubble-startup echo
+             per join burst behind activity_bubble_startup=true - the
+             femu-validated wire form echoing each client's own captured
+             SteamNetworkingIdentity; the identity capture rides the
+             matchmaking advertisement (ev=identity stage=capture); the
+             type-9 duty-cycle RETIRED (activity_start_host_push=false,
+             20.327 structural); still includes the 20.325 type-20 fix;
+             settings backup .bak_p2-203_pre_bubblestartup + the exe/cache
+             pair).
    clients   be5807eca028ddea on BOTH machines (unchanged, the audited
-             platform; the tree's client build ee31a1b1 is unshipped work
-             and stays undeployed - client deploys blocked by the 8
-             standing probe_audit findings; the preflight client pair
-             FAILS knowingly, D-049).
-   brief     BOOT_BRIEF_p2-200.md (GATE PASS) - front allocation-content,
-             streak 0; D-048.
+             platform; the tree client build is unshipped work - the
+             preflight client pair FAILS knowingly, D-049).
+   brief     BOOT_BRIEF_p2-203.md (GATE PASS) - front bubble-startup,
+             streak 0.
    logs      RE_output/logs/<today's stamps>; p2-199's logs were never
              archived (its readout lives in the FRONT chart only).
 
