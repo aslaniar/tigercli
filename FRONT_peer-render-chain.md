@@ -9,18 +9,19 @@ this instead of re-deriving session narratives.
 
 ## THE CHAIN — fork publishes peer → record → adoption → ladder → guard → receiver → entity → RENDER
 
-| # | Link | Status | Basis |
-|---|------|--------|-------|
-| 1 | Fork publishes the peer; both clients land + hold the row | DONE | verified-by-execution (p2-180) |
-| 2 | Client builds the peer's record; identity byte-exact | DONE | verified-by-log/dump (20.309) |
-| 3 | Live hosted session exists (machinery precondition) | DONE | verified-by-execution (p2-182: state 6, sids 0/1, BOTH machines) |
-| 4 | Peer's records enter the session candidate list | RUNNING | verified-by-log (p2-182: add_candidates from 0x141769CFC, per session) |
-| 5 | ~~JOIN REQUEST passes the connection-layer gate~~ | ✅ **CLOSED - THE QUESTION WAS WRONG, AND THE ANSWER WAS NEVER NEEDED. The gate's 6..9 window is the HOST half of the session ladder (state 6 = 'host-established', state 4 = 'peer-established' - the client prints these names itself). A type-0x0A join is a HOST-ONLY message; the receiving client is a PEER in the fork's session and can never host it, so no key, channel, container or retarget value could ever have passed. AND IT DID NOT MATTER: the membership plane has been delivering the rig into the mac's group session as peer #2 `_established`, 3 peers / 2 players, with a direct mac<->rig channel, for at least THREE boots (p2-193a/b, p2-195 - counts identical, control run). The relay road p2-181..p2-195 is closed on its own question.** | verified-by-execution (p2-195 + the p2-193 control) + verified-by-reading (claims 14) |
-| 6 | Reserve -> admit -> adoption completes for the peer | DECODED, waits on 5 | verified-by-reading (20.108 end-to-end) |
-| 7 | Ladder climbs to connected (4,5) | ✅ **PASSES - the 'stall' was a dead sampler.** p2-196: the rig's connection (0x41D49B8 = rec=1) went ladder 4 -> 5 at t=266218 after rung_adv fired at t=266149, and HELD at 5 for 90+ seconds. The (3,4) reading carried since p2-164 and 'reproduced' in p2-180/p2-195 was resv_rec's LAST SAMPLE from a probe whose host function (the reservation lookup) had stopped being called - resv ran 10 times all boot, last at t=264682, 93 seconds before the log ends | verified-by-execution (p2-196) |
-| 8 | Guard + receiver object | UNKNOWN, and cannot be judged yet | receiver=0 in every boot - but nothing has ever been sent for it to receive, so its zero is not evidence about the guard |
-| 9 | **Entity message encodes + sends** | 🔴 **THE FRONT** - spec-complete, ONE unknown (the outer wire type, 20.303 R4). With the peer established at the session layer and a channel up, ent_recv/ent_create/ent_gate are all still calls=0: nothing has ever sent the client a peer entity. This is fork-side work in code we own | verified-by-femu (contract + payloads, 20.302-20.304) |
-| 10 | Entity renders and moves | NOT YET | the last link; positive control = the local player (20.53) |
+| # | Link | Status | What it means in plain English | Basis |
+|---|------|--------|---|---|
+| 1 | Fork publishes the peer; both clients land + hold the row | DONE | Our server tells each client the other player exists, and both accept it and keep it. | verified-by-execution (p2-180) |
+| 2 | Client builds the peer's record, identity byte-exact | DONE | Each client turns that announcement into a real internal record with the correct identity bytes. | verified-by-log (20.309) |
+| 3 | Live hosted session exists | DONE | The client has a genuine session object alive in the state the rest of the machinery requires. | verified-by-execution (p2-182) |
+| 4 | Peer's records enter the candidate list | DONE | The other player shows up in the list the session machinery actually considers. | verified-by-log (p2-182) |
+| 5 | Join request passes the connection-layer gate | CLOSED - wrong question | We spent ~14 boots trying to make one client "admit" the other with a join packet. That can never work: only a session's HOST answers joins, and both clients are peers in our server's session. It also never mattered - the membership plane had already put each player in the other's session. | verified-by-execution (p2-195) + claims 11-14 |
+| 6 | Reserve -> admit -> adoption | NOT A DEPENDENCY | The reservation/claim bookkeeping sits on a different path. The participant mask it maintains has 7 accesses in the whole binary and none of them is in the entity code. | verified-by-reading (field_xref, 7/7 accesses) |
+| 7 | Ladder climbs to connected (4->5) | PASSES | The client's connection to the other player climbs all the way to "connected" and stays there. The wall we thought was here was a probe that had quietly stopped reporting. | verified-by-execution (p2-196) |
+| 7b | **Entity INDEX allocation** | 🔴 **THE BLOCKER** | Every entity needs an index number from a small pool (the live set is 0..6). The client asks for one, and the request FAILS - idx_alloc returns -1, 23+ times every boot, and the pool mask stays empty. No index means no entity can exist at all. | verified-by-log (20.218 R2), reproduced every boot |
+| 8 | Guard + receiver object | BLOCKED, not judgeable | The object that would receive entity data is never built. We cannot tell whether that is broken or simply idle, because nothing has ever had an index to send it. | receiver=0 in every boot |
+| 9 | Entity message encodes + sends | READY, waiting on 7b | We know the exact byte format (femu-validated; a guardian's body is RAW 8 BYTES) and the server can already send activity messages that reach the client's router. There is just nothing valid to put in them yet. | verified-by-femu (20.302-20.304) + 20.218 |
+| 10 | Entity renders and moves | NOT YET | The actual goal: another player's guardian visible and moving on your screen. | positive control = the local player (20.53) |
 
 ## HOW TO READ ROW 5 (after the evening of 2026-09-06)
 
