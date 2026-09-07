@@ -112,7 +112,13 @@ MAX_PAGE_ROUNDS = 4096              # demand-paging bound per call
 TRACE_LEN = 64
 
 # CRT imports emulated rather than aborted (lowercase, name after '!')
-CRT_WHITELIST = {"memcpy", "memset", "memmove", "strlen", "memcmp"}
+# 2026-09-07 (type-51 lane): strstr added — FUN_140406F90's strrstr needle is
+# CODE bytes (0x141AF7AD8, VERIFIED-BY-DISASM in type51-bubble-startup-spec.md
+# CLAIM 4b) that never match the ASCII SteamNetworkingIdentity, so the PROVABLE
+# behavior is return-NULL (both strrstr calls NULL -> the memcmp branch). The
+# stub returns 0 exactly for that proven case; any other use would need its own
+# evidence before relying on it.
+CRT_WHITELIST = {"memcpy", "memset", "memmove", "strlen", "memcmp", "strstr"}
 
 REASON_NAME_FN = 0x1416E1620
 REASON_NAME_TABLE = 0x142037510
@@ -156,6 +162,7 @@ class EmuResult(object):
         self.holes = []              # L5: addrs not present in the dump
         self.rebase_reads = []       # L6: rebased slots read during the run
         self.detail = ""
+        self.note = ""               # stub annotations (strstr-NULL etc.)
 
 
 class Rig(object):
@@ -373,6 +380,14 @@ class Rig(object):
                 a = self.read_vm(rcx, r8)
                 b = self.read_vm(rdx, r8)
                 ret = 0 if a == b else (1 if a > b else 0xFFFFFFFFFFFFFFFF)
+            elif name in ("strstr", "strrstr"):
+                # PROVABLE stub (2026-09-07, type-51 lane): the only call site
+                # emulated so far passes a needle that is CODE bytes and never
+                # matches ASCII identity data - return NULL unconditionally and
+                # RECORD it; a future caller whose needle could match must NOT
+                # trust this stub without new evidence.
+                res.note = (res.note or "") + "|strstr-stubbed-NULL"
+                ret = 0
             else:
                 res.reason = "crt-unimplemented:" + name
                 uc.emu_stop()
