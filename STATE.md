@@ -9,10 +9,12 @@ message that would set state 9. The fork already drives that pump, so it
 is a message we do not send, not a locked door. Also: recv_root ran
 12,258x - the construction root IS dispatched and bails ("never
 dispatched" is dead). READ HANDOFF_2026-09-08_EVENT-21.md FIRST, then
-FINDINGS 20.349-20.353. *** CLIENT INSTRUMENT CHANGES ARE UNCOMMITTED in
-.claude/worktrees/fork-p2211 - commit them. *** NETWORK: all three
-settings re-pointed 192.168.1.7 -> 192.168.1.164 for WiFi; revert if the
-user returns to ethernet.) Verdict + deployed + next.
+FINDINGS 20.349-20.353. *** GIT RECONCILED 2026-09-08: the client
+instruments are COMMITTED (wt-p2211 @ 2f45faa = upstream-gameplay-scoped,
+both pushed to origin/aslaniar-Sunrise); phase02 merged to main and pushed;
+all .claude worktrees removed. *** NETWORK: all three settings re-pointed
+192.168.1.7 -> 192.168.1.164 for WiFi (verified current IP .164); revert
+if the user returns to ethernet.) Verdict + deployed + next.
 
 *** 20.353 (p2-212, PAIRED BOOT, COMPLETE ARCHIVE - NEWEST): the front
 ## collapses to one missing input. R1 exec_sess = 0x4631748 sid=2, THE
