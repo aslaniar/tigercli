@@ -1,15 +1,53 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 evening - 20.349 BANKED: THE SESSION-STATE
-SETTER IS FOUND. set_session_state(session, new_state, reason) at
-0x1417B3600 is the ONLY function that writes [sess+0x1AEF8] to a
-caller-supplied value, and it is reachable from the connection-layer
-receive region in THREE DIRECT CALLS from six entry points. The 4->6
-climb is no longer a wall of unknown shape. STILL OPEN: which session
-the world-change executor evaluates (a RUNTIME SELECTOR - boot readout,
-not static), and whether any reachable path passes a 6. See
-HANDOFF_2026-09-08_GATE-MACHINE.md then FINDINGS 20.349). Verdict +
-deployed + next.
+STATUS: live (2026-09-08 late - 20.350 BANKED: THE STATE-9 PATH IS READ
+END TO END. One dispatch id (21, in dispatcher 0x1416DF360's OWN
+namespace - NOT the OOB 21, NOT the entity-grant 21, NOT svc21) routes
+to a handler that walks the join gate's own container and drives the
+found session to STATE 9 - inside the 6..9 live window the world-change
+executor requires. Its state precondition ADMITS 4, which is where our
+sessions sit. STILL UNKNOWN: which wire message carries that id and
+whether the fork can emit it; three runtime conditions never measured.
+Read HANDOFF_2026-09-08_GATE-MACHINE.md, then FINDINGS 20.349-20.350).
+Verdict + deployed + next.
+
+*** 20.350 (STATIC, NO BOOT - NEWEST): THE THREE CHAINS READ; ONE
+## PASSES 9. Each depth-3 chain writes a CONSTANT new state:
+## chain 1 (entry 0x1416DF360) edx=4 reason 0x90 - the value we are
+## stuck at; chain 2 (0x1416DFD50) edx=0xa reason 0xdc8 - the setter's
+## own teardown path; chain 3 (0x1416E0250) edx=9 reason 0x30 - LIVE.
+## - Chain 3's last hop 0x1417B30A0 is UNCONDITIONAL once entered
+##   (6 rejoin-forward branches, 0 bypass - checked mechanically).
+## - The handler 0x1416E0250 HAS THE JOIN GATE'S SHAPE: [conn+0x28] ->
+##   walker 0x14177A0B0 -> found-slot -> guard 0x14176CE80 -> go. C1 is
+##   the lookup already driven to MATCH (p2-193a/b).
+## - GUARD 0x14176CE80 DECODED: returns true only for state in {2,4,5}
+##   AND an index lookup != -1 AND that index == [sess+0x874]. It
+##   EXCLUDES sessions already at 6..9 - it is built for not-yet-live
+##   sessions, and OUR 4 IS IN ITS ELIGIBLE SET.
+## - Middle hop 0x141780190: C3 = [sess+0xe938] == [sess+0xe93c]; the
+##   state!=5 path is diagnostic logging and both branches converge on
+##   the call.
+## - DISPATCH: switch at 0x1416DF360, jump table 0x1416DFC54 (41 dwords,
+##   ids 4..44, 13 to default); ID 21 IS THE ONLY ID REACHING THE
+##   HANDLER; every case also needs [conn+0x1d18]==5.
+## - R7 NAMESPACE CORRECTION (do not conflate): the 20.319 ORACLE FAILED
+##   - the join gate and peer-connect are NOT in this table, so this is
+##   a DIFFERENT dispatcher from the OOB switch. THREE unrelated 21s now
+##   exist (this one, the entity-plane grant type, svc21); any sentence
+##   using "21" must name its namespace. 20.349's "same handler block as
+##   the join gate" is true about ADDRESSES, misleading about PLANES.
+##   Also retracted in-step: 0x1416E08E0 is a sibling handler, NOT a
+##   nested sub-switch (callers.py mis-attributed thunks past its end).
+## - NOT ESTABLISHED: which wire message carries id 21 and whether the
+##   fork can emit it (the id arrives as a decoded stack arg from
+##   0x1416D56C0's [rsp+0x48]); C2b/C2c, C3 and [conn+0x1d18] are
+##   RUNTIME values never measured; the +0xe938/+0xe93c/+0x874/+0x860
+##   fields are NEW to the record. Nothing executed.
+## NEXT: (a) identify the plane/message carrying id 21 - walk
+##   0x1416D56C0's [rsp+0x48] back to the wire decode; (b) measure C2b/
+##   C2c/C3 on a live session (boot readout); (c) p2-211 still owes
+##   WHICH session the executor evaluates. Full text: FINDINGS 20.350. ***
 
 *** 20.349 (PHASE 1+2, STATIC, NO BOOT - THE NEWEST VERDICT): THE
 ## CLIMB'S LEVER IS NAMED AND ITS DISTANCE FROM THE WIRE IS MEASURED.
