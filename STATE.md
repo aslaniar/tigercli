@@ -1,7 +1,34 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-07 night - 20.340: the activation job named. FUN_1416f7da0
-would set af0=1 and NEVER RAN in any archived boot). Verdict + deployed + next.
+STATUS: live (2026-09-08 - 20.343: Lane B banked. The activation job is
+vmethod +0x88 of class 0x141C14F70, whose lazy instance is NEVER
+CONSTRUCTED (global 0x142B0E210=0). One missing construction explains the
+whole idle chain). Verdict + deployed + next.
+
+*** 20.343 (Lane B subagent + parent verification): f7da0 = virtual method
+## +0x88 of class vftable 0x141C14F70 (relocated-qword storage - invisible
+## to 20.341's u32 scan; method corrected). The class instance is built
+## LAZILY by 0x140E3BD00 (decrypt global 0x142B0E210 -> obj=ptr+0x2F00 ->
+## vft at obj+0xA0), from stage-init 0x140B37BF0. RUNTIME: the global is 0
+## and the class has ZERO instances - the object that would receive the
+## activation call never gets constructed. The class's vtable owns the
+## whole gate-machine family (+0x88 activation, +0x90 teardown,
+## +0x98 flag-clear, +0xA0 de-init). Job body 0x140B76F20 has FIVE static
+## call sites (session-startup sequencers; reaches the manager via thunk
+## 0x1416FC5E0) - correction to 20.342 R3. The chain-root registry's
+## out-handles are ZERO (both address pairs) - the registration never
+## completed its store; 20.338's heap-descriptor fact stands. mgr+0xC
+## carries the MACHINE IDENTITY (the rig's account key). NEXT: (a) enumerate
+## writers of 0x142B0E210 - the fork-side trigger candidate if
+## server-reachable; (b) the p2-211 boot readout is FIVE values (adds: does
+## vft 0x141C14F70 gain an instance). Full text: FINDINGS 20.343 + Lane B's
+## report RE_output/content/lane_b_report.md. Lane A still running
+## (free-list lifecycle + pool identity). ***
+
+*** 20.342 (STATIC + dump, NO BOOT): THE MANAGER OBJECT FOUND (STRUCTURAL
+## SIGNATURE) - IT IS NOT IDLE: STATE 4, ARMED, +0x8=2, FREE LIST EMPTY.
+## The singleton = 0x21DDC09C900 (unique 32-slot init signature). The
+## machine ran via the job body; two gates hold the final stage. ***
 
 *** 20.340 (STATIC + full Ghidra analysis of the carved image, 556s/106812
 ## fns): THE ARM CHAIN IS MEASURED END TO END. The master flag af0 has TWO
