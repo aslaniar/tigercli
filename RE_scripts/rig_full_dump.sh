@@ -27,8 +27,17 @@ ssh -o ControlPath="$CM" -o BatchMode=yes "$RIG" \
   "python C:\\Users\\rasla\\Downloads\\destiny-preservation\\RE_scripts\\full_dump.py $remote"
 
 echo "== pulling (tar-over-ssh, NEVER scp/sftp - ENVIRONMENTS 'RIG<->MAC FILE TRANSFER') =="
-ssh -S "$CM" "$RIG" "tar cf - -C C:/Users/rasla dump_${label}.dmp" > "$out/dump_${label}.dmp"
-echo "== SHA256 both ends (a silently truncated stream reads as success otherwise) =="
+ssh -S "$CM" "$RIG" "tar cf - -C C:/Users/rasla dump_${label}.dmp" > "$out/dump_${label}.dmp.tar"
+echo "== SHA256 both ends (FIXED 2026-09-07, the 20.330 defect): the pulled file "
+echo "   is a TAR STREAM, so the hash is taken on the EXTRACTED inner file - "
+echo "   the raw .dmp - matching the rig's certutil on the raw file. The old "
+echo "   compare (tar stream vs raw file) structurally mismatched and aborted "
+echo "   every intact pull (p2-205 was verified manually by extraction). =="
+mkdir -p "$out/extract"
+tar -xf "$out/dump_${label}.dmp.tar" -C "$out/extract" \
+  && mv "$out/extract/dump_${label}.dmp" "$out/dump_${label}.dmp" \
+  && rmdir "$out/extract" 2>/dev/null || true
+rm -f "$out/dump_${label}.dmp.tar"
 rhash="$(ssh -o ControlPath="$CM" -o BatchMode=yes "$RIG" "certutil -hashfile C:\\Users\\rasla\\dump_${label}.dmp SHA256" | tr -d '\r ' | sed -n '2p')"
 lhash="$(shasum -a 256 "$out/dump_${label}.dmp" | cut -d' ' -f1)"
 echo "   rig: $rhash"

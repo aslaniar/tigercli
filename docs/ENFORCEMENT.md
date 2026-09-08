@@ -57,6 +57,8 @@ BACKLOG, not protection. This ledger is where that debt is visible.
 
 | Rule | Status | Mechanism |
 |---|---|---|
+| A VERDICT MAY NOT BE RECORDED AGAINST A STARTUP-ONLY ARCHIVE (20.336 R1) | gated | boot_outcome.py --logdir audits server/mac/rig for <500-line stubs and exits 1; --force-incomplete requires --note naming the missing machine. Negative-tested against p2-207 (refuses: server 24, mac 47) and p2-206 (accepts: 336768/190480/111459) |
+| AN INSTANCE CENSUS SEARCHES VTABLE BASES, NOT HANDLER ADDRESSES (20.336 R4) | gated-assist | transition_readout.py section 4a = the instance test, 4b = a labelled control that must return exactly 4 image hits; a control returning anything else invalidates 4a's verdict |
 | THE CLIENT IS NEVER MODIFIED (governing constraint) | gated | FIX SURFACE: client forces a SERVER-SIDE GAP section naming the missing wire item (gate_boot, U18-gate) |
 | reset the server between runs | gated-assist | reset_lobby_claims: idempotent no-op (server up + claims=0 + port set = says so), --check read-only preview; the DECISION to reset stays judgment |
 | check the INPUT GATE before reading any result (20.297 R2) | rubric | named negative in every brief; no gate can verify a delivery actually arrived |

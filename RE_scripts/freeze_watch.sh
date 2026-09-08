@@ -34,8 +34,8 @@ CLIENT_LOG="${CLIENT_LOG:-$root/Game/bin/x64/Sunrise/logs/sunrise.log}"
 OUT_BASE="${CRASH_DIR:-$root/RE_output/crashes}"
 WH_WINE="${WH_WINE:-$HOME/Library/Application Support/com.franke.Whisky/Libraries/Wine/bin/wine64}"
 WH_PREFIX="${WINEPREFIX:-$HOME/Library/Application Support/Sunrise/pfx}"
-stall=${STALL:-45}
-interval=${INTERVAL:-5}
+stall=${STALL:-30}
+interval=${INTERVAL:-2}
 mode=loop
 [ "${1:-}" = "--once" ] && { mode=once; shift; }
 [ "${1:-}" = "--selftest" ] && mode=selftest
@@ -49,7 +49,18 @@ while [ $# -ge 2 ]; do
   esac
 done
 
-client_pid() { pgrep -f 'wine64-preloader.*destiny2\.exe' | head -1; }
+client_pid() {
+  # 1. any process whose argv mentions destiny2.exe (matches wine64-preloader,
+  #    bare wine64, and GUI-wrapper launches - 2026-09-07: the old
+  #    'wine64-preloader.*destiny2' pattern matched NOTHING while a real
+  #    client was running and the watcher watched a healthy boot die)
+  local p
+  p=$(pgrep -f 'destiny2\.exe' 2>/dev/null | head -1)
+  [ -n "$p" ] && { echo "$p"; return; }
+  # 2. independent source: whoever holds the client log open
+  lsof -t "$CLIENT_LOG" 2>/dev/null | head -1
+  return 0
+}
 
 log_size() { [ -f "$CLIENT_LOG" ] && stat -f%z "$CLIENT_LOG" 2>/dev/null || echo 0; }
 
@@ -115,16 +126,49 @@ if [ "$mode" = selftest ]; then
 fi
 
 echo "freeze_watch: watching $CLIENT_LOG (stall=${stall}s interval=${interval}s); Ctrl-C safe"
-last_size=$(log_size); last_change=$(date +%s); fired=0; tick=0
+last_size=$(log_size); last_change=$(date +%s); fired=0; tick=0; seen=0; gone=0; captures=0; death_archived=0
 while :; do
   sleep "$interval"
   pid=$(client_pid)
   if [ -z "$pid" ]; then
-    if [ "$tick" -eq 0 ]; then echo "freeze_watch: no destiny2.exe client process (L13 liveness)"; fi
-    last_size=$(log_size); last_change=$(date +%s); tick=$((tick+1)); fired=0
+    if [ "$seen" -eq 1 ]; then
+      # the client WAS seen and is now gone. FIRST: archive what it said last
+      # (the death may be instant - no dump window - and the next launch
+      # truncates this log; the 2026-09-07 16:0x crash lost its 108MB record
+      # exactly this way). Race note: if a relaunch already truncated the log,
+      # say so loudly instead of archiving the wrong boot.
+      if [ "$death_archived" -eq 0 ]; then
+        death_archived=1
+        stamp="$(date +%Y%m%d_%H%M%S)"
+        dir="$OUT_BASE/${stamp}_death"
+        mkdir -p "$dir"
+        if /usr/bin/grep -aq 't=1 ev=initialize phase=begin' "$CLIENT_LOG" 2>/dev/null \
+           && [ "$(log_size)" -lt 100000 ]; then
+          echo "freeze_watch: CLIENT DIED but the log was ALREADY TRUNCATED by a relaunch - death tail lost (L13)"
+        else
+          tail -c 2000000 "$CLIENT_LOG" > "$dir/log_tail.txt" 2>/dev/null
+          # the crash dialog the user sees is NOT the game process (proven
+          # 2026-09-07 16:25: game dead between 2s polls while a dialog was
+          # still up) - snapshot who IS alive so the dialog's owner gets named
+          ps auxww > "$dir/processes_at_death.txt" 2>/dev/null
+          echo "freeze_watch: CLIENT DIED (instant exit, no dump window); last lines archived -> $dir/log_tail.txt"
+          echo "     process snapshot  -> $dir/processes_at_death.txt"
+          echo "     last line at death: $(tail -1 "$CLIENT_LOG" 2>/dev/null | cut -c1-160)"
+        fi
+      fi
+      gone=$((gone+1))
+      if [ "$gone" -ge 2 ]; then
+        echo "freeze_watch: client exited; captures this session: $captures - exiting"
+        exit 0
+      fi
+      continue
+    fi
+    if [ "$tick" -eq 0 ]; then echo "freeze_watch: no destiny2.exe client process yet - waiting for launch (L13 liveness)"; fi
+    last_size=$(log_size); last_change=$(date +%s); tick=$((tick+1))
     [ "$mode" = once ] && exit 0
     continue
   fi
+  seen=1; gone=0
   size=$(log_size)
   now=$(date +%s)
   if [ "$size" != "$last_size" ]; then last_size=$size; last_change=$now; fired=0; fi
@@ -132,7 +176,7 @@ while :; do
   tick=$((tick+1))
   if [ $((tick % 12)) -eq 0 ]; then echo "freeze_watch: healthy tick (log=${size}B, silence=${silence}s)"; fi
   if [ "$silence" -ge "$stall" ] && [ "$fired" -eq 0 ]; then
-    fired=1
+    fired=1; captures=$((captures+1))
     wpid=$(winedbg_winpid)
     capture "$pid" "$wpid" "stall${silence}s"
     [ "$mode" = once ] && exit 0

@@ -37,6 +37,46 @@ ROOT = Path(__file__).resolve().parent.parent
 CLASSES = ("hypothesis-survived", "hypothesis-wrong", "third-branch")
 
 
+MIN_LOG_LINES = 500  # a real boot's smallest log; startup-only stubs are 24-50
+
+
+def archive_audit(logdir):
+    """Return (verdict_ok, report_lines) for one boot's archive directory.
+
+    THE DEFECT THIS EXISTS FOR (20.336 R1): p2-207, the 165911 auto boot and the
+    p2-208-210 window were archived with server logs of 24/41/24 lines - pure
+    startup - because the server was restarted before the archive was pulled.
+    p2-207 lost the MAC too (47 lines, ends t=1834). Verdicts were written
+    against all three anyway, citing lines that are not in the files, and one
+    of them ("the trailing pair is the ONLY variable") reached STATE.md.
+    The manifests recorded the truth the whole time; nothing read them.
+
+    A log of fewer than MIN_LOG_LINES lines did not observe a boot. Recording an
+    outcome against it manufactures evidence, so this refuses by default.
+    """
+    d = Path(logdir)
+    report = []
+    if not d.is_dir():
+        return False, [f"  archive dir not found: {logdir}"]
+    seen = False
+    ok = True
+    for name in ("server", "mac", "rig"):
+        f = d / f"{name}_sunrise.log"
+        if not f.exists():
+            report.append(f"  {name:<7} MISSING")
+            continue
+        seen = True
+        n = sum(1 for _ in f.open("rb"))
+        if n < MIN_LOG_LINES:
+            ok = False
+            report.append(f"  {name:<7} {n:>8} lines  <<< STARTUP-ONLY (did not observe the boot)")
+        else:
+            report.append(f"  {name:<7} {n:>8} lines  ok")
+    if not seen:
+        return False, report + ["  no *_sunrise.log in the archive dir"]
+    return ok, report
+
+
 def ledger_path():
     return Path(os.environ.get("BOOT_OUTCOMES_LEDGER", str(ROOT / "RE_output/map/boot_outcomes.jsonl")))
 
@@ -67,6 +107,12 @@ def main(argv=None):
     ap.add_argument("--class", dest="oclass", choices=CLASSES, help="outcome class")
     ap.add_argument("--note", default="", help="one-line context (optional)")
     ap.add_argument("--force", action="store_true", help="allow overwriting an existing boot_id's record by appending a corrected one")
+    ap.add_argument("--logdir", default=None,
+                    help="the boot's archive dir (RE_output/logs/<stamp>_<boot>); "
+                         "audited for startup-only logs before the outcome is recorded (20.336 R1)")
+    ap.add_argument("--force-incomplete", action="store_true",
+                    help="record even though the archive did not observe the boot; "
+                         "--note must say which machine's evidence is missing")
     ap.add_argument("--close", action="store_true",
                     help="this record CLOSES the front (P5, wrong-question PM): "
                          "--verdict required and it must restate the brief's "
@@ -130,6 +176,28 @@ def main(argv=None):
                   "front is closed by answering ITS question, not a "
                   "sub-question - restate the question in the verdict.")
             return 1
+
+    # --- 20.336 R1: an outcome may not be recorded against a startup-only archive
+    if args.logdir:
+        ok, report = archive_audit(args.logdir)
+        print(f"archive audit ({args.logdir}):")
+        for line in report:
+            print(line)
+        if not ok and not args.force_incomplete:
+            print("REFUSED (20.336 R1): this archive did not observe the boot. "
+                  "A verdict written against a startup-only log manufactures "
+                  "evidence - that is exactly how p2-207's 'EFFECT NULL ON BOTH "
+                  "MACHINES' was recorded against a 47-line mac log. Re-pull the "
+                  "logs, or pass --force-incomplete and say in --note WHICH "
+                  "machine's evidence is missing and what the verdict rests on "
+                  "instead.")
+            return 1
+        if not ok:
+            print("WARNING: recording against an INCOMPLETE archive (--force-incomplete).")
+    elif not args.force_incomplete:
+        print("NOTE: no --logdir given, so the archive was not audited. Pass "
+              "--logdir RE_output/logs/<stamp>_<boot> so the ledger can prove "
+              "the boot was observed (20.336 R1).")
 
     path.parent.mkdir(parents=True, exist_ok=True)
     recs = load(path)

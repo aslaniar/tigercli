@@ -1,6 +1,64 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-06 night). Verdict + deployed + next only.
+STATUS: live (2026-09-08 - 20.336 archive audit + the corrected front). Verdict +
+deployed + next only.
+
+*** 20.336 (STATIC, NO BOOT - READ BEFORE ACTING ON ANY p2-207..p2-210 CLAIM):
+## THREE CORRECTIONS AND A NEW FRONT.
+## (1) THE ARCHIVE IS STARTUP-ONLY FOR THREE OF THE LAST FOUR BOOTS - server
+##   logs of 24/41/24 lines for p2-207, the 165911 auto, and the p2-208-210
+##   window; p2-207 lost the MAC too (47 lines, ends t=1834, never left hook
+##   install). p2-207's "EFFECT NULL ON BOTH MACHINES" has no mac behind it and
+##   cites `stage=crafted_peer` lines that occur ZERO times in the archived
+##   server log; the arm is also SOLO-ONLY (20.295 R3) and was run PAIRED. The
+##   p2(42) question is OPEN, not answered.
+## (2) 20.335 R4's "the trailing pair is the ONLY variable" DOES NOT SURVIVE THE
+##   ARCHIVE: p2-207's rig logged 246 checksum lines, and p2-185 (2026-09-05,
+##   BEFORE the sweep existed) logged 206/46 on both machines.
+## (3) THE ROW-8 CENSUS NEEDLE WAS WRONG - it searched for HANDLER ADDRESSES;
+##   an object stores its VTABLE BASE. Bases now PROVEN (ctor 0x1416BB1E0 LEAs
+##   all four: 0x1C9ADD8/0xAE50/0xAEC8/0xAF40, handler at +0x50). Re-run on
+##   p2-206: 0 heap, control 4 image hits. ROW 8'S VERDICT STANDS - and is now
+##   actually tested. Tool fixed (4a instance test / 4b control).
+## THE INVARIANT AND THE NEW FRONT: `networking:simulation:entity: failed to
+##   create 'player_broadcast' entity` fires in EVERY boot, BOTH machines (17-80),
+##   and is the ONLY string the client's simulation/entity subsystem emits.
+##   Traced: pb_create -> ent_make -> idx_alloc(mgr_free=0) -> -1 -> site 214.
+##   The manager is low=100/high=200 and sits at 0 all boot (rig: failures to
+##   t=237031, 185s after its one fill). The fork pushes index_allocation THREE
+##   times a boot with members=1, join-burst only - and its own call-site comment
+##   says "the cross-member map is deferred" while the comment above it says
+##   "without it every player_broadcast creation returns -1". The encoder already
+##   supports 64 members; only the call site passes one. p2-206 - the best boot on
+##   record (players valid 0x3, both in tower, no black, zero checksum lines) -
+##   still failed 17x/79x. THE CHECKSUM FRONT REPAIRS A SWEEP-INSTRUMENT
+##   REGRESSION AND RETURNS TO A STATE THAT ALREADY DOES NOT RENDER.
+## LIMIT (do not oversell later): this does NOT prove filling the pool renders a
+##   peer - the local creation loop is self-only (20.301/20.260) and the receive
+##   blocks are genuinely unconstructed. It is the best-evidenced open lead.
+## Full text: FINDINGS 20.336. ***
+
+*** 20.335/20.333 (p2-206..210 arc + THE PIN-DOWN) - PARTLY CORRECTED BY 20.336
+## (R4's single-variable claim + p2-207's verdict; read 20.336 FIRST): THE MEMBERSHIP CHECKSUM
+## GATE IS FOUND AND THE PEER-ARRIVAL BLACK'S MECHANISM IS MEASURED END TO
+## END. The client rejects the fork's membership bodies ("session membership
+## checksum failed" -> forcing disconnect -> the black when the rig arrives);
+## the rejections track EXACTLY ONE variable across six boots - the trailing
+## 32-bit pair (stable bodies: zero rejections ever; cycling: rejected every
+## republish). The p2(42) pair was the POISON, not the render trigger; the
+## crafted-self row (p2-207) and foreign-row+fresh (p2-208) both nulled on
+## today's build. PIN-DOWN ITERATION 1: the fork's emission side is PROVABLY
+## correct (state_hash_matcher.py: line-verified lookup3 + SELF-CHECK
+## hash_bytes(dump)==logged Y); the base-shift hypothesis REFUTED by
+## execution (client_base=1 = the documented client layout, still 415
+## rejections); the residual = the pair's participation in the client's
+## hashed replica; the site-269 verifier static read is the next lane.
+## CORRECTED RECORDS (this session): p2-206's 'setup flags' attribution VOID
+## (settings load once; the flips never reached the wire until the restarts);
+## 20.331's 'unarmed at idle' VOID (the raw-global read is not the unmixed
+## base). PLAYABILITY: sweep OFF, clientBase TRUE (the stable+TRUE cell is
+## the playable baseline). DEPLOYED: server 55bfc8d8732fcb32 (the state-hash
+## instrument, gated on membership_sweep), clients be5807eca028ddea both. ***
 
 *** 20.322 (STATIC + FEMU + STANDALONE TESTS, NO BOOT): THE CARRIER IS NAMED AND
 ## THE SEND IS BUILT. The ent cluster's only entry is the [[vptr]+0x50] vtable
@@ -427,28 +485,28 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
              archived (its readout lives in the FRONT chart only).
 
 
-## NEXT - THE CORRECTED FRONT (20.326 + p2-201/202; the view AND designation arms are DEAD)
-##  The view-establishment message has NO CONSUMER (20.326: bare `ret` at the
-##  switch, no h0 slot). The type-9 start_activity_host designation is CLOSED
-##  by measurement (p2-201: 4 burst pushes null; p2-202: 45 duty-cycled pushes
-##  null - identical client census; per the p2-202 brief's absence negative,
-##  silence after well-timed re-sends is not a timing miss). The designation's
-##  session id is likely not the key the client's session table holds.
-##  1. (STATIC, free) The session-identity decode: 0x140E36C30 (the unmix of
-##      DAT_14280E210) - what identity the client's activity-session records
-##      key on, and where the fork would learn it. Decides whether ANY
-##      designation body can name the right session.
-##  2. (STATIC, free) The remaining host-designation levers: type 51
-##      (bubble_host_startup_info, the 'V'-magic validator - apply-table row
-##      11, crypto-identity compare FUN_1403E96B0) and a non-empty type-54
-##      bubble-host table (6-bit count + records; record format unknown).
-##  3. (STATIC, free) The receiver-object job-gate neighborhood (20.326 R6b:
-##      ctor 0x1416BB1E0 <- ... <- job runner 0x1416CCDA0; the +0x25 gate is
-##      VMP-managed) cross-referenced with the bubble/citizen machinery.
-##  DO NOT: send any view (structurally dropped, 20.326 R3); send more type-9
-##      (arm closed, streak 2); answer svc21 with a grant body; reopen the
-##      +0xC118 pool system (system A); re-measure rows 1-7; touch the join
-##      relay, retarget, state ladder, or (3,4) stall.
+## NEXT - THE ALLOCATION CROSS-MEMBER MAP (20.336; supersedes the checksum lane)
+##  1. (SHIPPED, this session) Phase 1: the type-20 allocation names EVERY
+##      session member, not just the joiner, with a distinct indexBase per
+##      member, and re-pushes on a duty cycle so the client's manager stays
+##      above its low-water mark (low=100). Encoder already supported 64 rows;
+##      only the call site passed one. Behind
+##      gameplay.entity_index_allocation_cross_member (default OFF) and
+##      gameplay.entity_index_allocation_refill_ms (0 = off).
+##  2. (NEXT) ONE PAIRED BOOT. PRE-NAMED READOUT, readable either way:
+##      - mgr_free stays > 0 past landing (today: 0 for the whole boot)
+##      - the site-214 `failed to create 'player_broadcast' entity` count falls
+##        from 17-80 toward 0 (today: present in EVERY boot ever archived)
+##      - server: `index_allocation push members=N` with N = session members
+##      ABSENCE NEGATIVE: if members=N ships and mgr_free still reads 0, the
+##      client is not consuming the cross-member rows and the type-20 decode
+##      (not the count) is the wall - that is a real verdict, not a null.
+##  3. (ONLY THEN) the checksum, with the sweep OFF, as a stability item.
+##  DO NOT: spend a boot on the site-269 verifier read (it serves a regression
+##      the sweep INSTRUMENT induced); re-run the self-peer-row arm PAIRED (it
+##      is solo-only, 20.295 R3); cite 20.53 as a render control (retracted
+##      2026-08-25 - the clone was the local player); re-census ent instances
+##      with handler-address needles (20.336 R4).
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
