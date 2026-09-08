@@ -1,18 +1,40 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 late - 20.351: THE PLANE IS THE CONNECTED-GATE
-EVENT PUMP, not BAP (that lead was tested and FAILED - retracted in
-20.351 R2). Id 21 is an EVENT TYPE; the pump is MESSAGE-FED and THE FORK
-ALREADY DRIVES IT (its own connection climbed to CONNECTED on event
-type 4 through this exact chain). Still unnamed: which message body
-emits event type 21. THE NEXT MOVE IS A BOOT, not more static: the
-already-spec'd evt_sub instrument logs every arriving event type and
-answers it empirically, alongside the guard readout and p2-211's
-executor arm. The evt_sub instrument is ALREADY SHIPPED and fired 8562x last boot -
-only its 24-call budget blocks the answer (20.352). Read FINDINGS
-20.349-20.352). Verdict + deployed + next.
+STATUS: live (2026-09-08 evening - p2-212 MEASURED: THE FRONT IS ONE
+MISSING MESSAGE. The executor evaluates OUR session (sid=2, 0x4631748) -
+it climbs 1->2->4 and stops while the client's own sit at 6; the C2 guard
+returned TRUE on our session 9/9; the executor idles 65,308x a boot. A
+COMPLETE event enumeration shows 8/30/38 arriving and NO EVENT 21 - the
+message that would set state 9. The fork already drives that pump, so it
+is a message we do not send, not a locked door. Also: recv_root ran
+12,258x - the construction root IS dispatched and bails ("never
+dispatched" is dead). READ HANDOFF_2026-09-08_EVENT-21.md FIRST, then
+FINDINGS 20.349-20.353. *** CLIENT INSTRUMENT CHANGES ARE UNCOMMITTED in
+.claude/worktrees/fork-p2211 - commit them. *** NETWORK: all three
+settings re-pointed 192.168.1.7 -> 192.168.1.164 for WiFi; revert if the
+user returns to ethernet.) Verdict + deployed + next.
 
-*** 20.351 (STATIC, NO BOOT - NEWEST): THE PLANE NAMED, A LEAD
+*** 20.353 (p2-212, PAIRED BOOT, COMPLETE ARCHIVE - NEWEST): the front
+## collapses to one missing input. R1 exec_sess = 0x4631748 sid=2, THE
+## FORK'S session, state 1->2->4 then stops (20.350 R3 answered by
+## MEASUREMENT). R2 sess_guard 9/9 ret=TRUE on our session - C2a
+## satisfied, the guard is NOT the blocker (limit: C2b/C2c measured only
+## on other events' bodies). R3 evt_sub complete enumeration, 14 distinct
+## ids, 8/30/38 in range, EVENT 21 ABSENT. R4 recv_root calls=12258 - the
+## construction root runs and BAILS; "never dispatched" is dead. R5 the
+## positive control is live: the client's own sessions 0x45A2C18/
+## 0x45DBD60 hit state 6 the same boot. R6 everything downstream of event
+## 21 is verified ready. R7 a NUMERIC hypothesis (8/30/38 == BAP
+## RequestService activityMessage/start/request38; purchasedOffers=21) -
+## test it, do NOT re-adopt the retracted BAP link (20.351 R2 stands).
+## R8 NEXT, non-static: (a) THE DIAGNOSTIC POKE first - force state 9 for
+## one throwaway boot and measure the whole inferred second half before
+## paying to build an emitter; (b) emit event 21 from our own source
+## behind a default-OFF flag - the deployed instruments report the result
+## with no new work; (c) trace the working case (R5). Full text:
+## FINDINGS 20.353. ***
+
+*** 20.351 (STATIC, NO BOOT): THE PLANE NAMED, A LEAD
 ## RETRACTED, AND THE QUESTION HANDED TO AN INSTRUMENT.
 ## - The id is an OUT-PARAM of the wire decode 0x1416E3140 (called with
 ##   the connection; out: id/len/payload, 0x40000 cap) inside the pump
