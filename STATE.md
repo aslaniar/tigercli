@@ -1,8 +1,26 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-07 evening - 20.339 banked: the "VMP wall" retired, the
-master flag named af0 @ 0x142037AF0, =0 in every archived boot). Verdict +
-deployed + next only.
+STATUS: live (2026-09-07 night - 20.340: the activation job named. FUN_1416f7da0
+would set af0=1 and NEVER RAN in any archived boot). Verdict + deployed + next.
+
+*** 20.340 (STATIC + full Ghidra analysis of the carved image, 556s/106812
+## fns): THE ARM CHAIN IS MEASURED END TO END. The master flag af0 has TWO
+## writers: FUN_1416f7da0 = THE ACTIVATION JOB (init sequence, then IF
+## FUN_1416cbdd0() (the singleton lazy-ensure: FUN_1416bd610 kind 7 +
+## decrypt + validate) passes -> af0 = 1; FUN_1416f7870 = de-init (af0=0).
+## _DAT_143051FA8 is NONZERO-ENCRYPTED in the dumps => the manager object
+## EXISTS - the 20.338 "ctor 0 heap refs" census was NEEDLE-BLIND to
+## encrypted references. Since af0=0 every boot: THE ACTIVATION JOB NEVER
+## RAN. Dispatch = static fragment-pair {piece,next-piece} u32-RVA rows in
+## .rdata (consumer/clearer/walker/arm1 all registered); f7da0's own rows
+## NOT found - that registration is the open item. The consumer's address
+## is a 32-BIT RVA (why the imm64 needle missed it). CORRECTED 20.339:
+## "af0 has no writer" and "the consumer has no references" both wrong.
+## NEXT: (a) f7da0's dispatch registration (.data + text2 dword scan + the
+## walker-row pump); (b) FUN_14034d1c0(p) validation + FUN_1416bd610's kind-7
+## registration; (c) the p2-211 counter boot now has a THREE-value readout:
+## recv_root calls / af0 / f7da0's init markers (obj+0x59820, b05/b07/b09
+## clears). Full text: FINDINGS 20.340 (plain-english section included). ***
 
 *** 20.339 (STATIC, NO BOOT - READ FIRST ON THE ROW-8 FRONT): THE GATE CLUSTER
 ## IS A READABLE ARMED-STATE MACHINE AND THE MASTER FLAG NEVER ARMS. The
