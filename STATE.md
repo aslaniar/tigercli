@@ -8,7 +8,9 @@ type 4 through this exact chain). Still unnamed: which message body
 emits event type 21. THE NEXT MOVE IS A BOOT, not more static: the
 already-spec'd evt_sub instrument logs every arriving event type and
 answers it empirically, alongside the guard readout and p2-211's
-executor arm. Read FINDINGS 20.349-20.351). Verdict + deployed + next.
+executor arm. The evt_sub instrument is ALREADY SHIPPED and fired 8562x last boot -
+only its 24-call budget blocks the answer (20.352). Read FINDINGS
+20.349-20.352). Verdict + deployed + next.
 
 *** 20.351 (STATIC, NO BOOT - NEWEST): THE PLANE NAMED, A LEAD
 ## RETRACTED, AND THE QUESTION HANDED TO AN INSTRUMENT.
@@ -44,8 +46,10 @@ executor arm. Read FINDINGS 20.349-20.351). Verdict + deployed + next.
 ##   types arrive, on which connection, does 21 EVER arrive; (2) the
 ##   guard readout C2b/C2c/C3 on a live session; (3) p2-211's standing
 ##   arm - which session the world-change executor evaluates. The
-##   evt_sub instrument must be BUILT first (spec'd p2-196, never
-##   shipped). Full text: FINDINGS 20.351. ***
+##   evt_sub instrument is ALREADY BUILT AND SHIPPED - see 20.352, which
+##   CORRECTS this: it fired 8562/7705 times in the p2-211 archive; its
+##   24-call budget is why it has not answered. Full text: FINDINGS
+##   20.351 + 20.352. ***
 
 *** 20.350 (STATIC, NO BOOT): THE THREE CHAINS READ; ONE
 ## PASSES 9. Each depth-3 chain writes a CONSTANT new state:
