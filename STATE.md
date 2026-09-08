@@ -1,11 +1,160 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 - 20.348 CORRECTION BANKED: "runs in missions"
-RETIRED. The gate is world-change x MANAGED-SESSION-LIVE (6..9) - the
-tower qualifies in retail; in our boots the evaluated session sits at 4.
-THE FORK-SIDE LEVER CANDIDATE = the session-state climb 4->6 (the parked
-front, reopened). See HANDOFF_2026-09-08_GATE-MACHINE.md - NEWEST, READ
-FIRST). Verdict + deployed + next.
+STATUS: live (2026-09-08 evening - p2-212 MEASURED: THE FRONT IS ONE
+MISSING MESSAGE. The executor evaluates OUR session (sid=2, 0x4631748) -
+it climbs 1->2->4 and stops while the client's own sit at 6; the C2 guard
+returned TRUE on our session 9/9; the executor idles 65,308x a boot. A
+COMPLETE event enumeration shows 8/30/38 arriving and NO EVENT 21 - the
+message that would set state 9. The fork already drives that pump, so it
+is a message we do not send, not a locked door. Also: recv_root ran
+12,258x - the construction root IS dispatched and bails ("never
+dispatched" is dead). READ HANDOFF_2026-09-08_EVENT-21.md FIRST, then
+FINDINGS 20.349-20.353. *** CLIENT INSTRUMENT CHANGES ARE UNCOMMITTED in
+.claude/worktrees/fork-p2211 - commit them. *** NETWORK: all three
+settings re-pointed 192.168.1.7 -> 192.168.1.164 for WiFi; revert if the
+user returns to ethernet.) Verdict + deployed + next.
+
+*** 20.353 (p2-212, PAIRED BOOT, COMPLETE ARCHIVE - NEWEST): the front
+## collapses to one missing input. R1 exec_sess = 0x4631748 sid=2, THE
+## FORK'S session, state 1->2->4 then stops (20.350 R3 answered by
+## MEASUREMENT). R2 sess_guard 9/9 ret=TRUE on our session - C2a
+## satisfied, the guard is NOT the blocker (limit: C2b/C2c measured only
+## on other events' bodies). R3 evt_sub complete enumeration, 14 distinct
+## ids, 8/30/38 in range, EVENT 21 ABSENT. R4 recv_root calls=12258 - the
+## construction root runs and BAILS; "never dispatched" is dead. R5 the
+## positive control is live: the client's own sessions 0x45A2C18/
+## 0x45DBD60 hit state 6 the same boot. R6 everything downstream of event
+## 21 is verified ready. R7 a NUMERIC hypothesis (8/30/38 == BAP
+## RequestService activityMessage/start/request38; purchasedOffers=21) -
+## test it, do NOT re-adopt the retracted BAP link (20.351 R2 stands).
+## R8 NEXT, non-static: (a) THE DIAGNOSTIC POKE first - force state 9 for
+## one throwaway boot and measure the whole inferred second half before
+## paying to build an emitter; (b) emit event 21 from our own source
+## behind a default-OFF flag - the deployed instruments report the result
+## with no new work; (c) trace the working case (R5). Full text:
+## FINDINGS 20.353. ***
+
+*** 20.351 (STATIC, NO BOOT): THE PLANE NAMED, A LEAD
+## RETRACTED, AND THE QUESTION HANDED TO AN INSTRUMENT.
+## - The id is an OUT-PARAM of the wire decode 0x1416E3140 (called with
+##   the connection; out: id/len/payload, 0x40000 cap) inside the pump
+##   0x1416D56C0; it becomes the dispatcher's arg7.
+## - RETRACTED IN FULL: "the plane is BAP". Two independent disproofs -
+##   (a) ZERO rip-relative refs from the dispatcher/handlers/hops into
+##   the BAP name strings (the object at 0x141CA3570 is a LOG CATEGORY;
+##   the names merely neighbour it); (b) the fork's own frame.h makes 21
+##   a REQUEST service (client->server), inconsistent with a client-side
+##   receive dispatcher. SAME ERROR CLASS AS 20.350 R7 (adjacency read
+##   as identity) - committed TWICE this session, caught both times only
+##   by running a test the inference could fail.
+## - WHAT IT IS (and the project already mapped it): 0x1416DF360 = THE
+##   CONNECTED-GATE DISPATCHER, arg7 = EVENT TYPE 4..44, every arm
+##   requiring [conn+0x1D18]==5. Pump chain 0x1417E5B20 -> 0x1416D4A30
+##   -> 0x1416D4B00 -> 0x1416D56C0 (re-derived here independently, then
+##   matched to the prior finding); 0x1416E3140's out-param is already
+##   named THE EVENT SUBTYPE with a spec'd instrument (evt_sub,
+##   BOOT_BRIEF_p2-196) that was NEVER BUILT.
+## - FAVOURABLE CONSEQUENCE: the pump is MESSAGE-FED (root 0x1417E5A10,
+##   a registered message handler; decoder 0x1417E6140) and THE FORK
+##   ALREADY FEEDS IT - the fork's connection climbed the ladder on
+##   event type 4 through this chain. The state-9 path is therefore NOT
+##   client-internal-only.
+## - NOT NAMED, DO NOT ASSERT: which message body emits event type 21,
+##   and therefore whether the fork can emit it at will. 0x1417E5A10
+##   builds the event record in a loop over iterator 0x1417C82F0 -
+##   reading that decode is the remaining static chain, NOT done.
+## NEXT (the cheap route is now empirical): ONE BOOT carrying (1) evt_sub
+##   - every call of 0x1416E3140, logging the out-param: which event
+##   types arrive, on which connection, does 21 EVER arrive; (2) the
+##   guard readout C2b/C2c/C3 on a live session; (3) p2-211's standing
+##   arm - which session the world-change executor evaluates. The
+##   evt_sub instrument is ALREADY BUILT AND SHIPPED - see 20.352, which
+##   CORRECTS this: it fired 8562/7705 times in the p2-211 archive; its
+##   24-call budget is why it has not answered. Full text: FINDINGS
+##   20.351 + 20.352. ***
+
+*** 20.350 (STATIC, NO BOOT): THE THREE CHAINS READ; ONE
+## PASSES 9. Each depth-3 chain writes a CONSTANT new state:
+## chain 1 (entry 0x1416DF360) edx=4 reason 0x90 - the value we are
+## stuck at; chain 2 (0x1416DFD50) edx=0xa reason 0xdc8 - the setter's
+## own teardown path; chain 3 (0x1416E0250) edx=9 reason 0x30 - LIVE.
+## - Chain 3's last hop 0x1417B30A0 is UNCONDITIONAL once entered
+##   (6 rejoin-forward branches, 0 bypass - checked mechanically).
+## - The handler 0x1416E0250 HAS THE JOIN GATE'S SHAPE: [conn+0x28] ->
+##   walker 0x14177A0B0 -> found-slot -> guard 0x14176CE80 -> go. C1 is
+##   the lookup already driven to MATCH (p2-193a/b).
+## - GUARD 0x14176CE80 DECODED: returns true only for state in {2,4,5}
+##   AND an index lookup != -1 AND that index == [sess+0x874]. It
+##   EXCLUDES sessions already at 6..9 - it is built for not-yet-live
+##   sessions, and OUR 4 IS IN ITS ELIGIBLE SET.
+## - Middle hop 0x141780190: C3 = [sess+0xe938] == [sess+0xe93c]; the
+##   state!=5 path is diagnostic logging and both branches converge on
+##   the call.
+## - DISPATCH: switch at 0x1416DF360, jump table 0x1416DFC54 (41 dwords,
+##   ids 4..44, 13 to default); ID 21 IS THE ONLY ID REACHING THE
+##   HANDLER; every case also needs [conn+0x1d18]==5.
+## - R7 NAMESPACE CORRECTION (do not conflate): the 20.319 ORACLE FAILED
+##   - the join gate and peer-connect are NOT in this table, so this is
+##   a DIFFERENT dispatcher from the OOB switch. THREE unrelated 21s now
+##   exist (this one, the entity-plane grant type, svc21); any sentence
+##   using "21" must name its namespace. 20.349's "same handler block as
+##   the join gate" is true about ADDRESSES, misleading about PLANES.
+##   Also retracted in-step: 0x1416E08E0 is a sibling handler, NOT a
+##   nested sub-switch (callers.py mis-attributed thunks past its end).
+## - NOT ESTABLISHED: which wire message carries id 21 and whether the
+##   fork can emit it (the id arrives as a decoded stack arg from
+##   0x1416D56C0's [rsp+0x48]); C2b/C2c, C3 and [conn+0x1d18] are
+##   RUNTIME values never measured; the +0xe938/+0xe93c/+0x874/+0x860
+##   fields are NEW to the record. Nothing executed.
+## NEXT: (a) identify the plane/message carrying id 21 - walk
+##   0x1416D56C0's [rsp+0x48] back to the wire decode; (b) measure C2b/
+##   C2c/C3 on a live session (boot readout); (c) p2-211 still owes
+##   WHICH session the executor evaluates. Full text: FINDINGS 20.350. ***
+
+*** 20.349 (PHASE 1+2, STATIC, NO BOOT - THE NEWEST VERDICT): THE
+## CLIMB'S LEVER IS NAMED AND ITS DISTANCE FROM THE WIRE IS MEASURED.
+## - R0 IMAGE ORACLE (run before any scan): the gate site 0x140C0917B
+##   reads BYTE-IDENTICAL in destiny2_unpacked_full.exe and the carved
+##   destiny2_runtime_p2-206.exe (41 8b 86 f8 ae 01 00 = mov eax,
+##   [r14+0x1aef8]; then add eax,-6 / cmp eax,3 / jbe). 20.348's cited
+##   evidence and the 6..9 window INDEPENDENTLY CONFIRMED; the standard
+##   toolchain is valid in this neighborhood (NOT image-wide).
+## - R1/R2 THE EXECUTOR'S r14 IS A CALL RETURN, not a param (anchor
+##   note: 0x140C090B0 is a FRAGMENT of primary 0x140C09010). It calls
+##   0x140C03F70 -> 0x140C03EF0, which returns base + 0x18 +
+##   [elem+0x10]*0x1C8A0 - VERBATIM 20.109's session-container accessor.
+##   The executor evaluates a session from THE SAME CONTAINER the join
+##   gate walks (the one holding our sessions at 6 AND the fork's at 4).
+## - R3 WHICH member is a RUNTIME SELECTOR (idx vs idx XOR 1, chosen
+##   from the executor's own args) - NOT decidable statically. 20.348
+##   R3's question stays a BOOT READOUT.
+## - R4/R5/R6 WRITER CENSUS: 497 accesses, 5 real writers (one reported
+##   write was a stack false positive). Two write -1, one writes 0, one
+##   is a TEARDOWN (0x14178CD97, invalidates the session id alongside).
+##   THE FIFTH IS THE SETTER: 0x1417B3600, signature read from the
+##   prologue = set_session_state(rcx=session, edx=new_state,
+##   r8d=reason); it stores an ARBITRARY caller value and detects the
+##   liveness EDGE into/out of 4..9. 10 direct call sites.
+## - R7 REACHABILITY (callgraph.db rebuilt: 184,680 direct edges +
+##   136,457 slots): six receive-region entry points reach the setter,
+##   three at DEPTH 3 (0x1416DF360 / 0x1416DFD50 / 0x1416E0250), three
+##   of them in the SAME 0x1416E0xxx handler block as the join gate
+##   (0x1416E0460) and peer-connect (0x1416E0E10). Not a vtable target.
+## - R8 THE LIMITS (do not oversell): reachability is NOT execution. No
+##   branch condition on those paths is read; NO message id is
+##   identified (the OOB dispatch is a byte-map switch - 0 pointer
+##   slots on all nine handlers, so slot queries cannot name ids); and
+##   the value in edx at the call sites is UNREAD, so nothing here shows
+##   a 6 is ever passed. Direct-call-only walk => six is a FLOOR.
+## - R9 TOOL DEFECT (Tier-1): field_xref skips the REX prefix - wrong VA
+##   AND wrong registers (it called the setter's base rsi/edi when it is
+##   r14/r15d). Logged as TOOLING_AUDIT T1.5. Every writer here was
+##   re-read by linear disassembly before use.
+## NEXT: (a) read the branch conditions + the edx value on the three
+##   depth-3 chains - does any reachable path pass 6..9; (b) name the
+##   entry points' message ids via the 20.319 OOB switch decode; (c) the
+##   p2-211 boot arm still owes WHICH session the executor evaluates.
+## Full text: FINDINGS 20.349. ***
 
 *** 20.345-20.347 (THREE SUBAGENT LANES, all local, no boot): THE
 ## CONSOLIDATED FRONT COLLAPSED TO ONE TRIGGER: ACTIVITY ENTRY.

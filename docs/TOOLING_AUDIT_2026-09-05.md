@@ -59,6 +59,30 @@ declared-but-unused constants as a separate advisory. Fail on any target with rv
 or name == nullptr. (A compile-time guard now exists in the source; the tool should
 agree with it independently.)
 
+### T1.5 `field_xref.py` skips the REX prefix - WRONG VA, WRONG REGISTERS
+Found 2026-09-08 during the +0x1AEF8 writer census (FINDINGS 20.349 R9). The disp32
+scan anchors on the OPCODE byte and does not walk back over a REX prefix. Two
+consequences, both observed on the same run:
+  (a) the reported VA is one byte past the instruction start, so `slice_back.py`
+      correctly REFUSED it as a mid-instruction anchor (that refusal is the tool
+      working - do not read it as "no such site");
+  (b) THE REPORTED REGISTERS ARE WRONG whenever REX is present. It rendered
+      0x14178CD98 as `mov [rdi+0x1aef8], esi` when the instruction at 0x14178CD97 is
+      `mov [rdi+0x1aef8], r14d`, and 0x1417B37DF as `mov [rsi+0x1aef8], edi` when
+      0x1417B37DE is `mov [r14+0x1aef8], r15d` - WRONG BASE and WRONG SOURCE on the
+      single most important writer in the census.
+COST: none this time, because every writer was re-read by linear disassembly before it
+entered a conclusion (the 09-03 rule). Had the columns been trusted, the session-state
+setter would have been attributed to the wrong base register and sliced from the wrong
+provenance - a wrong answer that would have looked entirely plausible.
+NOTE: the same run also carried a plain base-register false positive -
+`mov [rsp+0x1aef8], eax` reported as a write to the field. The displacement is not the
+field; base+displacement is. Neither the tool nor its output says so.
+FIX: decode the full prefix chain (REX/66/67/F2/F3) before classifying, report the
+INSTRUCTION START as the VA, and render register names through the REX-extended
+tables. Until then: every field_xref hit is a CANDIDATE SITE ONLY - re-read it with
+`lane_svc43_disasm_range.py` before using its base, its source register, or its VA.
+
 ## TIER 2 - GATES THAT PASSED WHEN THEY SHOULD HAVE FAILED
 
 ### T2.1 `gate_boot.py` cannot tell whether a brief's decisive read is POSSIBLE
