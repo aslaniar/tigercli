@@ -1,0 +1,232 @@
+diff --color -ruN orig/core/settings/server/gameplay/definition.h new/core/settings/server/gameplay/definition.h
+--- a/Sunrise/src/core/settings/server/gameplay/definition.h	2026-09-07 18:28:27
++++ b/Sunrise/src/core/settings/server/gameplay/definition.h	2026-09-07 18:30:03
+@@ -68,6 +68,22 @@
+      */
+     bool entityIndexAllocation{false};
+     /**
++     * Name EVERY joined machine in the type-20 allocation, not just the joiner.
++     *
++     * v1 shipped `{&member, 1}` with the call site's own note that "the cross-member
++     * map is deferred until decode is confirmed" - so a peer's index block has never
++     * been published, while the encoder has always accepted kParticipantSlots (64)
++     * rows and the schema has always carried them (20.336 R6). Twelve lines above
++     * that call site the fork already records the consequence: "without it the host
++     * client's manager sync always skips and every player_broadcast creation returns
++     * -1", and the client duly logs `failed to create 'player_broadcast' entity`
++     * 17-80 times in every archived boot on both machines.
++     *
++     * Off publishes v1's single row, byte-identical, so the arm reverts with a
++     * settings flip and no rebuild.
++     */
++    bool entityIndexAllocationCrossMember{false};
++    /**
+      * Initiate the view-establishment handshake: the host sends its own view (id 40)
+      * once per admitted peer at the first publish. The fork has only ever answered;
+      * a client that never receives a host view never establishes its own, and the
+diff --color -ruN orig/core/settings/server/gameplay/gameplay_settings_parser.cpp new/core/settings/server/gameplay/gameplay_settings_parser.cpp
+--- a/Sunrise/src/core/settings/server/gameplay/gameplay_settings_parser.cpp	2026-09-07 18:28:27
++++ b/Sunrise/src/core/settings/server/gameplay/gameplay_settings_parser.cpp	2026-09-07 18:30:03
+@@ -52,6 +52,7 @@
+     bool hasReserve = false;
+     bool hasJoinGrant = false;
+     bool hasEntityIndexAllocation = false;
++    bool hasEntityIndexAllocationCrossMember = false;
+     bool hasActivityUpstreamDump = false;
+     bool hasActivityViewInitiate = false;
+     bool hasActivityStartHostPush = false;
+@@ -123,6 +124,12 @@
+                 return false;
+             }
+             hasEntityIndexAllocation = true;
++        } else if (key == "entity_index_allocation_cross_member") {
++            if (hasEntityIndexAllocationCrossMember
++                || !boolean(candidate.entityIndexAllocationCrossMember)) {
++                return false;
++            }
++            hasEntityIndexAllocationCrossMember = true;
+         } else if (key == "activity_upstream_dump") {
+             if (hasActivityUpstreamDump || !boolean(candidate.activityUpstreamDump)) {
+                 return false;
+diff --color -ruN orig/server/bap/encrypted/push/activity/activity_message_push.cpp new/server/bap/encrypted/push/activity/activity_message_push.cpp
+--- a/Sunrise/src/server/bap/encrypted/push/activity/activity_message_push.cpp	2026-09-07 18:28:27
++++ b/Sunrise/src/server/bap/encrypted/push/activity/activity_message_push.cpp	2026-09-07 18:31:14
+@@ -3,6 +3,7 @@
+ #include <Windows.h>
+ 
+ #include <algorithm>
++#include <array>
+ #include <cstddef>
+ 
+ #include "../../../../../core/settings/settings.h"
+@@ -14,6 +15,7 @@
+ #include "../../../../../middleware/bap/activity_message/activity_entity_index_grant_encoder.h"
+ #include "../../../../../middleware/bap/activity_message/entity_slots.h"
+ #include "../../../../../middleware/secure_channel/runtime.h"
++#include "../../../../../state/activity/runtime.h"
+ #include "activity_global_state_push.h"
+ #include "activity_notification_frame.h"
+ #include "activity_world_population_push.h"
+@@ -136,14 +138,47 @@
+     // Type 20 after type 0: the lease names the slots this client HOLDS, and the
+     // allocation names the indices it may create entities in (FINDINGS 20.212/20.213,
+     // entity-index-allocation-schema.md). Behind a switch so the burst stays
+-    // byte-identical until the lane turns it on. v1 names only the joining member's
+-    // block, base 0; the cross-member map is deferred until decode is confirmed.
++    // byte-identical until the lane turns it on.
++    //
++    // THE CROSS-MEMBER MAP IS NO LONGER DEFERRED (20.336 R6). v1's single row was
++    // the reason a peer's index block had never been published; the schema and the
++    // encoder both carried kParticipantSlots rows the whole time. Enabling
++    // entity_index_allocation_cross_member names every joined machine. With it off
++    // this publishes v1's body byte-for-byte, so the arm reverts by settings flip.
+     if (core::settings::get().server.gameplay.entityIndexAllocation) {
+-        const entity_index_allocation::Member member{
+-            activity.entitySlotMutation.memberKey, 0};
++        // v1 named ONLY the joining member (`{&member, 1}`), base 0, and left the
++        // cross-member map "deferred until decode is confirmed". The decode has been
++        // confirmed since (entity-index-allocation-schema.md) and the encoder has
++        // always taken up to kParticipantSlots rows, so the map is now built here:
++        // one row per joined MACHINE, the joiner keeping base 0 so an existing
++        // client's block never moves when a second machine arrives.
++        std::array<entity_index_allocation::Member,
++                   entity_index_allocation::kParticipantSlots> members{};
++        std::size_t memberCount = 0;
++        if (core::settings::get().server.gameplay.entityIndexAllocationCrossMember) {
++            std::array<::sunrise::state::activity::membership::Identity,
++                       entity_index_allocation::kParticipantSlots> identities{};
++            const std::size_t found =
++                ::sunrise::state::activity::member_identities(activity.sessionId, identities);
++            const std::uint32_t blockSize =
++                static_cast<std::uint32_t>(entity_index_allocation::kIndicesPerParticipant);
++            for (std::size_t index = 0; index < found; ++index) {
++                members[index] = entity_index_allocation::Member{
++                    identities[index].memberKey,
++                    static_cast<std::uint32_t>(index) * blockSize};
++                ++memberCount;
++            }
++        }
++        if (memberCount == 0) {
++            // Fail-safe to v1's exact body: an empty walk must never publish an EMPTY
++            // allocation, which would be a regression against a message that works.
++            members[0] = entity_index_allocation::Member{
++                activity.entitySlotMutation.memberKey, 0};
++            memberCount = 1;
++        }
+         append_entity_index_allocation_notification(scratch,
+                                                     activity.sessionId,
+-                                                    {&member, 1},
++                                                    {members.data(), memberCount},
+                                                     static_cast<std::uint32_t>(
+                                                         activity.entitySlotMutation.requestedCount),
+                                                     key,
+diff --color -ruN orig/state/activity/activity_session_lookup.cpp new/state/activity/activity_session_lookup.cpp
+--- a/Sunrise/src/state/activity/activity_session_lookup.cpp	2026-09-07 18:28:27
++++ b/Sunrise/src/state/activity/activity_session_lookup.cpp	2026-09-07 18:29:25
+@@ -128,6 +128,63 @@
+     return matches;
+ }
+ 
++/**
++ * Collects every joined machine in the caller's destination, caller's own row first.
++ * See runtime.h for why this deliberately does NOT apply the roster's same_client /
++ * same_account guards: those answer "is this a renderable peer"; this answers "which
++ * machines need an entity-index block", and index supply is not a rendering decision.
++ */
++std::size_t member_identities(const std::uint64_t ownSessionId,
++                              std::span<membership::Identity> output) noexcept {
++    if (ownSessionId == kAbsentSessionId || output.empty()) {
++        return 0;
++    }
++    AcquireSRWLockShared(&runtime::storage::g_stateLock);
++    const ActivityState& state = runtime::storage::g_activity;
++    const std::size_t own = transactions::find_session(state, ownSessionId);
++    std::size_t count = 0;
++    if (own < kSessionCapacity) {
++        const SessionRecord& ownRecord = state.sessions[own];
++        // The joiner keeps row 0 - v1's only row - so an existing client's block base
++        // never moves when a second machine appears.
++        if (ownRecord.membership.hasIdentity) {
++            output[count] = ownRecord.membership.identity;
++            ++count;
++        }
++        for (const SessionRecord& record : state.sessions) {
++            if (count >= output.size()) {
++                break;
++            }
++            if (record.sessionId == ownSessionId || !record.occupied || !record.joined) {
++                continue;
++            }
++            if (!same_peer_destination(record.destination, ownRecord.destination)) {
++                continue;
++            }
++            if (!record.membership.hasIdentity) {
++                continue;
++            }
++            // One row per MACHINE. Sibling BAP sessions of one client share a member
++            // key (20.53); giving each its own index block would hand one machine
++            // several and shrink everyone else's share of a 64-slot table.
++            bool duplicate = false;
++            for (std::size_t index = 0; index < count; ++index) {
++                if (output[index].memberKey == record.membership.identity.memberKey) {
++                    duplicate = true;
++                    break;
++                }
++            }
++            if (duplicate) {
++                continue;
++            }
++            output[count] = record.membership.identity;
++            ++count;
++        }
++    }
++    ReleaseSRWLockShared(&runtime::storage::g_stateLock);
++    return count;
++}
++
+ /** Copies another joined session's published identity from the same destination. */
+ bool foreign_member_identity(const std::uint64_t ownSessionId,
+                              membership::Identity& output,
+diff --color -ruN orig/state/activity/runtime.h new/state/activity/runtime.h
+--- a/Sunrise/src/state/activity/runtime.h	2026-09-07 18:28:27
++++ b/Sunrise/src/state/activity/runtime.h	2026-09-07 18:28:40
+@@ -1,5 +1,7 @@
+ #pragma once
+ 
++#include <span>
++
+ #include <cstdint>
+ 
+ #include "../../core/settings/provisioning.h"
+@@ -128,6 +130,31 @@
+  * @param output Cleared, then receives the immutable binding identity.
+  * @return True when a committed+joined session carries this exact key.
+  */
++/**
++ * Collects EVERY joined machine in the caller's destination, caller first.
++ *
++ * Written for the type-20 entity-index allocation's cross-member map (20.336 R6).
++ * The allocation's v1 named only the joining member - `{&member, 1}` - so a peer's
++ * index block has never been published, while the encoder has always accepted up to
++ * kParticipantSlots (64) rows.
++ *
++ * DELIBERATELY NOT the same filter as foreign_member_identity. That function answers
++ * "who is a renderable PEER" and so applies the same_client and same_account guards
++ * that exist against a client freeze on a roster naming one account twice (20.64).
++ * This answers "which machines need index blocks", which is a different question: the
++ * ROSTER's guards do not belong on the SUPPLY message. Sibling BAP sessions of one
++ * client are still collapsed, because they share a member key and one machine needs
++ * one block - that dedupe is by memberKey, which is exactly what distinguishes
++ * machines (20.53's fix).
++ *
++ * @param ownSessionId The caller's committed activity session.
++ * @param output Receives one identity per distinct member key, caller's own first.
++ * @return How many rows were written; 0 when the session is unknown.
++ */
++[[nodiscard]] std::size_t member_identities(
++    std::uint64_t ownSessionId,
++    std::span<membership::Identity> output) noexcept;
++
+ [[nodiscard]] bool session_binding_for_member(std::uint64_t memberKey,
+                                               SessionBinding& output) noexcept;
+ 

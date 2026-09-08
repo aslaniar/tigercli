@@ -25,8 +25,8 @@ deployed + next only.
 ##   and is the ONLY string the client's simulation/entity subsystem emits.
 ##   Traced: pb_create -> ent_make -> idx_alloc(mgr_free=0) -> -1 -> site 214.
 ##   The manager is low=100/high=200 and sits at 0 all boot (rig: failures to
-##   t=237031, 185s after its one fill). The fork pushes index_allocation THREE
-##   times a boot with members=1, join-burst only - and its own call-site comment
+##   t=237031, 185s after its one fill). The fork pushes index_allocation 17x a
+##   boot, EVERY ONE members=1, join-burst only - and its own call-site comment
 ##   says "the cross-member map is deferred" while the comment above it says
 ##   "without it every player_broadcast creation returns -1". The encoder already
 ##   supports 64 members; only the call site passes one. p2-206 - the best boot on
