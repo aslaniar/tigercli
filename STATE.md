@@ -1,9 +1,43 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 - 20.343: Lane B banked. The activation job is
-vmethod +0x88 of class 0x141C14F70, whose lazy instance is NEVER
-CONSTRUCTED (global 0x142B0E210=0). One missing construction explains the
-whole idle chain). Verdict + deployed + next.
+STATUS: live (2026-09-08 - 20.345-20.347: THE THREE LANES CONVERGE ON
+ACTIVITY ENTRY. The attachment driver IS the activity/world-change
+executor (gated on the managed-session window 6..9); the activation
+class's phase-init sequencer never started; the target-address
+transcription was corrected (0x142B0E210 dead, the true global is the
+record's 0x14280E210, populated). THE FORK-SIDE LEVER: drive an
+ACTIVITY/WORLD-CHANGE LOAD while a managed session is live). Verdict +
+deployed + next.
+
+*** 20.345-20.347 (THREE SUBAGENT LANES, all local, no boot): THE
+## CONSOLIDATED FRONT COLLAPSED TO ONE TRIGGER: ACTIVITY ENTRY.
+## - Lane D: no producer for the pending queue in ANY encoding (every
+##   section, every form); the queue is a named schema field (mgr+0x206a0
+##   = "i107" in runtime reflection tables) and is producer-silent BY
+##   DESIGN until established. The manager family is named: the activity
+##   singleton's message queue ("msgq %s: in...out...").
+## - Lane E: the attachment event FOUND. mgr+0x8=1 written by 0x140B540C1
+##   in FUN_0x140B53FC0 (VERIFIED; attachment object = the manager
+##   singleton itself, r13+0x2A10 = 0x21DDC09C900). Mode 2/3 writer =
+##   FUN_0x140B534A0 (startup/world-entry). The MODE-1 DRIVER = the
+##   activity/world-change executor 0x140C090B0 ("Change world
+##   (activity_name=...)"), gated on [r14+0x1AEF8] in 6..9 (the
+##   managed-session live gate). The cascade hangs off the consumer's
+##   fall-through 0x1416FCF95; its pump's byte gates read 0 (open).
+## - Lane C: 0x142B0E210 was a TRANSCRIPTION ERROR for 0x14280E210 (the
+##   record's KNOWN unmix global) - populated, same per-boot pad as the
+##   sibling slot; the "global = 0" premise was measured at a dead
+##   address. The activation class's ctor 0x140E3BD00 has ONE caller
+##   chain: 0x140E3C0B0 <- 0x140B47B20 <- PHASE-INIT 0x140B37BF0 - a
+##   ~40-call unconditional sequencer that NEVER STARTED (tail flag
+##   0x141D4CD34 = 0xC2 verified; watch slot registered; zero class
+##   instances x2 sweeps). Client-internal verdict INFERRED (medium-high).
+## THE FORK-SIDE LEVER: drive the ACTIVITY/WORLD-CHANGE load while a
+## managed session is live (6..9) - what the community's mission work
+## does. NEXT BOOT: not tower-only; include an activity/world-change load;
+## readout now SIX values (recv_root / af0 / f7da0 markers / fragment-list
+## / vft-instance check / phase flag 0x141D4CD34). Full text: FINDINGS
+## 20.345-20.347 + the three lane reports (RE_output/content/lane_[bcd]_report.md). ***
 
 *** 20.343 (Lane B subagent + parent verification): f7da0 = virtual method
 ## +0x88 of class vftable 0x141C14F70 (relocated-qword storage - invisible
