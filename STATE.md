@@ -1,11 +1,60 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 - 20.348 CORRECTION BANKED: "runs in missions"
-RETIRED. The gate is world-change x MANAGED-SESSION-LIVE (6..9) - the
-tower qualifies in retail; in our boots the evaluated session sits at 4.
-THE FORK-SIDE LEVER CANDIDATE = the session-state climb 4->6 (the parked
-front, reopened). See HANDOFF_2026-09-08_GATE-MACHINE.md - NEWEST, READ
-FIRST). Verdict + deployed + next.
+STATUS: live (2026-09-08 evening - 20.349 BANKED: THE SESSION-STATE
+SETTER IS FOUND. set_session_state(session, new_state, reason) at
+0x1417B3600 is the ONLY function that writes [sess+0x1AEF8] to a
+caller-supplied value, and it is reachable from the connection-layer
+receive region in THREE DIRECT CALLS from six entry points. The 4->6
+climb is no longer a wall of unknown shape. STILL OPEN: which session
+the world-change executor evaluates (a RUNTIME SELECTOR - boot readout,
+not static), and whether any reachable path passes a 6. See
+HANDOFF_2026-09-08_GATE-MACHINE.md then FINDINGS 20.349). Verdict +
+deployed + next.
+
+*** 20.349 (PHASE 1+2, STATIC, NO BOOT - THE NEWEST VERDICT): THE
+## CLIMB'S LEVER IS NAMED AND ITS DISTANCE FROM THE WIRE IS MEASURED.
+## - R0 IMAGE ORACLE (run before any scan): the gate site 0x140C0917B
+##   reads BYTE-IDENTICAL in destiny2_unpacked_full.exe and the carved
+##   destiny2_runtime_p2-206.exe (41 8b 86 f8 ae 01 00 = mov eax,
+##   [r14+0x1aef8]; then add eax,-6 / cmp eax,3 / jbe). 20.348's cited
+##   evidence and the 6..9 window INDEPENDENTLY CONFIRMED; the standard
+##   toolchain is valid in this neighborhood (NOT image-wide).
+## - R1/R2 THE EXECUTOR'S r14 IS A CALL RETURN, not a param (anchor
+##   note: 0x140C090B0 is a FRAGMENT of primary 0x140C09010). It calls
+##   0x140C03F70 -> 0x140C03EF0, which returns base + 0x18 +
+##   [elem+0x10]*0x1C8A0 - VERBATIM 20.109's session-container accessor.
+##   The executor evaluates a session from THE SAME CONTAINER the join
+##   gate walks (the one holding our sessions at 6 AND the fork's at 4).
+## - R3 WHICH member is a RUNTIME SELECTOR (idx vs idx XOR 1, chosen
+##   from the executor's own args) - NOT decidable statically. 20.348
+##   R3's question stays a BOOT READOUT.
+## - R4/R5/R6 WRITER CENSUS: 497 accesses, 5 real writers (one reported
+##   write was a stack false positive). Two write -1, one writes 0, one
+##   is a TEARDOWN (0x14178CD97, invalidates the session id alongside).
+##   THE FIFTH IS THE SETTER: 0x1417B3600, signature read from the
+##   prologue = set_session_state(rcx=session, edx=new_state,
+##   r8d=reason); it stores an ARBITRARY caller value and detects the
+##   liveness EDGE into/out of 4..9. 10 direct call sites.
+## - R7 REACHABILITY (callgraph.db rebuilt: 184,680 direct edges +
+##   136,457 slots): six receive-region entry points reach the setter,
+##   three at DEPTH 3 (0x1416DF360 / 0x1416DFD50 / 0x1416E0250), three
+##   of them in the SAME 0x1416E0xxx handler block as the join gate
+##   (0x1416E0460) and peer-connect (0x1416E0E10). Not a vtable target.
+## - R8 THE LIMITS (do not oversell): reachability is NOT execution. No
+##   branch condition on those paths is read; NO message id is
+##   identified (the OOB dispatch is a byte-map switch - 0 pointer
+##   slots on all nine handlers, so slot queries cannot name ids); and
+##   the value in edx at the call sites is UNREAD, so nothing here shows
+##   a 6 is ever passed. Direct-call-only walk => six is a FLOOR.
+## - R9 TOOL DEFECT (Tier-1): field_xref skips the REX prefix - wrong VA
+##   AND wrong registers (it called the setter's base rsi/edi when it is
+##   r14/r15d). Logged as TOOLING_AUDIT T1.5. Every writer here was
+##   re-read by linear disassembly before use.
+## NEXT: (a) read the branch conditions + the edx value on the three
+##   depth-3 chains - does any reachable path pass 6..9; (b) name the
+##   entry points' message ids via the 20.319 OOB switch decode; (c) the
+##   p2-211 boot arm still owes WHICH session the executor evaluates.
+## Full text: FINDINGS 20.349. ***
 
 *** 20.345-20.347 (THREE SUBAGENT LANES, all local, no boot): THE
 ## CONSOLIDATED FRONT COLLAPSED TO ONE TRIGGER: ACTIVITY ENTRY.
