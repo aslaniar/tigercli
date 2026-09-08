@@ -1,17 +1,53 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 late - 20.350 BANKED: THE STATE-9 PATH IS READ
-END TO END. One dispatch id (21, in dispatcher 0x1416DF360's OWN
-namespace - NOT the OOB 21, NOT the entity-grant 21, NOT svc21) routes
-to a handler that walks the join gate's own container and drives the
-found session to STATE 9 - inside the 6..9 live window the world-change
-executor requires. Its state precondition ADMITS 4, which is where our
-sessions sit. STILL UNKNOWN: which wire message carries that id and
-whether the fork can emit it; three runtime conditions never measured.
-Read HANDOFF_2026-09-08_GATE-MACHINE.md, then FINDINGS 20.349-20.350).
-Verdict + deployed + next.
+STATUS: live (2026-09-08 late - 20.351: THE PLANE IS THE CONNECTED-GATE
+EVENT PUMP, not BAP (that lead was tested and FAILED - retracted in
+20.351 R2). Id 21 is an EVENT TYPE; the pump is MESSAGE-FED and THE FORK
+ALREADY DRIVES IT (its own connection climbed to CONNECTED on event
+type 4 through this exact chain). Still unnamed: which message body
+emits event type 21. THE NEXT MOVE IS A BOOT, not more static: the
+already-spec'd evt_sub instrument logs every arriving event type and
+answers it empirically, alongside the guard readout and p2-211's
+executor arm. Read FINDINGS 20.349-20.351). Verdict + deployed + next.
 
-*** 20.350 (STATIC, NO BOOT - NEWEST): THE THREE CHAINS READ; ONE
+*** 20.351 (STATIC, NO BOOT - NEWEST): THE PLANE NAMED, A LEAD
+## RETRACTED, AND THE QUESTION HANDED TO AN INSTRUMENT.
+## - The id is an OUT-PARAM of the wire decode 0x1416E3140 (called with
+##   the connection; out: id/len/payload, 0x40000 cap) inside the pump
+##   0x1416D56C0; it becomes the dispatcher's arg7.
+## - RETRACTED IN FULL: "the plane is BAP". Two independent disproofs -
+##   (a) ZERO rip-relative refs from the dispatcher/handlers/hops into
+##   the BAP name strings (the object at 0x141CA3570 is a LOG CATEGORY;
+##   the names merely neighbour it); (b) the fork's own frame.h makes 21
+##   a REQUEST service (client->server), inconsistent with a client-side
+##   receive dispatcher. SAME ERROR CLASS AS 20.350 R7 (adjacency read
+##   as identity) - committed TWICE this session, caught both times only
+##   by running a test the inference could fail.
+## - WHAT IT IS (and the project already mapped it): 0x1416DF360 = THE
+##   CONNECTED-GATE DISPATCHER, arg7 = EVENT TYPE 4..44, every arm
+##   requiring [conn+0x1D18]==5. Pump chain 0x1417E5B20 -> 0x1416D4A30
+##   -> 0x1416D4B00 -> 0x1416D56C0 (re-derived here independently, then
+##   matched to the prior finding); 0x1416E3140's out-param is already
+##   named THE EVENT SUBTYPE with a spec'd instrument (evt_sub,
+##   BOOT_BRIEF_p2-196) that was NEVER BUILT.
+## - FAVOURABLE CONSEQUENCE: the pump is MESSAGE-FED (root 0x1417E5A10,
+##   a registered message handler; decoder 0x1417E6140) and THE FORK
+##   ALREADY FEEDS IT - the fork's connection climbed the ladder on
+##   event type 4 through this chain. The state-9 path is therefore NOT
+##   client-internal-only.
+## - NOT NAMED, DO NOT ASSERT: which message body emits event type 21,
+##   and therefore whether the fork can emit it at will. 0x1417E5A10
+##   builds the event record in a loop over iterator 0x1417C82F0 -
+##   reading that decode is the remaining static chain, NOT done.
+## NEXT (the cheap route is now empirical): ONE BOOT carrying (1) evt_sub
+##   - every call of 0x1416E3140, logging the out-param: which event
+##   types arrive, on which connection, does 21 EVER arrive; (2) the
+##   guard readout C2b/C2c/C3 on a live session; (3) p2-211's standing
+##   arm - which session the world-change executor evaluates. The
+##   evt_sub instrument must be BUILT first (spec'd p2-196, never
+##   shipped). Full text: FINDINGS 20.351. ***
+
+*** 20.350 (STATIC, NO BOOT): THE THREE CHAINS READ; ONE
 ## PASSES 9. Each depth-3 chain writes a CONSTANT new state:
 ## chain 1 (entry 0x1416DF360) edx=4 reason 0x90 - the value we are
 ## stuck at; chain 2 (0x1416DFD50) edx=0xa reason 0xdc8 - the setter's
