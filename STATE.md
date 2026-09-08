@@ -1,7 +1,30 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-07 evening - 20.336-20.338 banked; p2-211 STAGED, never
-ran). Verdict + deployed + next only.
+STATUS: live (2026-09-07 evening - 20.339 banked: the "VMP wall" retired, the
+master flag named af0 @ 0x142037AF0, =0 in every archived boot). Verdict +
+deployed + next only.
+
+*** 20.339 (STATIC, NO BOOT - READ FIRST ON THE ROW-8 FRONT): THE GATE CLUSTER
+## IS A READABLE ARMED-STATE MACHINE AND THE MASTER FLAG NEVER ARMS. The
+## on-disk exe is encrypted at EVERY code site; the dump memory is the truth -
+## carve_runtime_image.py rebuilt it (oracles PASS) and Ghidra decompiled the
+## 116-function neighborhood directly. Findings: (1) VMProtect virtualization
+## exists (168 verified .vmp0 entries image-wide) but ZERO near the
+## construction chain; .vmp0 at rest = 69.5% zeros + plain RVA table, not
+## active bytecode. (2) The gate cluster (0x142037AF0..B40): af0=master switch
+## (read everywhere, WRITTEN NOWHERE in any form - .text/.vmp0/absolute all
+## scanned), af3=1 + B00=7 + AF8=ts = "transition armed" (set by
+## FUN_1416fd0a0 / FUN_1416fbb40(5), both called only from the consumer tick
+## 0x1416FCE01), b07/b08/b09/b0a/b04 = consumed-then-cleared sub-flags,
+## b18 = 0x100-byte data buffer. (3) THE "VM-OBFUSCATED" RING SITES ARE
+## POINTER-DECRYPTION HELPERS (global -> XOR chain -> real object pointer;
+## terminal constant 0xab1f3b47; pointer globals per-boot-encrypted) - logic
+## is plain; pointers are hidden. (4) RUNTIME: af0=0 in EVERY archived dump
+## (byte-identical cross-artifact; b04=1, b09=1, b0a=1 idle). THE ARMING
+## INPUT IS CLIENT-INTERNAL = the transport-JOB dispatch row 8 parked, now
+## with a named flag and a hunt path (WHO re-encrypts _DAT_143051fa8).
+## Full text: FINDINGS 20.339; artifacts RE_output/content/carve_*.txt +
+## gate_census_p2-206.txt. Composes with the staged p2-211 counter boot. ***
 
 *** 20.337/20.338 (2026-09-07 evening, STATIC + p2-206 artifacts, NO BOOT): THE
 ## CONSTRUCTION CHAIN IS REGISTERED AND LIVE, C2 IS BUILT AS A PATCH, AND STAGE
