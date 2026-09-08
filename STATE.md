@@ -16,6 +16,19 @@ all .claude worktrees removed. *** NETWORK: all three settings re-pointed
 192.168.1.7 -> 192.168.1.164 for WiFi (verified current IP .164); revert
 if the user returns to ethernet.) Verdict + deployed + next.
 
+*** 20.356 (p2-214, BOOT 2 - NEWEST): GATE-1 REFUTED (our session's f4b8/f9d8
+## non-null on both machines); THE EXECUTOR IS EVENT-DRIVEN (8 passes/boot:
+## world changes + the rig's join - the 163K getter polls are a DIFFERENT
+## consumer); ATTACH #2 fired with an SOID (0x9EAA300100200003, join-driven,
+## pre-poke) and STILL no activation; THE WALL IS NAMED: the phase-init
+## sequencer (0x140B37BF0) has zero callers and no dispatch row - the
+## activation chain is unreachable without forcing (boot 3 = P4 direct-call
+## it + P1-raw the state write, because the rig freeze is setter-call-
+## specific 2/2). Payload shapes captured: 8->00000008, 30->00007980,
+## 38->0000AC20 (size-dword-first). CORRECTION: boot 1's executing poke was
+## the MAC's (0x4631748 = p2-195's slot5, deterministic heap). Full text:
+## FINDINGS 20.356. ***
+
 *** 20.355 (p2-213, THE POKE BOOT - NEWEST): STATE 9 IS ACHIEVABLE (the
 ## setter call works from the detour; both machines; the rig's session was
 ## 0x4631748 exactly) - AND THE CASCADE DID NOT FOLLOW. attach_w fired ONCE
