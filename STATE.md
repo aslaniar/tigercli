@@ -16,6 +16,19 @@ all .claude worktrees removed. *** NETWORK: all three settings re-pointed
 192.168.1.7 -> 192.168.1.164 for WiFi (verified current IP .164); revert
 if the user returns to ethernet.) Verdict + deployed + next.
 
+*** 20.354 (PRE-BOOT CORRECTION - READ BEFORE ANY BOOT READOUT): 20.339 R6's
+## af0 value is a TRANSCRIPTION SWAP. af0 (0x142037AF0) = 0x01 in EVERY
+## archived dump (p2-150/180/205/206, byte-identical; mapping proven by the
+## 0x143051FA8 oracle = the record's own bytes; the pre-20.339 findings
+## already read "master, armed"=1). AF8=0, not 1. WHAT SURVIVES: "the
+## activation job never ran" - on b09=1 (f7da0's sequence clears b09; b09=1
+## everywhere). af0 is DEAD as a boot readout (constant 1); the never-seen
+## signals are the TRANSITION-ARMED TRIO af3/B00/AF8 (0/0/0 everywhere) plus
+## the b05/b07/b09 clears. recv_root's tail gate 0x1416FC6D0 = the gate
+## cluster bytes themselves (af0/AF2/AF3/B09/B0A) - ALL satisfied in every
+## dump, so its bail is deeper (0x1412AADF0/0x1416FCC10/0x1416FBEF0 +
+## obj[+0x30]/[+0x31]). Full text: FINDINGS 20.354. ***
+
 *** 20.353 (p2-212, PAIRED BOOT, COMPLETE ARCHIVE - NEWEST): the front
 ## collapses to one missing input. R1 exec_sess = 0x4631748 sid=2, THE
 ## FORK'S session, state 1->2->4 then stops (20.350 R3 answered by
