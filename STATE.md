@@ -16,6 +16,23 @@ all .claude worktrees removed. *** NETWORK: all three settings re-pointed
 192.168.1.7 -> 192.168.1.164 for WiFi (verified current IP .164); revert
 if the user returns to ethernet.) Verdict + deployed + next.
 
+*** 20.355 (p2-213, THE POKE BOOT - NEWEST): STATE 9 IS ACHIEVABLE (the
+## setter call works from the detour; both machines; the rig's session was
+## 0x4631748 exactly) - AND THE CASCADE DID NOT FOLLOW. attach_w fired ONCE
+## at LANDING (the executor evaluated the client's OWN session at 6 and
+## attached); after our session went 9: no attach, f7da0=0, phase_init=0,
+## gatewatch flat - state alone is not enough. THE LADDER IS TRACED: our
+## climb 1/2/4 with named callers (chain-1 = 0x90), the working case named
+## (the client's own 6s via caller 0x141772A0E, reason 0 - a fourth call
+## site). RECV_ROOT'S BAIL EXPLAINED: obj_gate (0x1412A8C70) returns FALSE -
+## the object behind _DAT_142F2C8E0 does not exist (a second never-
+## constructed singleton). Event 21 still absent (in-range clean 8/26/1E;
+## new defect: evt_sub's second call site leaks 0xBExxxxxx junk ids).
+## The rig froze on network_update stalled 28s after its mid-spawn poke
+## (pre-named risk #2). NEXT STATIC: the executor primary 0x140C09010's
+## full condition list; _DAT_142F2C8E0's constructor; the event-21 wire
+## format; the 0x141772A0E caller chain. Full text: FINDINGS 20.355. ***
+
 *** 20.354 (PRE-BOOT CORRECTION - READ BEFORE ANY BOOT READOUT): 20.339 R6's
 ## af0 value is a TRANSCRIPTION SWAP. af0 (0x142037AF0) = 0x01 in EVERY
 ## archived dump (p2-150/180/205/206, byte-identical; mapping proven by the
