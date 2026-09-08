@@ -1,13 +1,11 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 - 20.345-20.347: THE THREE LANES CONVERGE ON
-ACTIVITY ENTRY. The attachment driver IS the activity/world-change
-executor (gated on the managed-session window 6..9); the activation
-class's phase-init sequencer never started; the target-address
-transcription was corrected (0x142B0E210 dead, the true global is the
-record's 0x14280E210, populated). THE FORK-SIDE LEVER: drive an
-ACTIVITY/WORLD-CHANGE LOAD while a managed session is live). Verdict +
-deployed + next.
+STATUS: live (2026-09-08 - 20.348 CORRECTION BANKED: "runs in missions"
+RETIRED. The gate is world-change x MANAGED-SESSION-LIVE (6..9) - the
+tower qualifies in retail; in our boots the evaluated session sits at 4.
+THE FORK-SIDE LEVER CANDIDATE = the session-state climb 4->6 (the parked
+front, reopened). See HANDOFF_2026-09-08_GATE-MACHINE.md - NEWEST, READ
+FIRST). Verdict + deployed + next.
 
 *** 20.345-20.347 (THREE SUBAGENT LANES, all local, no boot): THE
 ## CONSOLIDATED FRONT COLLAPSED TO ONE TRIGGER: ACTIVITY ENTRY.
