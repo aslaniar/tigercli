@@ -268,7 +268,8 @@ def check_hooks(rep, no_traps):
     except ImportError:
         rep.warn("hook_targets unavailable - table arithmetic not checked")
         return
-    hooks = ROOT / "RE_build/Sunrise-fork-inventory/Sunrise/src/client/hooks"
+    hooks = Path(os.environ.get("RE_HOOKS_DIR",
+                                str(ROOT / "RE_build/Sunrise-fork-inventory/Sunrise/src/client/hooks")))
     if not hooks.is_dir():
         rep.warn(f"hook tree missing: {hooks}")
         return

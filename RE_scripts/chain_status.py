@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# REGISTRY: caps: chain-status, boot-readout
+# REGISTRY: caps: chain-status, stage-b-readout
 """chain_status.py - measure FRONT_multiplayer-chain.md's rows from a boot's logs.
 
 THE POINT: the chain chart must never be re-derived by hand. Every row that a

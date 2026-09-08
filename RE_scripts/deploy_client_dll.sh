@@ -15,7 +15,7 @@ bash "$(dirname "${BASH_SOURCE[0]}")/log_archive.sh" --label auto || true
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-built="$root/RE_build/Sunrise-fork-inventory/build/steam_api64.dll"
+built="${CLIENT_BUILT:-$root/RE_build/Sunrise-fork-inventory/build/steam_api64.dll}"
 helper="$root/RE_scripts/rig_dll_helper.py"
 RIG_HOST="rasla@192.168.1.136"
 RIG_DLL='C:\Users\rasla\Downloads\destiny-preservation\dcv build\bin\x64\steam_api64.dll'

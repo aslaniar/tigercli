@@ -37,8 +37,10 @@ WH_PREFIX="${WINEPREFIX:-$HOME/Library/Application Support/Sunrise/pfx}"
 stall=${STALL:-30}
 interval=${INTERVAL:-2}
 mode=loop
+persistent=1
 [ "${1:-}" = "--once" ] && { mode=once; shift; }
 [ "${1:-}" = "--selftest" ] && mode=selftest
+[ "${1:-}" = "--single-session" ] && { persistent=0; shift; }
 while [ $# -ge 2 ]; do
   case "$1" in
     --stall) stall=$2; shift 2;;
@@ -65,9 +67,17 @@ client_pid() {
 log_size() { [ -f "$CLIENT_LOG" ] && stat -f%z "$CLIENT_LOG" 2>/dev/null || echo 0; }
 
 winedbg_winpid() {
-  # windows pid of destiny2.exe from inside the SAME wine session (hex)
-  WINEPREFIX="$WH_PREFIX" WINEDEBUG=-all "$WH_WINE" winedbg --command "info process" 2>/dev/null \
-    | /usr/bin/grep -i 'destiny2\.exe' | head -1 | awk '{print "0x"$1}'
+  # windows pid of destiny2.exe from the wine session that ACTUALLY owns it.
+  # The prefix is discovered, not assumed: a GUI (Whisky) launch runs from
+  # ~/Library/Containers/com.franke.Whisky/Bottles/<id>, a script launch from
+  # ~/Library/Application Support/Sunrise/pfx - probing the wrong one shows a
+  # process list with NO destiny2 (hit 2026-09-07 20:31).
+  local pid="$1" pfx
+  pfx=$(lsof -p "$pid" 2>/dev/null \
+        | /usr/bin/grep -oE '/Users/[^ ]*(Sunrise/pfx|Whisky/Bottles/[A-F0-9-]+)' | head -1)
+  [ -n "$pfx" ] || return 0
+  WINEPREFIX="$pfx" WINEDEBUG=-all "$WH_WINE" winedbg --command "info process" 2>/dev/null \
+    | /usr/bin/grep -i 'destiny2' | head -1 | awk '{print "0x"$1}'
 }
 
 capture() {
@@ -158,6 +168,11 @@ while :; do
       fi
       gone=$((gone+1))
       if [ "$gone" -ge 2 ]; then
+        if [ "$persistent" -eq 1 ]; then
+          echo "freeze_watch: client exited; captures: $captures - re-arming for the next launch (persistent)"
+          seen=0; gone=0; fired=0; death_archived=0; tick=0; captures=0
+          continue
+        fi
         echo "freeze_watch: client exited; captures this session: $captures - exiting"
         exit 0
       fi
