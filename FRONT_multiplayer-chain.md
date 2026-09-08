@@ -1,6 +1,7 @@
 # FRONT - THE MULTIPLAYER CHAIN (mechanism-grounded; replaces hypothesis tracking)
 
-STATUS: live (2026-09-08, built in 20.336). This chart tracks THE CHAIN THE GAME
+STATUS: live (2026-09-07 evening, built in 20.336, updated through 20.338).
+This chart tracks THE CHAIN THE GAME
 ACTUALLY FOLLOWS - each row is a thing that must be true for a peer's guardian to
 appear, in causal order. It is NOT a list of the project's hypotheses.
 
@@ -52,9 +53,9 @@ MEASURED ON p2-206 (complete archive, both clients in the tower):
 
 | # | What must be true | Owner | Status | Evidence |
 |---|---|---|---|---|
-| B1 | A peer is composed into the body | server | **MOSTLY YES** | 482 of 545 snapshots carried a peer. The 63 that did not: `same_account` x48, `none_joined` x9 (before the rig joined), `same_client` x5, `identity_missing` x1 |
+| B1 | A peer is composed into the body | server | **MOSTLY YES** | 482 of 545 snapshots carried a peer. The 63 that did not: `same_account` x48, `none_joined` x9 (before the rig joined), `same_client` x5, `identity_missing` x1. 20.338 R4: the 48 same_account are ONE CONTIGUOUS JOIN TRANSIENT on session ...0004 (t=1266048..1502175, starting ~1.2k ticks after it committed, ending after ~4 min; after it, that session emits peer=1 for 456 of its 482 remaining snapshots) - the guard is FINE, nothing to loosen |
 | B2 | The row is actually published | server | **THROTTLED, cause unknown** | included=70, paced=412, gained=5. Whether 70 publications in a 5-minute boot is adequate is UNMEASURED - the duty cycle is 30s and nobody has checked what the client needs |
-| B3 | Both clients receive rows at a workable rate | server | **UNRESOLVED** | rows naming the mac: 65; naming the rig: 3. This is NOT established as starvation - it must be checked against join times and the duty cycle first |
+| B3 | Both clients receive rows at a workable rate | server | **MEASURED (20.338): SESSION LIFETIME CHURN** | rows naming the mac: 65; naming the rig: 3 - but both key sets span the SAME window (t=1265942..5649748 vs t=1510967..5317966), so it is NOT the duty cycle and NOT join timing. The cause is session LIFETIME: the rig's session ...0004 is long-lived (456 snapshots) while the mac's churn (6-9 each, then replaced; ...0001 emitted 9, all pre-join). WHY the mac's activity sessions are short-lived is the open question - server-side, in the fork's code |
 | B4 | The row carries the peer's account + character | server | WIRED | `stage=identity result=ok key=0xE4DD... acct=0x9EAA300100100100 character=0x9EAA300100100101`; field5 IS the character; both accounts held distinctly (key=0 and key=1) |
 | B5 | The client can LOAD that character's data | server+client | UNREACHED | 20.295 R0/R1: the client READS the character field and a named NON-LOADED character BLOCKS instantiation |
 | B6 | The row carries a reachable address ("citizen") | server | UNVERIFIED | `membership_peer_same_region_advert` is TRUE today, never re-measured on a REAL peer row |
@@ -70,9 +71,13 @@ WHY THE GUARDS EXIST - DO NOT SIMPLY DELETE THEM. `same_client` and
                  client refuses that roster as `tried-to-join-self`; it cost TWO
                  HARD CLIENT FREEZES (20.64).
 
-THE NEXT HONEST STEP FOR STAGE B (not yet taken): correlate the three line
-families on ONE boot against each machine's join time, and establish what
-publication rate the client actually requires, before changing anything.
+THE NEXT HONEST STEP FOR STAGE B (updated 20.338 - the correlation step WAS
+taken, and it changed the answer): the asymmetry is SESSION LIFETIME, not a
+publication-rate problem. The open question is WHY the mac's activity sessions
+are short-lived (6-9 wire snapshots each, then replaced) - server-side, in the
+fork's code. Nothing currently logs WHO tears a session down, so the p2-211
+server arm adds a `stage=session_release` line on the single teardown path
+(release_session) so the churn can finally be attributed.
 
 ## STAGE C - ENTITY SUPPLY  (partial)
 
@@ -86,8 +91,8 @@ publication rate the client actually requires, before changing anything.
 
 | # | What must be true | Owner | Status | Evidence |
 |---|---|---|---|---|
-| D1 | The four ent receive-block objects EXIST on the client | client | **NOT DONE - the wall** | zero heap instances in SIX dumps (p2-146, p2-180, p2-205, p2-206 + 2). Re-tested 2026-09-08 with the correct needle (vtable bases, 20.336 R4) - still zero |
-| D2 | The chain that builds them is entered | client | **NEVER RUNS** | 9 hops, EVERY ONE single-caller: `0x140B5ECD0 -> 0x1416FCDF0 -> 0x1416F6640 -> 0x141709800 -> 0x141702580 -> 0x141703910 -> 0x1416FF3C0 -> 0x1416CA0B0 -> 0x1416BB1E0`. The root has NO direct callers - it sits in a VTABLE slot, .rdata RVA 0x1C166A0. So construction is a VIRTUAL METHOD that is never invoked |
+| D1 | The four ent receive-block objects EXIST on the client | client | **NOT DONE - the wall** | zero heap instances in SIX dumps (p2-146, p2-180, p2-205, p2-206 + 2). Re-tested 2026-09-08 with the correct needle (vtable bases, 20.336 R4) - still zero. 20.338 R2/R3 refines what this means: the SUBSYSTEM is REGISTERED AND LIVE (the descriptor object on the heap with the exact registration arguments, the root's address in nine byte-identical records) - what is measured is only that the CONSTRUCTOR never ran |
+| D2 | The chain that builds them is entered | client | **REGISTERED AND LIVE; DISPATCH UNMEASURED** | 9 hops, EVERY ONE single-caller: `0x140B5ECD0 -> 0x1416FCDF0 -> 0x1416F6640 -> 0x141709800 -> 0x141702580 -> 0x141703910 -> 0x1416FF3C0 -> 0x1416CA0B0 -> 0x1416BB1E0`. The root has NO direct callers - it is entry 0 of a 14-entry handler table (.rdata RVA 0x1C166A0) registered by one readable VMP call, and the registration RAN (20.338 R1/R2). CORRECTED 20.338 R3: "never invoked" is NOT established - a dump cannot separate runs-and-bails from never-dispatched. The read-only call counter on 0x140B5ECD0 (the p2-211 client probe, staged) settles it in one boot |
 | D3 | The server sends a peer entity | server | DONE | p2-197: `result=sent` x8, packets acked, no drops |
 | D4 | The client CONSUMES it | client | NOT DONE | silent - blocked by D1, not by the wire |
 
@@ -103,17 +108,21 @@ publication rate the client actually requires, before changing anything.
 TWO independent things are missing, and they may be the same thing:
 
   STAGE B  the client has a player slot for the peer but NO IDENTITY IN IT -
-           no account, no character. Server-owned, never sent, cheap to test.
-  STAGE D  the machinery that would receive a peer's body is never built.
-           Client-owned, and the construction path is a virtual method that
-           never fires.
+           no account, no character. Server-owned. Rows DO flow (482/545
+           composed, published on the 30s cycle) but the mac's short-lived
+           sessions receive almost nothing about the rig - the churn is the
+           question (20.338 R4).
+  STAGE D  the machinery that would receive a peer's body is never BUILT
+           (measured). The chain that would build it is REGISTERED AND LIVE
+           (20.338) - the open question is whether its root is ever
+           dispatched, which the p2-211 counter answers.
 
 THE LINK WORTH TESTING FIRST: D may be DOWNSTREAM OF B. A client with an
 anonymous player slot has nothing to build a body FOR - so it may never
 construct the receive machinery. That is a testable ordering, not a claim:
 fill in B (server-side, allowed) and re-census D1 from a dump. If D1 stays at
 zero with the peer fully identified, then D is genuinely independent and the
-question becomes what owns the vtable at RVA 0x1C166A0.
+counter readout decides between runs-and-bails and never-dispatched.
 
 WHAT IS *NOT* ON THIS CHART, AND WHY: the join gate, the state ladder, the
 retarget arms, the (3,4) stall, the view message, the type-9/51 designations,

@@ -1,7 +1,38 @@
 # STATE - living snapshot
 
-STATUS: live (2026-09-08 - 20.336 archive audit + the corrected front). Verdict +
-deployed + next only.
+STATUS: live (2026-09-07 evening - 20.336-20.338 banked; p2-211 STAGED, never
+ran). Verdict + deployed + next only.
+
+*** 20.337/20.338 (2026-09-07 evening, STATIC + p2-206 artifacts, NO BOOT): THE
+## CONSTRUCTION CHAIN IS REGISTERED AND LIVE, C2 IS BUILT AS A PATCH, AND STAGE
+## B'S ASYMMETRY IS SESSION CHURN. (1) THE VTABLE READ: the receive-block
+## construction chain's root 0x140B5ECD0 is entry 0 of a 14-entry handler table
+## registered by one readable VMP call (header{count=1,6 fns}@0x141C16660,
+## table@0x141C166A0) - and the registration RAN: in the p2-206 dump the
+## descriptor object is live on the heap carrying the exact registration
+## arguments, the root's address sits in NINE byte-identical heap records, the
+## ent ctor 0x1416BB1E0 has ZERO heap refs (blocks absent, consistent), control
+## needle 0 (scan sound). So "architecturally unreachable" is NOT what the
+## artifact says - what is measured is ONLY that the CONSTRUCTOR never ran;
+## whether the root executes-and-bails or is never dispatched is NOT settled and
+## must not be asserted either way. The settling instrument: a READ-ONLY call
+## counter on 0x140B5ECD0 - one boot, one number. (2) STAGE B: the 48
+## same_account refusals are a CONTIGUOUS JOIN TRANSIENT on ONE session (~1.2k
+## ticks after commit, ends after ~4 min; then 456 of 482 snapshots carry a
+## peer) - the guards are FINE, nothing to loosen. The 65:3 asymmetry is NOT the
+## duty cycle and NOT join timing - it is SESSION LIFETIME: the rig's session is
+## long-lived (456 snapshots) while the mac's churn at 6-9 each, then replaced.
+## WHY the mac's activity sessions churn is the open Stage-B question,
+## server-side in the fork. (3) C2 BUILT, NOT DEPLOYED:
+## 0001-c2-cross-member-allocation.patch - member_identities(): one row per
+## joined MACHINE, caller first (base 0 never moves), behind
+## gameplay.entity_index_allocation_cross_member (default OFF = v1 byte-exact);
+## empty walk falls back to v1's single row (can never publish an empty
+## allocation). C1 WITHDRAWN: the cadence is fine (17 pushes spread across the
+## whole boot). (4) 20.336's corrections stand beneath this: startup-only server
+## logs for 3 of the last 4 boots, p2-207's ledger record VOIDED, the row-8
+## census needle fixed (vtable bases, not handler addresses) - verdict re-tested.
+## Full text: FINDINGS 20.336-20.338; the live chart is FRONT_multiplayer-chain.md. ***
 
 *** 20.336 (STATIC, NO BOOT - READ BEFORE ACTING ON ANY p2-207..p2-210 CLAIM):
 ## THREE CORRECTIONS AND A NEW FRONT.
@@ -464,49 +495,52 @@ VERDICT TRAIL (one line each; full text in FINDINGS):
   20.295 p2-174: the client READS the row's character field; knob is SOLO-ONLY.
   20.294 eventType not the routing key; wire->image CLOSED at the queue interior.
 
-## DEPLOYED (2026-09-07 ~22:40 - p2-203 staged, server-only)
+## DEPLOYED (as recorded by the p2-206..210 session, 2026-09-07; verified only
+##    against the 20.335 headline record - the pre-boot checklist still applies)
    NETWORK   mac 192.168.1.7 (ethernet; identity caches the stale .164 -
              the decoder accepts either); rig 192.168.1.136.
-   server    95cf0e93dcbc69d6 RUNNING (adds the type-51 bubble-startup echo
-             per join burst behind activity_bubble_startup=true - the
-             femu-validated wire form echoing each client's own captured
-             SteamNetworkingIdentity; the identity capture rides the
-             matchmaking advertisement (ev=identity stage=capture); the
-             type-9 duty-cycle RETIRED (activity_start_host_push=false,
-             20.327 structural); still includes the 20.325 type-20 fix;
-             settings backup .bak_p2-203_pre_bubblestartup + the exe/cache
-             pair).
-   clients   be5807eca028ddea on BOTH machines (unchanged, the audited
-             platform; the tree client build is unshipped work - the
-             preflight client pair FAILS knowingly, D-049).
-   brief     BOOT_BRIEF_p2-203.md (GATE PASS) - front bubble-startup,
-             streak 0.
-   logs      RE_output/logs/<today's stamps>; p2-199's logs were never
-             archived (its readout lives in the FRONT chart only).
+   server    55bfc8d8732fcb32 (the state-hash instrument, gated on
+             membership_sweep; still includes the p2-203 type-51
+             bubble-startup echo behind activity_bubble_startup and the
+             20.325 type-20 fix).
+   clients   be5807eca028ddea on BOTH machines (the audited platform; the
+             tree client build is unshipped work - the preflight client pair
+             FAILS knowingly, D-049).
+   settings  PLAYABILITY: sweep OFF, clientBase TRUE (the stable+TRUE cell,
+             20.335).
+   logs      RE_output/logs/<today's stamps>; ARCHIVE WARNING (20.336 R1):
+             server logs were startup-only (24/41/24 lines) for 3 of the
+             last 4 boots - verify the archive is complete before reading
+             any null.
 
 
-## NEXT - THE ALLOCATION CROSS-MEMBER MAP (20.336; supersedes the checksum lane)
-##  1. (SHIPPED, this session) Phase 1: the type-20 allocation names EVERY
-##      session member, not just the joiner, with a distinct indexBase per
-##      member, and re-pushes on a duty cycle so the client's manager stays
-##      above its low-water mark (low=100). Encoder already supported 64 rows;
-##      only the call site passed one. Behind
-##      gameplay.entity_index_allocation_cross_member (default OFF) and
-##      gameplay.entity_index_allocation_refill_ms (0 = off).
-##  2. (NEXT) ONE PAIRED BOOT. PRE-NAMED READOUT, readable either way:
-##      - mgr_free stays > 0 past landing (today: 0 for the whole boot)
-##      - the site-214 `failed to create 'player_broadcast' entity` count falls
-##        from 17-80 toward 0 (today: present in EVERY boot ever archived)
-##      - server: `index_allocation push members=N` with N = session members
-##      ABSENCE NEGATIVE: if members=N ships and mgr_free still reads 0, the
-##      client is not consuming the cross-member rows and the type-20 decode
-##      (not the count) is the wall - that is a real verdict, not a null.
-##  3. (ONLY THEN) the checksum, with the sweep OFF, as a stability item.
-##  DO NOT: spend a boot on the site-269 verifier read (it serves a regression
-##      the sweep INSTRUMENT induced); re-run the self-peer-row arm PAIRED (it
-##      is solo-only, 20.295 R3); cite 20.53 as a render control (retracted
-##      2026-08-25 - the clone was the local player); re-census ent instances
-##      with handler-address needles (20.336 R4).
+## NEXT - THE PAIRED p2-211 BOOT (Stage D counter + Stage B lifetime + C2), STAGED NEVER RAN
+##  The Claude session died at its limit AFTER writing the staging, BEFORE
+##  running it. Staging worktree .claude/worktrees/fork-p2211 (nested fork repo
+##  at HEAD 3578d98 + the 13 uncommitted deployed files carried over) holds
+##  apply_p2211.py - WRITTEN, VERIFIED UNAPPLIED (0 hits for both edits). It
+##  adds: (a) CLIENT the recv_root read-only call counter (RVA 0xB5ECD0, exact
+##  .pdata bounds offset 0, budget caps EMITS only, kTargetsSize 68->69);
+##  (b) SERVER release_session teardown logging (ev=activity
+##  stage=session_release). SEPARATELY WAITING: 0001-c2-cross-member-allocation.patch
+##  (the 20.337 C2 arm, also unapplied). PRE-NAMED READOUT, readable either way:
+##  - recv_root calls=0 -> nothing dispatches entry 0; the question moves to what
+##    owns/dispatches the table. calls>0 -> it runs and bails, and the bail is a
+##    static read of a readable 1181-byte function - likely server-satisfiable.
+##  - server: session_release lines name WHO tears the mac's sessions down
+##    (20.338 R4's churn question).
+##  - C2 arm (if applied): mgr_free stays >0 past landing; site-214
+##    `failed to create 'player_broadcast' entity` falls from 17-80 toward 0;
+##    `index_allocation push members=N` with N = session members.
+##  ABSENCE NEGATIVES: members=N ships and mgr_free still reads 0 -> the client
+##    is not consuming cross-member rows (real verdict, not a null). Guard the
+##    server log ARCHIVE (20.336 R1: 3 of the last 4 boots logged startup-only).
+##  DO NOT: assert the root is never dispatched (unmeasured either way); loosen
+##    same_account (a join transient, 20.338 R4); raise the 30s duty cycle
+##    (`paced` is not a failure, 20.337 R3); deploy C2 without testing the
+##    default-OFF settings flip; run the p2(42) arm PAIRED (solo-only,
+##    20.295 R3); cite 20.53 as a render control (retracted); re-census ent
+##    instances with handler-address needles (vtable bases only, 20.336 R4).
 ## HARD RULES (earned; full text in LESSONS/AGENTS)
   - THE CLIENT IS NEVER MODIFIED - the server must accomplish everything.
   - Reset the server between runs (backgrounded; it hangs AFTER succeeding).
