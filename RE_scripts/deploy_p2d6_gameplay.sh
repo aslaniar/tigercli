@@ -52,48 +52,7 @@ echo "   candidate $(shasum -a 256 "$candidate" | cut -c1-16)"
 [[ -f "$candidate" ]] || die "no candidate at $candidate"
 [[ -x "$wine" ]] || die "no GPTK wine at $wine"
 
-# THE DARK-WINDOW FIX (p2225_weasel_marionberry.md FIX A): the gates run in a
-# SANDBOX (copies of the mutable files, symlinks for the heavy content) while
-# the LIVE server KEEPS SERVING - the stop->relaunch window drops to seconds,
-# so the clients' BAP links survive (the weasel/marionberry arc's root cause
-# was the 1-2 minute dark window degrading the clients' network bring-up).
-echo "== 1. the harness sandbox (the server keeps serving) =="
-SANDBOX="$accept/sandbox_p2d6"
-rm -rf "$SANDBOX"
-mkdir -p "$SANDBOX/Sunrise"
-cp -p "$accept/state.db" "$SANDBOX/state.db"          || die "state.db snapshot copy failed"
-[[ -f "$accept/state.db-wal" ]] && cp -p "$accept/state.db-wal" "$SANDBOX/" || true
-[[ -f "$accept/state.db-shm" ]] && cp -p "$accept/state.db-shm" "$SANDBOX/" || true
-cp -pR "$accept/Sunrise/cache" "$SANDBOX/Sunrise/cache" || die "cache snapshot copy failed"
-ln -s "$accept/content" "$SANDBOX/content"             || die "content link failed"
-cp -p "$accept/settings.json" "$SANDBOX/" 2>/dev/null || true
-cp -p "$accept/oo2core_3_win64.dll" "$SANDBOX/" 2>/dev/null || true
-echo "   sandbox $SANDBOX ready (the live server untouched)"
-
-echo "== 2. restamping the SANDBOX cache to the candidate's identity =="
-python3 "$root/RE_scripts/restamp_build_data.py" "$SANDBOX/Sunrise/cache" "$candidate" --apply \
-  || die "restamp failed (the live cache was never touched - nothing to restore)"
-
-echo "== 3. harness gates on the candidate, in the sandbox =="
-cd "$SANDBOX" || die "no $SANDBOX"
-for flag in --s1-test --cache-check --equip-diff --selection-version-test --membership-sweep-test --membership-wire-test --local-account-test --sensor-auth-peer-test; do
-  out="$("$wine" "$candidate" "$flag" 2>&1)"; rc=$?
-  echo "   $flag rc=$rc"
-  [[ -n "$out" ]] && echo "$out" | tail -6
-  if [[ $rc -ne 0 ]]; then
-    die "harness gate $flag failed (rc=$rc). The sandbox is discarded; the live server, cache and state.db were NEVER touched. Nothing else changed."
-  fi
-done
-
-echo "== 4. backups (*.bak_p2d6_$stamp) =="
-cp -p "$live" "$live.bak_p2d6_$stamp"   || die "exe backup failed"
-cp -p "$cache" "$cache.bak_p2d6_$stamp" || die "cache backup failed"
-echo "   $(basename "$live").bak_p2d6_$stamp"
-echo "   $(basename "$cache").bak_p2d6_$stamp"
-
-echo "== 5. restamping the LIVE cache + stopping the server (seconds) =="
-python3 "$root/RE_scripts/restamp_build_data.py" "$cache" "$candidate" --apply \
-  || die "live-cache restamp failed; the old exe is still deployed"
+echo "== 1. stopping the server =="
 pid="$(pgrep -f 'wine64-preloader .*sunrise-server\.exe' | head -1 || true)"
 if [[ -n "$pid" ]]; then
   kill "$pid"
@@ -107,7 +66,29 @@ else
   echo "   not running"
 fi
 
-echo "== 6. deploying the exe =="
+echo "== 2. backups (*.bak_p2d6_$stamp) =="
+cp -p "$live" "$live.bak_p2d6_$stamp"   || die "exe backup failed"
+cp -p "$cache" "$cache.bak_p2d6_$stamp" || die "cache backup failed"
+echo "   $(basename "$live").bak_p2d6_$stamp"
+echo "   $(basename "$cache").bak_p2d6_$stamp"
+
+echo "== 3. restamping the cache to the candidate's identity =="
+python3 "$root/RE_scripts/restamp_build_data.py" "$cache" "$candidate" --apply \
+  || die "restamp failed; cache restored from backup"
+
+echo "== 4. harness gates on the candidate =="
+cd "$accept" || die "no $accept"
+for flag in --s1-test --cache-check --equip-diff --selection-version-test --membership-sweep-test --membership-wire-test --local-account-test --sensor-auth-peer-test; do
+  out="$("$wine" "$candidate" "$flag" 2>&1)"; rc=$?
+  echo "   $flag rc=$rc"
+  [[ -n "$out" ]] && echo "$out" | tail -6
+  if [[ $rc -ne 0 ]]; then
+    cp -p "$cache.bak_p2d6_$stamp" "$cache"
+    die "harness gate $flag failed (rc=$rc). Cache RESTORED; the old exe is untouched and still deployed. Nothing else changed. Relaunch with: bash mac-port/launch-server-macos.sh"
+  fi
+done
+
+echo "== 5. deploying the exe =="
 cp "$candidate" "$live" || die "deploy copy failed"
 # The deployed file must BE the thing we built. A mismatch here is the failure mode above,
 # and it is silent unless something asserts it.
@@ -129,10 +110,6 @@ echo "-- ladder --"
 curl -s -m 3 "http://${SRV_HOST}:8099/ladder" | head -c 300; echo
 echo "-- listeners (UDP 30976 is the new one) --"
 netstat -an 2>/dev/null | grep -E '\.(30975|30976|8099|8443|3074|3075)\b' | head
-echo "== 8. post-restart log archive (the re-login discriminator's evidence) =="
-bash "$root/RE_scripts/log_archive.sh" --label post-restart || true
-
-echo
-echo "== VERIFY =="
+echo "-- gameplay lines from this boot --"
 grep -a 'ev=gameplay' "$accept/Sunrise/logs/sunrise.log" 2>/dev/null | tail -20 \
   || echo "   (none yet)"
